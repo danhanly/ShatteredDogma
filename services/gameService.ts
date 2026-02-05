@@ -1,5 +1,5 @@
-import { COST_MULTIPLIER, INITIAL_UPGRADE_COST, GEM_DEFINITIONS, MILESTONE_INTERVAL, MILESTONE_DEFINITIONS } from "../constants";
-import { GameState, GemType, WorshipperType, WORSHIPPER_ORDER } from "../types";
+import { COST_MULTIPLIER, INITIAL_UPGRADE_COST, GEM_DEFINITIONS, MILESTONE_INTERVAL, MILESTONE_DEFINITIONS, VESSEL_DEFINITIONS, VESSEL_COST_MULTIPLIER } from "../constants";
+import { GameState, GemType, WorshipperType, WORSHIPPER_ORDER, VesselId } from "../types";
 
 /**
  * Calculates the cost of the next miracle upgrade.
@@ -139,4 +139,52 @@ export const sacrificeWorshippers = (state: GameState): Record<WorshipperType, n
   }
 
   return newWorshippers;
+};
+
+/**
+ * Calculates the cost to buy/upgrade a specific vessel.
+ */
+export const calculateVesselCost = (vesselId: string, currentLevel: number): number => {
+  const def = VESSEL_DEFINITIONS.find(v => v.id === vesselId);
+  if (!def) return 0;
+  return Math.floor(def.baseCost * Math.pow(VESSEL_COST_MULTIPLIER, currentLevel));
+};
+
+/**
+ * Calculates the output (worshippers per second) of a specific vessel.
+ */
+export const calculateVesselOutput = (vesselId: string, currentLevel: number): number => {
+  const def = VESSEL_DEFINITIONS.find(v => v.id === vesselId);
+  if (!def) return 0;
+  return def.baseOutput * currentLevel;
+};
+
+/**
+ * Calculates passive income broken down by worshipper type.
+ */
+export const calculatePassiveIncomeByType = (vesselLevels: Record<string, number>): Record<WorshipperType, number> => {
+  const income: Record<WorshipperType, number> = {
+    [WorshipperType.INDOLENT]: 0,
+    [WorshipperType.LOWLY]: 0,
+    [WorshipperType.WORLDLY]: 0,
+    [WorshipperType.ZEALOUS]: 0,
+  };
+
+  VESSEL_DEFINITIONS.forEach(def => {
+    const level = vesselLevels[def.id] || 0;
+    if (level > 0) {
+      const output = calculateVesselOutput(def.id, level);
+      income[def.type] += output;
+    }
+  });
+
+  return income;
+};
+
+/**
+ * Calculates total passive income per second from all vessels.
+ */
+export const calculateTotalPassiveIncome = (vesselLevels: Record<string, number>): number => {
+  const incomeByType = calculatePassiveIncomeByType(vesselLevels);
+  return Object.values(incomeByType).reduce((total, val) => total + val, 0);
 };

@@ -7,14 +7,14 @@ interface WorshipperModalProps {
   type: WorshipperType | null;
   count: number;
   onClose: () => void;
+  imageUrl: string;
 }
 
-export const WorshipperModal: React.FC<WorshipperModalProps> = ({ type, count, onClose }) => {
+export const WorshipperModal: React.FC<WorshipperModalProps> = ({ type, count, onClose, imageUrl }) => {
   if (!type) return null;
 
   const details = WORSHIPPER_DETAILS[type];
 
-  // Helper for type color styles
   const getTypeColor = (t: WorshipperType) => {
     switch (t) {
       case WorshipperType.WORLDLY: return 'text-green-400 border-green-900';
@@ -31,24 +31,19 @@ export const WorshipperModal: React.FC<WorshipperModalProps> = ({ type, count, o
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in" onClick={onClose}>
       <div 
         className={`relative w-full max-w-md overflow-hidden rounded-xl border-2 bg-eldritch-dark shadow-[0_0_50px_rgba(0,0,0,0.9)] ${typeColor.split(' ')[1]}`}
-        onClick={(e) => e.stopPropagation()} // Prevent closing when clicking inside modal
+        onClick={(e) => e.stopPropagation()} 
       >
-        {/* Header Image - Increased height to h-80 (320px) for better visibility */}
+        {/* Header Image - Full cover display of the worshipper art */}
         <div className="relative h-80 w-full overflow-hidden bg-black">
-            {/* 
-              We use the sprite sheet logic here. 
-              backgroundSize: '200% 200%' zooms in to show exactly 1/4th of the image.
-              backgroundPosition selects which quadrant to show.
-            */}
             <div 
                 className="absolute inset-0 bg-no-repeat" 
                 style={{ 
-                    backgroundImage: `url('${details.imageUrl}')`,
-                    backgroundSize: '200% 200%', 
-                    backgroundPosition: details.position 
+                    backgroundImage: `url('${imageUrl}')`,
+                    backgroundSize: 'cover', 
+                    backgroundPosition: 'center' 
                 }} 
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-eldritch-dark via-eldritch-dark/50 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-eldritch-dark via-eldritch-dark/30 to-transparent" />
             
             <button 
                 onClick={onClose}
@@ -73,11 +68,11 @@ export const WorshipperModal: React.FC<WorshipperModalProps> = ({ type, count, o
                 </span>
             </div>
 
-            <div className="space-y-4 text-gray-300 font-sans leading-relaxed">
+            <div className="space-y-4 text-gray-300 font-sans leading-relaxed text-sm">
                 <p>{details.lore}</p>
             </div>
 
-            <div className="mt-8 text-center text-xs text-gray-600 uppercase tracking-widest">
+            <div className="mt-8 text-center text-xs text-gray-600 uppercase tracking-widest border-t border-white/5 pt-4">
                 Sacrifice Priority determined by Ritual Order
             </div>
         </div>
