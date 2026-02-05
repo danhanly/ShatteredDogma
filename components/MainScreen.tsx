@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { GameState, WorshipperType, ClickEffect, GemType } from '../types';
 import { Crown, Ghost, Frown, ChevronRight, Sword } from 'lucide-react';
 import { WorshipperModal } from './WorshipperModal';
+import { formatNumber } from '../utils/format';
 
 interface MainScreenProps {
   gameState: GameState;
@@ -157,7 +158,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({ gameState, milestoneStat
             <span className={`hidden font-serif text-xs ${textColor} sm:block`}>{type}</span>
             <span className={`block font-serif text-[10px] ${textColor} sm:hidden`}>{type.slice(0, 3)}</span>
             <span className="font-mono text-xs font-bold text-white sm:text-lg">
-                {count.toLocaleString()}
+                {formatNumber(count)}
             </span>
         </div>
         {!isLast && (
@@ -236,7 +237,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({ gameState, milestoneStat
                 <div className="absolute inset-0 rounded-full opacity-50 bg-[radial-gradient(circle_at_30%_30%,rgba(255,255,255,0.1),transparent)]" />
                 <div className="z-20 flex flex-col items-center drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
                   <span className="font-mono text-2xl font-black text-white sm:text-3xl lg:text-4xl">
-                    {gameState.totalWorshippers.toLocaleString()}
+                    {formatNumber(gameState.totalWorshippers)}
                   </span>
                   <span className="font-serif text-[10px] uppercase tracking-widest text-eldritch-gold/80 sm:text-xs">
                     Worshippers
@@ -260,7 +261,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({ gameState, milestoneStat
             textShadow: '0 0 10px rgba(255,0,0,0.8)'
           }}
         >
-          +{effect.value}
+          +{formatNumber(effect.value)}
         </div>
       ))}
     </div>

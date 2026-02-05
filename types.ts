@@ -1,3 +1,4 @@
+
 export enum WorshipperType {
   WORLDLY = 'Worldly',
   LOWLY = 'Lowly',
@@ -56,6 +57,7 @@ export interface GameState {
   settings: {
     soundEnabled: boolean;
   };
+  lastSaveTime: number; // Timestamp
 }
 
 export interface ClickEffect {

@@ -2,6 +2,7 @@ import React from 'react';
 import { VesselDefinition, WorshipperType } from '../types';
 import { X, User, Crown, Frown, Ghost, Sword } from 'lucide-react';
 import { calculateVesselOutput } from '../services/gameService';
+import { formatNumber } from '../utils/format';
 
 interface VesselModalProps {
   vessel: VesselDefinition | null;
@@ -84,11 +85,11 @@ export const VesselModal: React.FC<VesselModalProps> = ({ vessel, level, onClose
             <div className="mt-6 grid grid-cols-2 gap-3">
                 <div className="rounded bg-black/40 p-3 border border-white/5 text-center">
                     <div className="text-[10px] uppercase text-gray-500 tracking-wider">Current Output</div>
-                    <div className="font-mono text-lg font-bold text-white">+{currentOutput}/s</div>
+                    <div className="font-mono text-lg font-bold text-white">+{formatNumber(currentOutput)}/s</div>
                 </div>
                 <div className="rounded bg-black/40 p-3 border border-white/5 text-center">
                     <div className="text-[10px] uppercase text-gray-500 tracking-wider">Next Level</div>
-                    <div className={`font-mono text-lg font-bold ${typeColor.split(' ')[0]}`}>+{nextOutput}/s</div>
+                    <div className={`font-mono text-lg font-bold ${typeColor.split(' ')[0]}`}>+{formatNumber(nextOutput)}/s</div>
                 </div>
             </div>
         </div>

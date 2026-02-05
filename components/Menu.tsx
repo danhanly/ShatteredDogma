@@ -4,6 +4,7 @@ import { GEM_DEFINITIONS, GEM_DISPLAY_ORDER, VESSEL_DEFINITIONS } from '../const
 import { calculateVesselCost, calculateVesselOutput } from '../services/gameService';
 import { Sparkles, ArrowUpCircle, ChevronUp, ChevronDown, Crown, Frown, Ghost, Sword, User, Info } from 'lucide-react';
 import { VesselModal } from './VesselModal';
+import { formatNumber } from '../utils/format';
 
 interface MenuProps {
   gameState: GameState;
@@ -125,7 +126,7 @@ export const Menu: React.FC<MenuProps> = ({
                  {milestoneState.isMilestone ? 'Milestone Reward:' : 'Power:'}
               </span>
               <span className="font-bold text-white">
-                 {milestoneState.isMilestone ? 'Ascension' : `+${clickPower} / Tap`}
+                 {milestoneState.isMilestone ? 'Ascension' : `+${formatNumber(clickPower)} / Tap`}
               </span>
             </div>
             
@@ -158,7 +159,7 @@ export const Menu: React.FC<MenuProps> = ({
               </div>
               <div className="text-right">
                 <div className={`font-mono text-base sm:text-lg font-bold ${canAfford ? 'text-red-400' : 'text-gray-600'}`}>
-                  {upgradeCost.toLocaleString()}
+                  {formatNumber(upgradeCost)}
                 </div>
                 <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-gray-500">
                    {milestoneState.isMilestone && milestoneState.definition 
@@ -267,7 +268,7 @@ export const Menu: React.FC<MenuProps> = ({
                                          <h4 className={`font-serif text-sm font-bold truncate ${typeColor.split(' ')[0]}`}>{vessel.name}</h4>
                                          <p className="text-xs text-gray-500 truncate">{vessel.subtitle}</p>
                                          <div className="mt-1 flex items-center gap-2 text-[10px] uppercase tracking-wider text-gray-400">
-                                             <span>Rate: +{output}/s</span>
+                                             <span>Rate: +{formatNumber(output)}/s</span>
                                          </div>
                                      </div>
                                      
@@ -295,7 +296,7 @@ export const Menu: React.FC<MenuProps> = ({
                                  </span>
                                  <div className="flex items-center gap-1.5">
                                      <span className={`font-mono text-sm font-bold ${canBuy ? 'text-white' : 'text-gray-500'}`}>
-                                         {cost.toLocaleString()}
+                                         {formatNumber(cost)}
                                      </span>
                                      <TypeIcon className={`h-3 w-3 ${typeColor.split(' ')[0]}`} />
                                  </div>

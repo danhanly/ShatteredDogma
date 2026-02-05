@@ -2,6 +2,7 @@ import React from 'react';
 import { WorshipperType } from '../types';
 import { WORSHIPPER_DETAILS } from '../constants';
 import { X } from 'lucide-react';
+import { formatNumber } from '../utils/format';
 
 interface WorshipperModalProps {
   type: WorshipperType | null;
@@ -64,7 +65,7 @@ export const WorshipperModal: React.FC<WorshipperModalProps> = ({ type, count, o
             <div className="mb-6 flex items-center justify-between rounded-lg bg-black/40 p-3 border border-eldritch-grey/20">
                 <span className="font-serif text-gray-400">Current Count</span>
                 <span className={`font-mono text-xl font-bold ${typeColor.split(' ')[0]}`}>
-                    {count.toLocaleString()}
+                    {formatNumber(count)}
                 </span>
             </div>
 

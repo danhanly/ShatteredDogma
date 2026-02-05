@@ -4,6 +4,7 @@ import { Header } from './components/Header';
 import { MainScreen } from './components/MainScreen';
 import { Menu } from './components/Menu';
 import { GemDiscoveryModal } from './components/GemDiscoveryModal';
+import { OfflineModal } from './components/OfflineModal';
 import { WorshipperType } from './types';
 import { VESSEL_DEFINITIONS } from './constants';
 
@@ -20,29 +21,47 @@ const App: React.FC = () => {
     purchaseVessel,
     equipGem,
     toggleSound,
-    closeDiscovery
+    closeDiscovery,
+    offlineGains,
+    closeOfflineModal
   } = useGame();
 
   // Store Blob URLs for each worshipper type
   const [worshipperImages, setWorshipperImages] = useState<Record<WorshipperType, string>>({
-    [WorshipperType.INDOLENT]: "public/indolent.jpeg",
-    [WorshipperType.LOWLY]: "public/lowly.jpeg",
-    [WorshipperType.WORLDLY]: "public/worldly.jpeg",
-    [WorshipperType.ZEALOUS]: "public/zealous.jpeg",
+    [WorshipperType.INDOLENT]: "",
+    [WorshipperType.LOWLY]: "",
+    [WorshipperType.WORLDLY]: "",
+    [WorshipperType.ZEALOUS]: "",
   });
 
-  const [bgUrl, setBgUrl] = useState<string>("public/bg.jpeg");
+  const [bgUrl, setBgUrl] = useState<string>("");
   const [vesselImages, setVesselImages] = useState<Record<string, string>>({});
+
+  // Helper to determine asset path prefix based on environment
+  const getAssetPrefix = () => {
+    // Check for Vite environment
+    // @ts-ignore
+    if (typeof import.meta.env !== 'undefined' && import.meta.env.BASE_URL) {
+      // In Vite (Dev or Build), assets in 'public' are served at root (or base)
+      // @ts-ignore
+      const base = import.meta.env.BASE_URL;
+      return base.endsWith('/') ? base : `${base}/`;
+    }
+    // Fallback for Raw Preview (Google AI Studio) where files are served from root
+    return 'public/';
+  };
 
   // Load each image as a blob to ensure consistent rendering
   useEffect(() => {
+    const prefix = getAssetPrefix();
+    
     const IMAGE_PATHS = {
-      [WorshipperType.INDOLENT]: "public/indolent.jpeg",
-      [WorshipperType.LOWLY]: "public/lowly.jpeg",
-      [WorshipperType.WORLDLY]: "public/worldly.jpeg",
-      [WorshipperType.ZEALOUS]: "public/zealous.jpeg",
+      [WorshipperType.INDOLENT]: `${prefix}indolent.jpeg`,
+      [WorshipperType.LOWLY]: `${prefix}lowly.jpeg`,
+      [WorshipperType.WORLDLY]: `${prefix}worldly.jpeg`,
+      [WorshipperType.ZEALOUS]: `${prefix}zealous.jpeg`,
     };
-    const BG_PATH = "public/bg.jpeg";
+    const BG_PATH = `${prefix}bg.jpeg`;
 
     const loadedUrls: string[] = [];
 
@@ -59,7 +78,7 @@ const App: React.FC = () => {
           newImages[type as WorshipperType] = url;
           loadedUrls.push(url);
         } catch (e) {
-          console.warn(`Falling back to default path for ${type}:`, e);
+          console.warn(`Falling back to default path for ${type} (Path: ${path}):`, e);
         }
       }
       setWorshipperImages(newImages);
@@ -73,7 +92,7 @@ const App: React.FC = () => {
         setBgUrl(url);
         loadedUrls.push(url);
       } catch (e) {
-        console.warn(`Falling back to default path for bg:`, e);
+        console.warn(`Falling back to default path for bg (Path: ${BG_PATH}):`, e);
       }
 
       // Load Vessels
@@ -84,7 +103,8 @@ const App: React.FC = () => {
          if (parts.length === 2) {
              const typeFolder = def.type.toLowerCase();
              const number = parts[1];
-             const path = `public/vessels/${typeFolder}/${number}.jpeg`;
+             // Note: Prefix logic applied here too
+             const path = `${prefix}vessels/${typeFolder}/${number}.jpeg`;
              
              try {
                 const response = await fetch(path);
@@ -145,6 +165,15 @@ const App: React.FC = () => {
         gem={gameState.showGemDiscovery} 
         onClose={closeDiscovery} 
       />
+
+      {/* Offline Welcome Back Modal */}
+      {offlineGains && (
+        <OfflineModal 
+            gains={offlineGains.gains} 
+            timeOffline={offlineGains.time} 
+            onClose={closeOfflineModal} 
+        />
+      )}
     </div>
   );
 };

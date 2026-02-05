@@ -12,7 +12,7 @@ import {
   calculatePassiveIncomeByType
 } from '../services/gameService';
 
-const STORAGE_KEY = 'shattered_dogma_save_v1.1'; // Bumped version
+const STORAGE_KEY = 'shattered_dogma_save_v1.1'; 
 
 const INITIAL_STATE: GameState = {
   worshippers: {
@@ -23,22 +23,28 @@ const INITIAL_STATE: GameState = {
   },
   totalWorshippers: 0,
   miracleLevel: 0,
-  vesselLevels: {}, // New
+  vesselLevels: {}, 
   equippedGem: GemType.NONE,
   unlockedGems: [],
   showGemDiscovery: null,
   settings: {
     soundEnabled: true,
   },
+  lastSaveTime: Date.now(),
 };
 
 export const useGame = () => {
+  const [offlineGains, setOfflineGains] = useState<{ gains: Record<WorshipperType, number>, time: number } | null>(null);
+
   const [gameState, setGameState] = useState<GameState>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
-        return {
+        const now = Date.now();
+        
+        // Merge saved state with initial structure to handle new fields
+        const loadedState = {
           ...INITIAL_STATE,
           ...parsed,
           worshippers: {
@@ -51,14 +57,60 @@ export const useGame = () => {
           },
           vesselLevels: parsed.vesselLevels || {},
           unlockedGems: parsed.unlockedGems || [],
-          showGemDiscovery: null
+          showGemDiscovery: null,
+          lastSaveTime: parsed.lastSaveTime || now // Default to now if missing
         };
+        
+        return loadedState;
       }
     } catch (e) {
       console.warn('Failed to load save data:', e);
     }
     return INITIAL_STATE;
   });
+
+  // Offline Calculation Effect (Runs once on mount)
+  useEffect(() => {
+    if (gameState.lastSaveTime) {
+      const now = Date.now();
+      const timeDiffSeconds = (now - gameState.lastSaveTime) / 1000;
+
+      // Only calculate if away for more than 10 seconds
+      if (timeDiffSeconds > 10) {
+        const incomeByType = calculatePassiveIncomeByType(gameState.vesselLevels);
+        const totalIncome = Object.values(incomeByType).reduce((a, b) => a + b, 0);
+
+        if (totalIncome > 0) {
+           const gains: Record<WorshipperType, number> = {
+               [WorshipperType.INDOLENT]: incomeByType[WorshipperType.INDOLENT] * timeDiffSeconds,
+               [WorshipperType.LOWLY]: incomeByType[WorshipperType.LOWLY] * timeDiffSeconds,
+               [WorshipperType.WORLDLY]: incomeByType[WorshipperType.WORLDLY] * timeDiffSeconds,
+               [WorshipperType.ZEALOUS]: incomeByType[WorshipperType.ZEALOUS] * timeDiffSeconds,
+           };
+
+           const totalGained = Object.values(gains).reduce((a, b) => a + b, 0);
+
+           // Apply gains immediately to state
+           setGameState(prev => {
+              const newWorshippers = { ...prev.worshippers };
+              (Object.keys(gains) as WorshipperType[]).forEach(type => {
+                  newWorshippers[type] += gains[type];
+              });
+
+              return {
+                  ...prev,
+                  worshippers: newWorshippers,
+                  totalWorshippers: prev.totalWorshippers + totalGained,
+                  lastSaveTime: now 
+              };
+           });
+
+           // Show modal
+           setOfflineGains({ gains, time: timeDiffSeconds });
+        }
+      }
+    }
+  }, []); // Empty dependency array ensures this runs only on mount
 
   const lastPassiveTick = useRef(Date.now());
 
@@ -67,6 +119,9 @@ export const useGame = () => {
     const intervalId = setInterval(() => {
       const now = Date.now();
       const delta = (now - lastPassiveTick.current) / 1000; // seconds
+      
+      // Perform tick if delta is reasonable (prevents huge jumps if tab was suspended but timer didn't fire)
+      // Actually, standard setInterval handling is fine here, we rely on lastSaveTime for real offline calc.
       if (delta >= 1) {
         lastPassiveTick.current = now;
         
@@ -84,9 +139,13 @@ export const useGame = () => {
              return {
                 ...prev,
                 totalWorshippers: prev.totalWorshippers + totalIncome,
-                worshippers: newWorshippers
+                worshippers: newWorshippers,
+                lastSaveTime: now // Update save time on tick
              };
           });
+        } else {
+             // Still update time even if no income
+             setGameState(prev => ({ ...prev, lastSaveTime: now }));
         }
       }
     }, 1000);
@@ -115,6 +174,7 @@ export const useGame = () => {
     setGameState(prev => {
       const type = rollWorshipperType(prev.equippedGem);
       const power = calculateClickPower(prev.miracleLevel);
+      const now = Date.now();
       
       return {
         ...prev,
@@ -123,6 +183,7 @@ export const useGame = () => {
           [type]: prev.worshippers[type] + power,
         },
         totalWorshippers: prev.totalWorshippers + power,
+        lastSaveTime: now
       };
     });
     
@@ -139,7 +200,6 @@ export const useGame = () => {
       const newTotal = Object.values(newWorshippers).reduce((a, b) => a + b, 0);
       const nextLevel = prev.miracleLevel + 1;
       
-      // Check if the NEWLY REACHED level is a milestone level
       const nextMilestone = getMilestoneState(nextLevel);
       let nextUnlockedGems = [...prev.unlockedGems];
       let discoveryGem = null;
@@ -158,7 +218,8 @@ export const useGame = () => {
         totalWorshippers: newTotal,
         miracleLevel: nextLevel,
         unlockedGems: nextUnlockedGems,
-        showGemDiscovery: discoveryGem
+        showGemDiscovery: discoveryGem,
+        lastSaveTime: Date.now()
       };
     });
   }, [gameState]);
@@ -180,13 +241,18 @@ export const useGame = () => {
             vesselLevels: {
                 ...prev.vesselLevels,
                 [vesselId]: currentLevel + 1
-            }
+            },
+            lastSaveTime: Date.now()
         };
     });
   }, []);
 
   const closeDiscovery = useCallback(() => {
     setGameState(prev => ({ ...prev, showGemDiscovery: null }));
+  }, []);
+
+  const closeOfflineModal = useCallback(() => {
+    setOfflineGains(null);
   }, []);
 
   const equipGem = useCallback((gem: GemType) => {
@@ -215,6 +281,8 @@ export const useGame = () => {
     purchaseVessel,
     equipGem,
     toggleSound,
-    closeDiscovery
+    closeDiscovery,
+    offlineGains,
+    closeOfflineModal
   };
 };
