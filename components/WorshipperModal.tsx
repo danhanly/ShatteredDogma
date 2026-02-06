@@ -1,17 +1,21 @@
+
 import React from 'react';
-import { WorshipperType } from '../types';
+import { GameState, WorshipperType } from '../types';
 import { WORSHIPPER_DETAILS } from '../constants';
-import { X } from 'lucide-react';
+import { X, Activity, Lock, Unlock } from 'lucide-react';
 import { formatNumber } from '../utils/format';
+import { calculatePassiveIncomeByType } from '../services/gameService';
 
 interface WorshipperModalProps {
   type: WorshipperType | null;
   count: number;
   onClose: () => void;
   imageUrl: string;
+  gameState: GameState;
+  toggleWorshipperLock: (type: WorshipperType) => void;
 }
 
-export const WorshipperModal: React.FC<WorshipperModalProps> = ({ type, count, onClose, imageUrl }) => {
+export const WorshipperModal: React.FC<WorshipperModalProps> = ({ type, count, onClose, imageUrl, gameState, toggleWorshipperLock }) => {
   if (!type) return null;
 
   const details = WORSHIPPER_DETAILS[type];
@@ -27,6 +31,9 @@ export const WorshipperModal: React.FC<WorshipperModalProps> = ({ type, count, o
   };
 
   const typeColor = getTypeColor(type);
+  const incomeByType = calculatePassiveIncomeByType(gameState.vesselLevels, gameState.relicLevels);
+  const currentRate = incomeByType[type];
+  const isLocked = gameState.lockedWorshippers.includes(type);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in" onClick={onClose}>
@@ -34,7 +41,6 @@ export const WorshipperModal: React.FC<WorshipperModalProps> = ({ type, count, o
         className={`relative w-full max-w-md overflow-hidden rounded-xl border-2 bg-eldritch-dark shadow-[0_0_50px_rgba(0,0,0,0.9)] ${typeColor.split(' ')[1]}`}
         onClick={(e) => e.stopPropagation()} 
       >
-        {/* Header Image - Full cover display of the worshipper art */}
         <div className="relative h-80 w-full overflow-hidden bg-black">
             <div 
                 className="absolute inset-0 bg-no-repeat" 
@@ -62,20 +68,45 @@ export const WorshipperModal: React.FC<WorshipperModalProps> = ({ type, count, o
         </div>
 
         <div className="p-6">
-            <div className="mb-6 flex items-center justify-between rounded-lg bg-black/40 p-3 border border-eldritch-grey/20">
-                <span className="font-serif text-gray-400">Current Count</span>
-                <span className={`font-mono text-xl font-bold ${typeColor.split(' ')[0]}`}>
-                    {formatNumber(count)}
-                </span>
+            <div className="grid grid-cols-2 gap-3 mb-6">
+                <div className="flex flex-col rounded-lg bg-black/40 p-3 border border-white/5">
+                    <span className="text-[10px] uppercase text-gray-500 tracking-wider">Current Count</span>
+                    <span className={`font-mono text-lg font-bold ${typeColor.split(' ')[0]}`}>
+                        {formatNumber(count)}
+                    </span>
+                </div>
+                <div className="flex flex-col rounded-lg bg-black/40 p-3 border border-white/5">
+                    <div className="flex items-center gap-1.5 mb-0.5">
+                        <Activity className="h-2 w-2 text-green-500" />
+                        <span className="text-[10px] uppercase text-gray-500 tracking-wider">Siphon Rate</span>
+                    </div>
+                    <span className="font-mono text-lg font-bold text-green-400">
+                        +{formatNumber(currentRate)}/s
+                    </span>
+                </div>
             </div>
 
             <div className="space-y-4 text-gray-300 font-sans leading-relaxed text-sm">
                 <p>{details.lore}</p>
             </div>
 
-            <div className="mt-8 text-center text-xs text-gray-600 uppercase tracking-widest border-t border-white/5 pt-4">
-                Sacrifice Priority determined by Ritual Order
+            <div className="mt-8 flex items-center justify-between border-t border-white/5 pt-4">
+                <div className="text-xs text-gray-600 uppercase tracking-widest">
+                    Sacrifice Status
+                </div>
+                <button 
+                    onClick={() => toggleWorshipperLock(type)}
+                    className={`flex items-center gap-2 rounded px-3 py-1.5 transition-colors ${isLocked ? 'bg-eldritch-crimson text-white border border-red-500' : 'bg-black/40 text-gray-400 border border-white/10 hover:bg-white/10'}`}
+                >
+                    {isLocked ? <Lock className="h-3 w-3" /> : <Unlock className="h-3 w-3" />}
+                    <span className="text-xs font-bold uppercase tracking-wider">{isLocked ? 'Locked' : 'Unlocked'}</span>
+                </button>
             </div>
+            {isLocked && (
+                <div className="mt-4 rounded bg-red-950/40 border border-red-500/30 p-2 text-center animate-in fade-in slide-in-from-top-1">
+                    <p className="text-xs text-red-300 font-bold italic">This worshipper type will NOT be sacrificed for miracles.</p>
+                </div>
+            )}
         </div>
       </div>
     </div>

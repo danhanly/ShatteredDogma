@@ -9,6 +9,7 @@ interface VesselModalProps {
   level: number;
   onClose: () => void;
   imageUrl?: string;
+  relicLevels?: Record<string, number>;
 }
 
 const ICON_MAP = {
@@ -18,11 +19,11 @@ const ICON_MAP = {
   [WorshipperType.INDOLENT]: Ghost,
 };
 
-export const VesselModal: React.FC<VesselModalProps> = ({ vessel, level, onClose, imageUrl }) => {
+export const VesselModal: React.FC<VesselModalProps> = ({ vessel, level, onClose, imageUrl, relicLevels = {} }) => {
   if (!vessel) return null;
 
-  const currentOutput = calculateVesselOutput(vessel.id, level);
-  const nextOutput = calculateVesselOutput(vessel.id, level + 1);
+  const currentOutput = calculateVesselOutput(vessel.id, level, relicLevels);
+  const nextOutput = calculateVesselOutput(vessel.id, level + 1, relicLevels);
   const TypeIcon = ICON_MAP[vessel.type];
 
   let typeColor = 'text-gray-400 border-gray-700 bg-gray-900';

@@ -36,6 +36,17 @@ export enum VesselId {
   ZEALOUS_4 = 'ZEALOUS_4',
 }
 
+export enum RelicId {
+  MIRACLE_BOOST = 'MIRACLE_BOOST',
+  INDOLENT_BOOST = 'INDOLENT_BOOST',
+  LOWLY_BOOST = 'LOWLY_BOOST',
+  WORLDLY_BOOST = 'WORLDLY_BOOST',
+  ZEALOUS_BOOST = 'ZEALOUS_BOOST',
+  ALL_VESSEL_BOOST = 'ALL_VESSEL_BOOST',
+  OFFLINE_BOOST = 'OFFLINE_BOOST',
+  GEM_BOOST = 'GEM_BOOST',
+}
+
 export interface VesselDefinition {
   id: VesselId;
   name: string;
@@ -44,18 +55,42 @@ export interface VesselDefinition {
   type: WorshipperType;
   baseCost: number;
   baseOutput: number; // Worshippers per second
+  tier: number;
+}
+
+export interface RelicDefinition {
+  id: RelicId;
+  name: string;
+  description: string;
+  baseCost: number;
 }
 
 export interface GameState {
   worshippers: Record<WorshipperType, number>;
   totalWorshippers: number;
+  totalAccruedWorshippers: number; // New variable for lifetime worshippers (this run)
+  lockedWorshippers: WorshipperType[]; 
   miracleLevel: number;
   vesselLevels: Record<string, number>; // Map VesselId to level
   equippedGem: GemType;
   unlockedGems: GemType[];
   showGemDiscovery: GemType | null;
+  souls: number;
+  relicLevels: Record<string, number>; // Map RelicId to level
+  
+  // Historical stats
+  maxTotalWorshippers: number;
+  maxWorshippersByType: Record<WorshipperType, number>;
+  
+  // Flags
+  hasSeenEodIntro: boolean;
+  hasSeenStartSplash: boolean;
+  hasSeenVesselIntro: boolean;
+
   settings: {
     soundEnabled: boolean;
+    musicEnabled: boolean;
+    musicVolume: number;
   };
   lastSaveTime: number; // Timestamp
 }

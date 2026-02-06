@@ -1,9 +1,18 @@
-import { GemType, WorshipperType, VesselId, VesselDefinition } from "./types";
+
+import { GemType, WorshipperType, VesselId, VesselDefinition, RelicId, RelicDefinition } from "./types";
 
 export const INITIAL_UPGRADE_COST = 25;
 export const COST_MULTIPLIER = 1.15;
 export const MILESTONE_INTERVAL = 25;
-export const VESSEL_COST_MULTIPLIER = 1.25;
+
+export const PRESTIGE_UNLOCK_THRESHOLD = 1000000;
+
+export const MILESTONE_MULTIPLIERS: Record<WorshipperType, number> = {
+  [WorshipperType.INDOLENT]: 5,
+  [WorshipperType.LOWLY]: 2.5,
+  [WorshipperType.WORLDLY]: 1.75,
+  [WorshipperType.ZEALOUS]: 1.25,
+};
 
 export const WORSHIPPER_DETAILS: Record<WorshipperType, {
   description: string;
@@ -72,29 +81,80 @@ export const GEM_DEFINITIONS: Record<GemType, {
   },
   [GemType.GREED_STONE]: {
     name: "Greed Stone",
-    description: "Attracts those bound to earthly possessions (Worldly).",
+    description: "Significantly improves the chance to attract those bound to earthly possessions (Worldly).",
     favoredType: WorshipperType.WORLDLY,
     color: "bg-green-900 border-green-500 shadow-[0_0_15px_rgba(74,222,128,0.3)]"
   },
   [GemType.POOR_MANS_TEAR]: {
     name: "Poor Man's Tear",
-    description: "Attracts the downtrodden and meek (Lowly).",
+    description: "Significantly improves the chance to attract the downtrodden and meek (Lowly).",
     favoredType: WorshipperType.LOWLY,
     color: "bg-gray-700 border-gray-400 shadow-[0_0_15px_rgba(156,163,175,0.3)]"
   },
   [GemType.BLOOD_RUBY]: {
     name: "Blood Ruby",
-    description: "Attracts the fanatical and aggressive (Zealous).",
+    description: "Significantly improves the chance to attract the fanatical and aggressive (Zealous).",
     favoredType: WorshipperType.ZEALOUS,
     color: "bg-red-900 border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.3)]"
   },
   [GemType.SLOTH_SAPPHIRE]: {
     name: "Sloth Sapphire",
-    description: "Attracts the lazy and passive (Indolent).",
+    description: "Significantly improves the chance to attract the lazy and passive (Indolent).",
     favoredType: WorshipperType.INDOLENT,
     color: "bg-blue-900 border-blue-500 shadow-[0_0_15px_rgba(96,165,250,0.3)]"
   }
 };
+
+export const RELIC_DEFINITIONS: RelicDefinition[] = [
+  {
+    id: RelicId.MIRACLE_BOOST,
+    name: "Hand of the Void",
+    description: "Miracles are 5% more effective per level.",
+    baseCost: 1
+  },
+  {
+    id: RelicId.INDOLENT_BOOST,
+    name: "Shepherd's Crook",
+    description: "Indolent vessels produce +5% more per level.",
+    baseCost: 1
+  },
+  {
+    id: RelicId.LOWLY_BOOST,
+    name: "Chain of Binding",
+    description: "Lowly vessels produce +5% more per level.",
+    baseCost: 1
+  },
+  {
+    id: RelicId.WORLDLY_BOOST,
+    name: "Coin of Charon",
+    description: "Worldly vessels produce +5% more per level.",
+    baseCost: 1
+  },
+  {
+    id: RelicId.ZEALOUS_BOOST,
+    name: "Blade of the Martyr",
+    description: "Zealous vessels produce +5% more per level.",
+    baseCost: 1
+  },
+  {
+    id: RelicId.ALL_VESSEL_BOOST,
+    name: "Crown of Eternity",
+    description: "All vessels produce +2% more per level.",
+    baseCost: 1
+  },
+  {
+    id: RelicId.OFFLINE_BOOST,
+    name: "Hourglass of the Sleeper",
+    description: "Increases max offline time by +5 minutes per level (Base: 30m).",
+    baseCost: 1
+  },
+  {
+    id: RelicId.GEM_BOOST,
+    name: "Prism of Desire",
+    description: "Focus Gems are +50% more effective at attracting their target per level.",
+    baseCost: 1
+  }
+];
 
 export const GEM_DISPLAY_ORDER = [
   GemType.SLOTH_SAPPHIRE, // Indolent
@@ -104,155 +164,172 @@ export const GEM_DISPLAY_ORDER = [
 ];
 
 export const VESSEL_DEFINITIONS: VesselDefinition[] = [
-  // TIER 1
+  // TIER 1 (Benefit: 15/s each)
   {
     id: VesselId.INDOLENT_1,
     name: "Mudge the Slumbering",
     subtitle: "The Drifter",
-    lore: "Mudge has forgotten the sound of his own voice. Years of scavenging in the city’s gutters have left him with a soul so thin it barely anchors his body to the earth. He does not dream of the Great Beyond; he simply exists as a slow-burning ember, providing the cult with just enough warmth to begin the ritual.",
+    lore: "Mudge has forgotten the sound of his own voice. Years of scavenging in the city’s gutters have left him with a soul so thin it barely anchors his body to the earth.",
     type: WorshipperType.INDOLENT,
-    baseCost: 15,
-    baseOutput: 1
+    baseCost: 100,
+    baseOutput: 15,
+    tier: 1
   },
   {
     id: VesselId.LOWLY_1,
     name: "Little Pip, the Empty",
     subtitle: "The Destitute",
-    lore: "Pip died of hunger in a doorway three days before the cult found him; it just took a while for his body to realize it. The cult’s energy has stepped into the space where his childhood should have been. He is a quiet, haunting battery, his small frame vibrating with a power that tastes of cold iron and tears.",
+    lore: "Pip died of hunger in a doorway three days before the cult found him; it just took a while for his body to realize it.",
     type: WorshipperType.LOWLY,
-    baseCost: 100,
-    baseOutput: 4
+    baseCost: 250,
+    baseOutput: 15,
+    tier: 1
   },
   {
     id: VesselId.WORLDLY_1,
     name: "Caspian Gold-Tongue",
     subtitle: "The Cunning Merchant",
-    lore: "Caspian prides himself on knowing the price of everything. He sees the eldritch mist as a new currency—a volatile asset he can trade for influence. He wears the coiling energy like a fine silk shawl, never noticing that the mist is slowly tightening its grip around his throat.",
+    lore: "Caspian prides himself on knowing the price of everything. He sees the eldritch mist as a new currency—a volatile asset he can trade for influence.",
     type: WorshipperType.WORLDLY,
     baseCost: 500,
-    baseOutput: 12
+    baseOutput: 15,
+    tier: 1
   },
   {
     id: VesselId.ZEALOUS_1,
     name: "Kaleb the Fevered",
     subtitle: "The Fanatic Cultist",
-    lore: "Kaleb doesn't sleep; he only trembles. His devotion is so intense it has begun to cook his mind, manifesting as a jittery, pale psionic aura. He is the first to charge, his simple dagger vibrating with a frequency that can cut through the fabric of a man’s sanity.",
+    lore: "Kaleb doesn't sleep; he only trembles. His devotion is so intense it has begun to cook his mind, manifesting as a jittery, pale psionic aura.",
     type: WorshipperType.ZEALOUS,
     baseCost: 2000,
-    baseOutput: 40
+    baseOutput: 15,
+    tier: 1
   },
 
-  // TIER 2
+  // TIER 2 (Benefit: 400/s each)
   {
     id: VesselId.INDOLENT_2,
     name: "Haman of the Heavy Breath",
     subtitle: "The Labourer",
-    lore: "For decades, Haman moved the stones that built the city's cathedrals. Now, his lungs are filled with dust and his will is spent. He has stopped fighting the encroaching mist, finding it a lighter burden than the pickaxe. He is a sturdy vessel, his thick frame holding a steady, low-grade hum of harvested energy.",
+    lore: "For decades, Haman moved the stones that built the city's cathedrals. Now, his lungs are filled with dust and his will is spent.",
     type: WorshipperType.INDOLENT,
     baseCost: 5000,
-    baseOutput: 80
+    baseOutput: 400,
+    tier: 2
   },
   {
     id: VesselId.LOWLY_2,
     name: "Kaelen the Unmade",
     subtitle: "The Broken Worker",
-    lore: "Kaelen was a man of iron until the day the mine collapsed, taking his legs and his hope. The despair that followed was so profound it became a physical weight. The cult does not heal him; they simply fill the cracks in his broken psyche with dark essence, turning his misery into a beacon for the Void.",
+    lore: "Kaelen was a man of iron until the day the mine collapsed, taking his legs and his hope. The despair that followed was so profound it became a physical weight.",
     type: WorshipperType.LOWLY,
     baseCost: 15000,
-    baseOutput: 200
+    baseOutput: 400,
+    tier: 2
   },
   {
     id: VesselId.WORLDLY_2,
     name: "Baron Valerius Thorne",
     subtitle: "The Ambitious Lord",
-    lore: "The Baron is obsessed with the \"Thorne\" name surviving the coming dark. He has used the cult's influence to purge his rivals and secure his borders. He clutches his lineage scrolls with white-knuckled fervor, oblivious to the fact that the energy wrapping around them is erasing the ink of his ancestors.",
+    lore: "The Baron is obsessed with the \"Thorne\" name surviving the coming dark. He has used the cult's influence to purge his rivals.",
     type: WorshipperType.WORLDLY,
     baseCost: 40000,
-    baseOutput: 450
+    baseOutput: 400,
+    tier: 2
   },
   {
     id: VesselId.ZEALOUS_2,
     name: "Varkas the Spiked",
     subtitle: "The Zealot Warrior",
-    lore: "Varkas has driven iron spikes into his own flesh to ensure he never knows a moment’s peace from his devotion. His mace is a focus for his hatred, wreathed in a psionic fire that hums like a hornet’s nest. He is the cult’s blunt instrument, a soldier of the \"True Will.\"",
+    lore: "Varkas has driven iron spikes into his own flesh to ensure he never knows a moment’s peace from his devotion.",
     type: WorshipperType.ZEALOUS,
     baseCost: 100000,
-    baseOutput: 1000
+    baseOutput: 400,
+    tier: 2
   },
 
-  // TIER 3
+  // TIER 3 (Benefit: 12,000/s each)
   {
     id: VesselId.INDOLENT_3,
     name: "Master Silas Vane",
     subtitle: "The Merchant",
-    lore: "Silas once believed that a full belly and a locked vault were the only shields a man needed. When the cult came, he tried to bribe the shadows. Now he sits in his velvet chair, remarkably well-preserved, but his wealth has become the \"biomass\" that feeds the furnace—a rich, marbeled source of fuel for the higher rites.",
+    lore: "Silas once believed that a full belly and a locked vault were the only shields a man needed. When the cult came, he tried to bribe the shadows.",
     type: WorshipperType.INDOLENT,
     baseCost: 250000,
-    baseOutput: 2500
+    baseOutput: 12000,
+    tier: 3
   },
   {
     id: VesselId.LOWLY_3,
     name: "Erasmus the Silenced",
     subtitle: "The Disgraced Scholar",
-    lore: "Erasmus spent forty years translating the Liturgy of Screams only to realize that words are useless. He burned his library and tore out his own tongue to make room for the \"True Language.\" He is no longer a scholar; he is a living inkwell, his intellectual vacuum drawing in massive currents of dark energy.",
+    lore: "Erasmus spent forty years translating the Liturgy of Screams only to realize that words are useless. He burned his library.",
     type: WorshipperType.LOWLY,
     baseCost: 600000,
-    baseOutput: 5000
+    baseOutput: 12000,
+    tier: 3
   },
   {
     id: VesselId.WORLDLY_3,
     name: "Archduke Malakor",
     subtitle: "The Powerful Duke",
-    lore: "Malakor believes he is the architect of a new world order. From his high throne, he \"commands\" the swirling clouds of power, using the orb of his office to direct the flow. In reality, the orb is a drain, and he is the plug holding back a sea of madness that will eventually swallow his duchy whole.",
+    lore: "Malakor believes he is the architect of a new world order. From his high throne, he \"commands\" the swirling clouds of power.",
     type: WorshipperType.WORLDLY,
     baseCost: 1500000,
-    baseOutput: 12000
+    baseOutput: 12000,
+    tier: 3
   },
   {
     id: VesselId.ZEALOUS_3,
     name: "Commander Thraxton",
     subtitle: "The Elite Champion",
-    lore: "Thraxton was once a general of the royal army, but he found the limits of mortal steel too restrictive. Now encased in plate that shouldn't be able to stand, he carries a sword that bleeds reality. The rift behind him is a window into the mind of his god, and he is its grim gatekeeper.",
+    lore: "Thraxton was once a general of the royal army, but he found the limits of mortal steel too restrictive.",
     type: WorshipperType.ZEALOUS,
     baseCost: 4000000,
-    baseOutput: 35000
+    baseOutput: 12000,
+    tier: 3
   },
 
-  // TIER 4
+  // TIER 4 (Benefit: 500,000/s each)
   {
     id: VesselId.INDOLENT_4,
     name: "Lord Alaric Morn",
     subtitle: "The Noble",
-    lore: "The Morn lineage was old when the capital was founded, but Alaric is the last of his blood. He has traded his family’s history for a seat at the end of the world. Too frail to lead, he is now a living reliquary, his noble blood acting as a high-conductive fluid for a dense, glowing cloud of eldritch power.",
+    lore: "The Morn lineage was old when the capital was founded, but Alaric is the last of his blood. He has traded his family’s history for a seat at the end of the world.",
     type: WorshipperType.INDOLENT,
     baseCost: 10000000,
-    baseOutput: 80000
+    baseOutput: 500000,
+    tier: 4
   },
   {
     id: VesselId.LOWLY_4,
     name: "Sir Gawen the Reft",
     subtitle: "The Ruined Knight",
-    lore: "A knight without a quest is a dangerous thing. After failing to protect his manor from the very horrors he now serves, Gawen’s spirit shattered. He remains in his armor not for protection, but because there is nothing left inside to hold his shape. He is a hollow pipe through which the cult’s most violent energies roar.",
+    lore: "A knight without a quest is a dangerous thing. After failing to protect his manor from the very horrors he now serves, Gawen’s spirit shattered.",
     type: WorshipperType.LOWLY,
     baseCost: 25000000,
-    baseOutput: 180000
+    baseOutput: 500000,
+    tier: 4
   },
   {
     id: VesselId.WORLDLY_4,
+    // Added missing opening quote for name
     name: "High King Osric the Blinded",
     subtitle: "The Deluded King",
-    lore: "Osric is the ultimate cautionary tale. He believes his crown was gifted by the gods to rule the stars themselves. He stands at the center of a massive vortex, his sword raised in a silent, eternal command. He feels invincible, never realizing he is the lightning rod for a storm that intends to use his kingdom as a landing site.",
+    lore: "Osric is the ultimate cautionary tale. He believes his crown was gifted by the gods to rule the stars themselves.",
     type: WorshipperType.WORLDLY,
     baseCost: 75000000,
-    baseOutput: 500000
+    baseOutput: 500000,
+    tier: 4
   },
   {
     id: VesselId.ZEALOUS_4,
     name: "The Icon of Aether",
     subtitle: "The Apex Champion",
-    lore: "This being has no memories of a mother or a home. It is a creature of pure, geometric light and psionic pressure. It walks the earth as a hole in the universe, a living torrent of power that has transcended the need for a name. To look upon the Icon is to see the cult’s final victory made manifest.",
+    lore: "This being has no memories of a mother or a home. It is a creature of pure, geometric light and psionic pressure.",
     type: WorshipperType.ZEALOUS,
     baseCost: 250000000,
-    baseOutput: 2000000
+    baseOutput: 500000,
+    tier: 4
   }
 ];

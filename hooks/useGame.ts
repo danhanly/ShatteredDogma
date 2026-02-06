@@ -1,18 +1,24 @@
+
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { GameState, GemType, WorshipperType, VesselId } from '../types';
+import { GameState, GemType, WorshipperType, VesselId, RelicId, WORSHIPPER_ORDER } from '../types';
 import { 
   calculateClickPower, 
   calculateUpgradeCost, 
   rollWorshipperType, 
-  sacrificeWorshippers, 
+  sacrificeWorshippers,
+  deductWorshippers,
   canAffordUpgrade,
   getMilestoneState,
   calculateVesselCost,
   calculateTotalPassiveIncome,
-  calculatePassiveIncomeByType
+  calculatePassiveIncomeByType,
+  calculateBulkUpgrade,
+  calculateBulkVesselBuy,
+  calculateSoulsEarned,
+  calculateRelicCost
 } from '../services/gameService';
 
-const STORAGE_KEY = 'shattered_dogma_save_v1.1'; 
+const STORAGE_KEY = 'shattered_dogma_save_v1.4'; 
 
 const INITIAL_STATE: GameState = {
   worshippers: {
@@ -22,13 +28,29 @@ const INITIAL_STATE: GameState = {
     [WorshipperType.INDOLENT]: 0,
   },
   totalWorshippers: 0,
+  totalAccruedWorshippers: 0,
+  lockedWorshippers: [],
   miracleLevel: 0,
   vesselLevels: {}, 
   equippedGem: GemType.NONE,
   unlockedGems: [],
   showGemDiscovery: null,
+  souls: 0,
+  relicLevels: {},
+  maxTotalWorshippers: 0,
+  maxWorshippersByType: {
+    [WorshipperType.WORLDLY]: 0,
+    [WorshipperType.LOWLY]: 0,
+    [WorshipperType.ZEALOUS]: 0,
+    [WorshipperType.INDOLENT]: 0,
+  },
+  hasSeenEodIntro: false,
+  hasSeenStartSplash: false,
+  hasSeenVesselIntro: false,
   settings: {
     soundEnabled: true,
+    musicEnabled: true,
+    musicVolume: 0.3,
   },
   lastSaveTime: Date.now(),
 };
@@ -43,25 +65,17 @@ export const useGame = () => {
         const parsed = JSON.parse(saved);
         const now = Date.now();
         
-        // Merge saved state with initial structure to handle new fields
-        const loadedState = {
+        return {
           ...INITIAL_STATE,
           ...parsed,
-          worshippers: {
-            ...INITIAL_STATE.worshippers,
-            ...(parsed.worshippers || {})
-          },
-          settings: {
-            ...INITIAL_STATE.settings,
-            ...(parsed.settings || {})
-          },
-          vesselLevels: parsed.vesselLevels || {},
-          unlockedGems: parsed.unlockedGems || [],
-          showGemDiscovery: null,
-          lastSaveTime: parsed.lastSaveTime || now // Default to now if missing
+          worshippers: { ...INITIAL_STATE.worshippers, ...(parsed.worshippers || {}) },
+          maxWorshippersByType: { ...INITIAL_STATE.maxWorshippersByType, ...(parsed.maxWorshippersByType || {}) },
+          settings: { ...INITIAL_STATE.settings, ...(parsed.settings || {}) },
+          lockedWorshippers: parsed.lockedWorshippers || [],
+          // Migration: totalAccruedWorshippers fallback to maxTotalWorshippers or totalWorshippers if missing
+          totalAccruedWorshippers: parsed.totalAccruedWorshippers ?? (parsed.maxTotalWorshippers ?? parsed.totalWorshippers ?? 0),
+          lastSaveTime: parsed.lastSaveTime || now 
         };
-        
-        return loadedState;
       }
     } catch (e) {
       console.warn('Failed to load save data:', e);
@@ -69,91 +83,138 @@ export const useGame = () => {
     return INITIAL_STATE;
   });
 
-  // Offline Calculation Effect (Runs once on mount)
-  useEffect(() => {
-    if (gameState.lastSaveTime) {
-      const now = Date.now();
-      const timeDiffSeconds = (now - gameState.lastSaveTime) / 1000;
-
-      // Only calculate if away for more than 10 seconds
-      if (timeDiffSeconds > 10) {
-        const incomeByType = calculatePassiveIncomeByType(gameState.vesselLevels);
-        const totalIncome = Object.values(incomeByType).reduce((a, b) => a + b, 0);
-
-        if (totalIncome > 0) {
-           const gains: Record<WorshipperType, number> = {
-               [WorshipperType.INDOLENT]: incomeByType[WorshipperType.INDOLENT] * timeDiffSeconds,
-               [WorshipperType.LOWLY]: incomeByType[WorshipperType.LOWLY] * timeDiffSeconds,
-               [WorshipperType.WORLDLY]: incomeByType[WorshipperType.WORLDLY] * timeDiffSeconds,
-               [WorshipperType.ZEALOUS]: incomeByType[WorshipperType.ZEALOUS] * timeDiffSeconds,
-           };
-
-           const totalGained = Object.values(gains).reduce((a, b) => a + b, 0);
-
-           // Apply gains immediately to state
-           setGameState(prev => {
-              const newWorshippers = { ...prev.worshippers };
-              (Object.keys(gains) as WorshipperType[]).forEach(type => {
-                  newWorshippers[type] += gains[type];
-              });
-
-              return {
-                  ...prev,
-                  worshippers: newWorshippers,
-                  totalWorshippers: prev.totalWorshippers + totalGained,
-                  lastSaveTime: now 
-              };
-           });
-
-           // Show modal
-           setOfflineGains({ gains, time: timeDiffSeconds });
-        }
-      }
-    }
-  }, []); // Empty dependency array ensures this runs only on mount
-
   const lastPassiveTick = useRef(Date.now());
 
-  // Passive Income Loop
+  // Function to calculate and apply offline progress
+  const processOfflineProgress = useCallback((lastTime: number) => {
+    const now = Date.now();
+    const timeDiffSeconds = (now - lastTime) / 1000;
+
+    // Minimum 10 seconds away to trigger the modal
+    if (timeDiffSeconds > 10) {
+      setGameState(prev => {
+        // Calculate Offline Cap
+        const baseMaxTime = 30 * 60; // 30 minutes base
+        const relicLevel = prev.relicLevels[RelicId.OFFLINE_BOOST] || 0;
+        const maxTime = baseMaxTime + (relicLevel * 5 * 60); // +5 mins per level
+
+        const effectiveTime = Math.min(timeDiffSeconds, maxTime);
+
+        const incomeByType = calculatePassiveIncomeByType(prev.vesselLevels, prev.relicLevels);
+        const totalIncome = Object.values(incomeByType).reduce((a: number, b: number) => a + b, 0);
+
+        if (totalIncome > 0) {
+          const gains: Record<WorshipperType, number> = {
+            [WorshipperType.INDOLENT]: incomeByType[WorshipperType.INDOLENT] * effectiveTime,
+            [WorshipperType.LOWLY]: incomeByType[WorshipperType.LOWLY] * effectiveTime,
+            [WorshipperType.WORLDLY]: incomeByType[WorshipperType.WORLDLY] * effectiveTime,
+            [WorshipperType.ZEALOUS]: incomeByType[WorshipperType.ZEALOUS] * effectiveTime,
+          };
+
+          const totalGained = Object.values(gains).reduce((a: number, b: number) => a + b, 0);
+          const newWorshippers = { ...prev.worshippers };
+          const newMaxByType = { ...prev.maxWorshippersByType };
+
+          (Object.keys(gains) as WorshipperType[]).forEach(type => {
+            newWorshippers[type] += gains[type];
+            newMaxByType[type] = Math.max(newMaxByType[type], newWorshippers[type]);
+          });
+
+          setOfflineGains({ gains, time: effectiveTime });
+
+          return {
+            ...prev,
+            worshippers: newWorshippers,
+            totalWorshippers: prev.totalWorshippers + totalGained,
+            totalAccruedWorshippers: prev.totalAccruedWorshippers + totalGained,
+            maxTotalWorshippers: Math.max(prev.maxTotalWorshippers, prev.totalWorshippers + totalGained),
+            maxWorshippersByType: newMaxByType,
+            lastSaveTime: now 
+          };
+        }
+        return { ...prev, lastSaveTime: now };
+      });
+      lastPassiveTick.current = now;
+    }
+  }, []);
+
+  // Handle initial load offline progress
+  useEffect(() => {
+    if (gameState.lastSaveTime) {
+      processOfflineProgress(gameState.lastSaveTime);
+    }
+  }, []); // Only on mount
+
+  // Handle Visibility Change (Page Visibility API)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        // When user returns to tab, check if they were away long enough
+        // We use a functional setter to get the most recent lastSaveTime from state
+        setGameState(current => {
+          const now = Date.now();
+          const timeDiffSeconds = (now - current.lastSaveTime) / 1000;
+          
+          if (timeDiffSeconds > 10) {
+            // We trigger the actual processing outside the state update to avoid loops
+            // but we need to know the 'current' lastSaveTime
+            setTimeout(() => processOfflineProgress(current.lastSaveTime), 0);
+          }
+          return current;
+        });
+      } else {
+        // Tab hidden: ensure the last tick is updated so we don't have massive gaps
+        // on top of the offline calculation
+        setGameState(prev => ({ ...prev, lastSaveTime: Date.now() }));
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [processOfflineProgress]);
+
+  // Main passive income loop
   useEffect(() => {
     const intervalId = setInterval(() => {
       const now = Date.now();
-      const delta = (now - lastPassiveTick.current) / 1000; // seconds
+      const delta = (now - lastPassiveTick.current) / 1000; 
       
-      // Perform tick if delta is reasonable (prevents huge jumps if tab was suspended but timer didn't fire)
-      // Actually, standard setInterval handling is fine here, we rely on lastSaveTime for real offline calc.
-      if (delta >= 1) {
+      // Browsers throttle background tabs to 1s or more. 
+      // We only process the tick if the document is visible.
+      // If invisible, we rely on the visibilitychange handler to catch up.
+      if (delta >= 1 && document.visibilityState === 'visible') {
         lastPassiveTick.current = now;
         
-        const incomeByType = calculatePassiveIncomeByType(gameState.vesselLevels);
-        const totalIncome = Object.values(incomeByType).reduce((a, b) => a + b, 0);
+        const incomeByType = calculatePassiveIncomeByType(gameState.vesselLevels, gameState.relicLevels);
+        const totalIncome = Object.values(incomeByType).reduce((a: number, b: number) => a + b, 0);
 
-        if (totalIncome > 0) {
-          setGameState(prev => {
-             const newWorshippers = { ...prev.worshippers };
-             
-             (Object.keys(incomeByType) as WorshipperType[]).forEach(type => {
-                 newWorshippers[type] += incomeByType[type];
-             });
+        setGameState(prev => {
+          const newWorshippers = { ...prev.worshippers };
+          const newMaxByType = { ...prev.maxWorshippersByType };
+          
+          if (totalIncome > 0) {
+            (Object.keys(incomeByType) as WorshipperType[]).forEach(type => {
+                newWorshippers[type] += incomeByType[type];
+                newMaxByType[type] = Math.max(newMaxByType[type], newWorshippers[type]);
+            });
+          }
 
-             return {
-                ...prev,
-                totalWorshippers: prev.totalWorshippers + totalIncome,
-                worshippers: newWorshippers,
-                lastSaveTime: now // Update save time on tick
-             };
-          });
-        } else {
-             // Still update time even if no income
-             setGameState(prev => ({ ...prev, lastSaveTime: now }));
-        }
+          return {
+             ...prev,
+             totalWorshippers: prev.totalWorshippers + totalIncome,
+             totalAccruedWorshippers: prev.totalAccruedWorshippers + totalIncome,
+             maxTotalWorshippers: Math.max(prev.maxTotalWorshippers, prev.totalWorshippers + totalIncome),
+             worshippers: newWorshippers,
+             maxWorshippersByType: newMaxByType,
+             lastSaveTime: now 
+          };
+        });
       }
     }, 1000);
 
     return () => clearInterval(intervalId);
-  }, [gameState.vesselLevels]);
+  }, [gameState.vesselLevels, gameState.relicLevels]);
 
-  // Persist state changes
   useEffect(() => {
     try {
       const { showGemDiscovery, ...toSave } = gameState;
@@ -164,42 +225,61 @@ export const useGame = () => {
   }, [gameState]);
 
   const milestoneState = getMilestoneState(gameState.miracleLevel);
-  const baseCost = calculateUpgradeCost(gameState.miracleLevel);
-  const upgradeCost = milestoneState.isMilestone ? baseCost * (milestoneState.costMultiplier || 1) : baseCost;
-  const clickPower = calculateClickPower(gameState.miracleLevel);
-  const passiveIncome = calculateTotalPassiveIncome(gameState.vesselLevels);
-  const canAfford = canAffordUpgrade(gameState);
+  const clickPower = calculateClickPower(gameState.miracleLevel, gameState.relicLevels);
+  const passiveIncome = calculateTotalPassiveIncome(gameState.vesselLevels, gameState.relicLevels);
 
   const performMiracle = useCallback(() => {
+    const power = calculateClickPower(gameState.miracleLevel, gameState.relicLevels);
+    let rolledType: WorshipperType = WorshipperType.INDOLENT;
+    
     setGameState(prev => {
-      const type = rollWorshipperType(prev.equippedGem);
-      const power = calculateClickPower(prev.miracleLevel);
-      const now = Date.now();
-      
+      // Pass relicLevels to apply potential GEM_BOOST
+      const type = rollWorshipperType(prev.equippedGem, prev.relicLevels);
+      rolledType = type;
+      const newWorshippers = {
+        ...prev.worshippers,
+        [type]: prev.worshippers[type] + power,
+      };
+
       return {
         ...prev,
-        worshippers: {
-          ...prev.worshippers,
-          [type]: prev.worshippers[type] + power,
-        },
+        worshippers: newWorshippers,
         totalWorshippers: prev.totalWorshippers + power,
-        lastSaveTime: now
+        totalAccruedWorshippers: prev.totalAccruedWorshippers + power,
+        maxTotalWorshippers: Math.max(prev.maxTotalWorshippers, prev.totalWorshippers + power),
+        maxWorshippersByType: {
+          ...prev.maxWorshippersByType,
+          [type]: Math.max(prev.maxWorshippersByType[type], newWorshippers[type])
+        },
+        lastSaveTime: Date.now()
       };
     });
     
-    return {
-      power: calculateClickPower(gameState.miracleLevel),
-    };
-  }, [gameState.miracleLevel, gameState.equippedGem]);
+    return { power, type: rolledType };
+  }, [gameState.miracleLevel, gameState.equippedGem, gameState.relicLevels]);
 
-  const purchaseUpgrade = useCallback(() => {
-    if (!canAffordUpgrade(gameState)) return;
-
+  const purchaseUpgrade = useCallback((count: number = 1) => {
     setGameState(prev => {
-      const newWorshippers = sacrificeWorshippers(prev);
-      const newTotal = Object.values(newWorshippers).reduce((a, b) => a + b, 0);
-      const nextLevel = prev.miracleLevel + 1;
+      let newWorshippers = { ...prev.worshippers };
       
+      if (count === 1) {
+         if (!canAffordUpgrade(prev)) return prev;
+         newWorshippers = sacrificeWorshippers(prev);
+      } else {
+         let totalCost = 0;
+         for (let i = 0; i < count; i++) totalCost += calculateUpgradeCost(prev.miracleLevel + i);
+         
+         const availableFunds = WORSHIPPER_ORDER
+            .filter(t => !prev.lockedWorshippers.includes(t))
+            .reduce((sum, t) => sum + prev.worshippers[t], 0);
+
+         if (availableFunds < totalCost) return prev;
+         
+         newWorshippers = deductWorshippers(prev, totalCost);
+      }
+      
+      const newTotal = Object.values(newWorshippers).reduce((a: number, b: number) => a + b, 0);
+      const nextLevel = prev.miracleLevel + count;
       const nextMilestone = getMilestoneState(nextLevel);
       let nextUnlockedGems = [...prev.unlockedGems];
       let discoveryGem = null;
@@ -224,27 +304,83 @@ export const useGame = () => {
     });
   }, [gameState]);
 
-  const purchaseVessel = useCallback((vesselId: string, type: WorshipperType) => {
+  const purchaseVessel = useCallback((vesselId: string, type: WorshipperType, count: number = 1) => {
     setGameState(prev => {
         const currentLevel = prev.vesselLevels[vesselId] || 0;
-        const cost = calculateVesselCost(vesselId, currentLevel);
-        
-        if (prev.worshippers[type] < cost) return prev;
+        let totalCost = 0;
+        for (let i = 0; i < count; i++) totalCost += calculateVesselCost(vesselId, currentLevel + i);
+        if (prev.worshippers[type] < totalCost) return prev;
 
         return {
             ...prev,
-            worshippers: {
-                ...prev.worshippers,
-                [type]: prev.worshippers[type] - cost
-            },
-            totalWorshippers: prev.totalWorshippers - cost,
-            vesselLevels: {
-                ...prev.vesselLevels,
-                [vesselId]: currentLevel + 1
-            },
+            worshippers: { ...prev.worshippers, [type]: prev.worshippers[type] - totalCost },
+            totalWorshippers: prev.totalWorshippers - totalCost,
+            vesselLevels: { ...prev.vesselLevels, [vesselId]: currentLevel + count },
             lastSaveTime: Date.now()
         };
     });
+  }, []);
+
+  const triggerPrestige = useCallback(() => {
+    setGameState(prev => {
+       const soulsEarned = calculateSoulsEarned(prev.totalAccruedWorshippers); // Using totalAccruedWorshippers
+       if (soulsEarned <= 0) return prev;
+       return {
+          ...INITIAL_STATE,
+          souls: prev.souls + soulsEarned,
+          relicLevels: prev.relicLevels,
+          settings: prev.settings,
+          maxTotalWorshippers: prev.maxTotalWorshippers,
+          maxWorshippersByType: prev.maxWorshippersByType,
+          hasSeenEodIntro: true,
+          hasSeenStartSplash: true,
+          hasSeenVesselIntro: true,
+          lastSaveTime: Date.now()
+       };
+    });
+  }, []);
+
+  const purchaseRelic = useCallback((relicId: string) => {
+    setGameState(prev => {
+        const currentLevel = prev.relicLevels[relicId] || 0;
+        const cost = calculateRelicCost(relicId, currentLevel);
+        if (prev.souls < cost) return prev;
+        return {
+            ...prev,
+            souls: prev.souls - cost,
+            relicLevels: { ...prev.relicLevels, [relicId]: currentLevel + 1 },
+            lastSaveTime: Date.now()
+        };
+    });
+  }, []);
+
+  const setFlag = useCallback((flag: keyof GameState, value: boolean) => {
+    setGameState(prev => ({ ...prev, [flag]: value }));
+  }, []);
+
+  const equipGem = useCallback((gem: GemType) => {
+    setGameState(prev => ({ ...prev, equippedGem: gem }));
+  }, []);
+
+  const toggleSound = useCallback(() => {
+    setGameState(prev => ({
+      ...prev,
+      settings: { ...prev.settings, soundEnabled: !prev.settings.soundEnabled }
+    }));
+  }, []);
+
+  const toggleMusic = useCallback(() => {
+    setGameState(prev => ({
+      ...prev,
+      settings: { ...prev.settings, musicEnabled: !prev.settings.musicEnabled }
+    }));
+  }, []);
+
+  const setMusicVolume = useCallback((volume: number) => {
+    setGameState(prev => ({
+      ...prev,
+      settings: { ...prev.settings, musicVolume: volume }
+    }));
   }, []);
 
   const closeDiscovery = useCallback(() => {
@@ -255,34 +391,65 @@ export const useGame = () => {
     setOfflineGains(null);
   }, []);
 
-  const equipGem = useCallback((gem: GemType) => {
-    setGameState(prev => ({
-      ...prev,
-      equippedGem: gem,
-    }));
+  const toggleWorshipperLock = useCallback((type: WorshipperType) => {
+    setGameState(prev => {
+        const isLocked = prev.lockedWorshippers.includes(type);
+        const newLocked = isLocked 
+            ? prev.lockedWorshippers.filter(t => t !== type)
+            : [...prev.lockedWorshippers, type];
+        return { ...prev, lockedWorshippers: newLocked };
+    });
   }, []);
 
-  const toggleSound = useCallback(() => {
-    setGameState(prev => ({
-      ...prev,
-      settings: { ...prev.settings, soundEnabled: !prev.settings.soundEnabled },
-    }));
+  const debugAddWorshippers = useCallback((type: WorshipperType, amount: number) => {
+    setGameState(prev => {
+        const newCount = (prev.worshippers[type] || 0) + amount;
+        const newWorshippers = { ...prev.worshippers, [type]: newCount };
+        
+        return {
+            ...prev,
+            worshippers: newWorshippers,
+            totalWorshippers: prev.totalWorshippers + amount,
+            totalAccruedWorshippers: prev.totalAccruedWorshippers + amount,
+            maxTotalWorshippers: Math.max(prev.maxTotalWorshippers, prev.totalWorshippers + amount),
+            maxWorshippersByType: {
+                ...prev.maxWorshippersByType,
+                [type]: Math.max(prev.maxWorshippersByType[type] || 0, newCount)
+            },
+            lastSaveTime: Date.now()
+        };
+    });
+  }, []);
+
+  const resetSave = useCallback(() => {
+    localStorage.removeItem(STORAGE_KEY);
+    setGameState({
+        ...INITIAL_STATE,
+        lastSaveTime: Date.now()
+    });
+    setOfflineGains(null);
   }, []);
 
   return {
     gameState,
-    upgradeCost,
     clickPower,
     passiveIncome,
-    canAfford,
     milestoneState,
     performMiracle,
     purchaseUpgrade,
     purchaseVessel,
     equipGem,
     toggleSound,
+    toggleMusic,
+    setMusicVolume,
     closeDiscovery,
     offlineGains,
-    closeOfflineModal
+    closeOfflineModal,
+    triggerPrestige,
+    purchaseRelic,
+    setFlag,
+    toggleWorshipperLock,
+    debugAddWorshippers,
+    resetSave
   };
 };
