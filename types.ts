@@ -68,10 +68,20 @@ export interface RelicDefinition {
   baseCost: number;
 }
 
+export interface Bulletin {
+  id: number;
+  title: string;
+  body: string;
+  rewardType: WorshipperType;
+  rewardAmount: number;
+  date: string;
+  volume: number;
+}
+
 export interface GameState {
   worshippers: Record<WorshipperType, number>;
   totalWorshippers: number;
-  totalAccruedWorshippers: number; // New variable for lifetime worshippers (this run)
+  totalAccruedWorshippers: number; 
   lockedWorshippers: WorshipperType[]; 
   miracleLevel: number;
   vesselLevels: Record<string, number>; // Map VesselId to level
@@ -81,9 +91,13 @@ export interface GameState {
   souls: number;
   relicLevels: Record<string, number>; // Map RelicId to level
   
+  // Bulletin
+  activeBulletin: Bulletin | null;
+  lastBulletinTime: number; 
+
   // Influence Mechanics
-  influenceUsage: Record<WorshipperType, number>; // Tracks how many times influence was used per type
-  lastInfluenceTime: Record<WorshipperType, number>; // Timestamp of last influence usage for VFX
+  influenceUsage: Record<WorshipperType, number>; 
+  lastInfluenceTime: Record<WorshipperType, number>; 
 
   // Historical stats
   maxTotalWorshippers: number;
@@ -100,14 +114,14 @@ export interface GameState {
     musicEnabled: boolean;
     musicVolume: number;
   };
-  lastSaveTime: number; // Timestamp
+  lastSaveTime: number; 
 }
 
 export interface ClickEffect {
   id: number;
   x: number;
   y: number;
-  value: number; // How many worshippers gained
+  value: number; 
 }
 
 export const WORSHIPPER_ORDER = [

@@ -10,6 +10,7 @@ import { AbyssIntroModal } from './components/AbyssIntroModal';
 import { SplashIntro } from './components/SplashIntro';
 import { VesselUnlockModal } from './components/VesselUnlockModal';
 import { EodUnlockModal } from './components/EodUnlockModal';
+import { BulletinModal } from './components/BulletinModal';
 import { WorshipperType, VesselId } from './types';
 import { VESSEL_DEFINITIONS, PRESTIGE_UNLOCK_THRESHOLD } from './constants';
 
@@ -37,7 +38,8 @@ const App: React.FC = () => {
     debugUnlockFeature,
     debugAddSouls,
     resetSave,
-    performInfluence
+    performInfluence,
+    acceptBulletin
   } = useGame();
 
   const [activeTab, setActiveTab] = useState<'MIRACLES' | 'VESSELS' | 'CULT' | 'END_TIMES'>('MIRACLES');
@@ -205,6 +207,11 @@ const App: React.FC = () => {
         setFlag('hasSeenEodIntro', true);
         setActiveTab('END_TIMES');
       }} />}
+
+      {/* Bulletin Modal - Only show if active and other major intro modals are closed (logic handled in useGame partially, but nice to have distinct layer) */}
+      {gameState.activeBulletin && !showVesselIntro && !showEodIntro && !showAbyssIntro && !offlineGains && !gameState.showGemDiscovery && (
+          <BulletinModal bulletin={gameState.activeBulletin} onAccept={acceptBulletin} />
+      )}
 
       <Header 
         gameState={gameState}

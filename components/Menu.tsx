@@ -188,7 +188,7 @@ export const Menu: React.FC<MenuProps> = ({
     {/* Influence Confirmation Modal */}
     {confirmInfluence && (
         <div className="fixed inset-0 z-[130] flex items-center justify-center bg-black/90 backdrop-blur-sm p-4 animate-in fade-in zoom-in-95 duration-200">
-            <div className="relative w-full max-w-sm rounded-xl border border-red-500/50 bg-eldritch-dark p-6 shadow-[0_0_50px_rgba(220,38,38,0.3)]">
+            <div className="relative w-full max-sm rounded-xl border border-red-500/50 bg-eldritch-dark p-6 shadow-[0_0_50px_rgba(220,38,38,0.3)]">
                 <div className="flex justify-center mb-4"><AlertTriangle className="h-12 w-12 text-red-500 animate-pulse" /></div>
                 <h3 className="text-xl font-serif font-bold text-red-500 text-center mb-2">{confirmInfluence.name}</h3>
                 <div className="text-center text-gray-300 text-sm space-y-4 mb-6">
@@ -216,7 +216,14 @@ export const Menu: React.FC<MenuProps> = ({
         </div>
     )}
 
-    <VesselModal vessel={selectedVessel} level={selectedVessel ? (gameState.vesselLevels[selectedVessel.id] || 0) : 0} relicLevels={gameState.relicLevels} onClose={() => setSelectedVessel(null)} imageUrl={selectedVessel ? vesselImages[selectedVessel.id] : undefined} />
+    <VesselModal 
+      vessel={selectedVessel} 
+      level={selectedVessel ? (gameState.vesselLevels[selectedVessel.id] || 0) : 0} 
+      relicLevels={gameState.relicLevels} 
+      influenceUsage={gameState.influenceUsage}
+      onClose={() => setSelectedVessel(null)} 
+      imageUrl={selectedVessel ? vesselImages[selectedVessel.id] : undefined} 
+    />
     </>
   );
 };

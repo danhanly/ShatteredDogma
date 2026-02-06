@@ -77,7 +77,7 @@ export const WorshipperStat: React.FC<WorshipperStatProps> = ({
     <div className="flex items-center">
         <div 
             ref={(el) => setStatBoxRef(type, el)}
-            onPointerDown={(e) => { e.stopPropagation(); onSelect(type); }}
+            onClick={(e) => { e.stopPropagation(); onSelect(type); }}
             data-clickable="true"
             className={`group relative flex w-[70px] cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border ${colorClass} bg-black/60 p-2 backdrop-blur-sm transition-all duration-300 hover:bg-black/80 hover:scale-105 active:scale-95 sm:w-[100px] sm:min-w-[100px] ${opacityClass} ${scaleClass} ${ringClass} ${glowShadow} ${isInfluenceShaking ? 'animate-shake' : ''}`}
         >

@@ -35,7 +35,7 @@ Your power is measured by **Worshippers**. However, not all souls are equal. The
 
 ### 1. Dark Miracles (Active Clicking)
 Performing a miracle (tapping) grants Worshippers immediately.
-*   **Base Gain:** \`1 + MiracleLevel\`
+*   **Base Gain:** \`(1 + MiracleLevel + Milestones) * 1.15^Milestones\`
 *   **RNG:** Each click randomly awards *one* specific type of Worshipper based on probability weights.
 *   **Focus Gems:** Unlocked via milestones. Equipping a gem increases the probability weight of its favored Worshipper type (Base: 2x), allowing you to target specific resources. This effectiveness can be boosted by Relics.
 
@@ -116,7 +116,7 @@ $$Cost = Base \times Multiplier^{Level} \times (1 + InfluencePenalty)$$
 $$Output = (BaseOutput \times Level) \times (1 + Relic_{Type} \times 0.05) \times (1 + Relic_{All} \times 0.02)$$
 
 ### 4. Click Power Calculation
-$$Power = (1 + MiracleLevel) \times (1 + Relic_{Miracle} \times 0.05)$$
+$$Power = \lfloor (1 + MiracleLevel + Milestones) \times 1.15^{Milestones} \times (1 + Relic_{Miracle} \times 0.05) \rfloor$$
 
 ### 5. Relic Cost Scaling (Exponential)
 $$RelicCost = \lfloor 10 \times 1.15^{Level} \rfloor$$

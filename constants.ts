@@ -36,6 +36,29 @@ export const WORSHIPPER_DETAILS: Record<WorshipperType, {
   }
 };
 
+export const BULLETIN_STORIES: Record<WorshipperType, { title: string; body: string }[]> = {
+  [WorshipperType.INDOLENT]: [
+    { title: "CITY SQUARE CROWDS 'JUST STANDING THERE'", body: "Authorities are baffled as hundreds of citizens have gathered in the market square, reportedly doing absolutely nothing. 'They just stare at the sky,' says one guard. 'It's easier than working,' claims another." },
+    { title: "MASS LETHARGY SWEEPS DOCKS", body: "Work at the shipyards has ground to a halt. The foremen report that laborers have simply laid down their tools, muttering about 'the sweet embrace of the void'. Productivity is at an all-time low." },
+    { title: "SLEEPING SICKNESS OR DIVINE NAP?", body: "Doctors are investigating a strange phenomenon where entire households are refusing to leave their beds. No fever is present, only a profound lack of desire to participate in reality." }
+  ],
+  [WorshipperType.LOWLY]: [
+    { title: "ORPHANAGE OVERFLOW SPILLS INTO STREETS", body: "The recent famine has left thousands destitute. They wander the alleyways, hollow-eyed and hungry, whispering of a new god who demands nothing but their emptiness." },
+    { title: "BEGGARS GUILD DISSOLVES", body: "The Organized Union of Beggars has disbanded. Its members were last seen marching en masse towards the undercity, claiming they have found a 'True Purpose' in their suffering." },
+    { title: "WORKHOUSES EMPTY OVERNIGHT", body: "Industrial district owners are in an uproar as their workforce vanished under the cover of fog. Notes left behind simply read: 'The machine is broken. We go to the one who fixes.'" }
+  ],
+  [WorshipperType.WORLDLY]: [
+    { title: "MARKET CRASH DRIVES MERCHANTS MAD", body: "The fluctuations in the gold standard have ruined many noble houses today. In their desperation, fallen aristocrats are turning to esoteric cults to restore their fortunes." },
+    { title: "SCANDAL AT THE ROYAL BALL", body: "Lady Vane was seen casting her diamond necklace into a sewer grate, laughing hysterically. 'It is but weight!' she screamed. Her peers are intrigued by this new, liberating philosophy." },
+    { title: "GUILD MASTERS SEEK NEW ALLIANCES", body: "With the trade routes blocked by 'unnatural storms', the Merchant Princes are seeking supernatural aid. A hefty donation has been made to 'The Cause' in exchange for safe passage." }
+  ],
+  [WorshipperType.ZEALOUS]: [
+    { title: "RIOTS IN THE TEMPLE DISTRICT", body: "The old gods are dead, or so the mobs claim. Statues of the sun deity were defaced last night by figures wielding strange, geometric daggers. The city guard is terrified." },
+    { title: "LOCAL GUARD REGIMENT VANISHES", body: "The 7th Infantry Battalion failed to report for duty. Their barracks were found empty, save for a single message carved into the wall: 'WE ARE THE SWORD NOW.'" },
+    { title: "FLAGELLANTS ROAM THE HIGHWAY", body: "A procession of self-mortifying fanatics has entered the city gates. They bleed freely, shouting that pain is the only way to wake up from the dream of life." }
+  ]
+};
+
 export const MILESTONE_DEFINITIONS = [
   {
     type: WorshipperType.INDOLENT,

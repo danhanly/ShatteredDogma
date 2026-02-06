@@ -3,8 +3,21 @@ import { COST_MULTIPLIER, INITIAL_UPGRADE_COST, GEM_DEFINITIONS, MILESTONE_INTER
 import { GameState, GemType, WorshipperType, WORSHIPPER_ORDER, VesselId, RelicId } from "../types";
 
 /**
+ * Calculates the number of milestones fully completed.
+ * Milestones are at levels 5, 10, and then every 25 (25, 50, 75, 100...).
+ */
+export const countMilestones = (level: number): number => {
+  let count = 0;
+  if (level > 5) count++;
+  if (level > 10) count++;
+  if (level > 25) {
+    count += Math.floor((level - 1) / 25);
+  }
+  return count;
+};
+
+/**
  * Calculates the cost of the next miracle upgrade.
- * Formula: Initial * (1.15 ^ CurrentLevel)
  */
 export const calculateUpgradeCost = (currentLevel: number): number => {
   return Math.floor(INITIAL_UPGRADE_COST * Math.pow(COST_MULTIPLIER, currentLevel));
@@ -12,16 +25,20 @@ export const calculateUpgradeCost = (currentLevel: number): number => {
 
 /**
  * Calculates the production power (worshippers per click).
- * Formula: (1 + CurrentLevel) * RelicMultiplier
+ * Strictly applies: +1 per milestone AND x1.15 multiplier per milestone.
+ * Formula: (1 + Level + Milestones) * (1.15 ^ Milestones) * RelicMultiplier
  */
 export const calculateClickPower = (currentLevel: number, relicLevels: Record<string, number> = {}): number => {
-  const basePower = 1 + currentLevel;
+  const milestones = countMilestones(currentLevel);
+  // Base is 1 + level. Milestone adds +1 to base and applies a compounding 1.15x multiplier.
+  const basePower = (1 + currentLevel + milestones) * Math.pow(1.15, milestones);
   
   // Apply Miracle Boost Relic: +5% per level
   const miracleRelicLevel = relicLevels[RelicId.MIRACLE_BOOST] || 0;
   const multiplier = 1 + (miracleRelicLevel * 0.05);
 
-  return basePower * multiplier;
+  // Ensure tap value never goes below 1 even at level 0
+  return Math.max(1, Math.floor(basePower * multiplier));
 };
 
 /**
@@ -30,7 +47,6 @@ export const calculateClickPower = (currentLevel: number, relicLevels: Record<st
 export const rollWorshipperType = (gem: GemType, relicLevels: Record<string, number> = {}): WorshipperType => {
   const definition = GEM_DEFINITIONS[gem];
   
-  // Base weights
   const weights: Record<WorshipperType, number> = {
     [WorshipperType.INDOLENT]: 40,
     [WorshipperType.LOWLY]: 30,
@@ -40,7 +56,6 @@ export const rollWorshipperType = (gem: GemType, relicLevels: Record<string, num
 
   if (definition.favoredType) {
     const gemBoostLevel = relicLevels[RelicId.GEM_BOOST] || 0;
-    // Base is 2x multiplier. Relic adds 0.5 to multiplier per level.
     const multiplier = 2 + (gemBoostLevel * 0.5);
     weights[definition.favoredType] *= multiplier;
   }
@@ -89,11 +104,9 @@ export const canAffordUpgrade = (state: GameState): boolean => {
 
   if (milestone.isMilestone && milestone.definition) {
     const cost = baseCost * milestone.costMultiplier!;
-    // Milestones require specific types, lock does not prevent milestone spending
     return state.worshippers[milestone.definition.type as WorshipperType] >= cost;
   }
 
-  // Regular upgrade: Check if available unlocked worshippers are enough
   const availableTotal = WORSHIPPER_ORDER
     .filter(t => !state.lockedWorshippers.includes(t))
     .reduce((sum, t) => sum + state.worshippers[t], 0);
@@ -105,7 +118,6 @@ export const deductWorshippers = (state: GameState, amount: number): Record<Wors
   const newWorshippers = { ...state.worshippers };
   let remainingCost = amount;
   
-  // Only deduct from unlocked types
   const availableTypes = WORSHIPPER_ORDER.filter(t => !state.lockedWorshippers.includes(t));
 
   for (const type of availableTypes) {
@@ -127,7 +139,6 @@ export const sacrificeWorshippers = (state: GameState): Record<WorshipperType, n
   if (milestone.isMilestone && milestone.definition) {
     const cost = baseCost * milestone.costMultiplier!;
     const newWorshippers = { ...state.worshippers };
-    // Milestone spending ignores locks
     newWorshippers[milestone.definition.type as WorshipperType] -= cost;
     return newWorshippers;
   }
@@ -135,32 +146,23 @@ export const sacrificeWorshippers = (state: GameState): Record<WorshipperType, n
   return deductWorshippers(state, baseCost);
 };
 
-/**
- * Calculates the cost to buy/upgrade a specific vessel using tier-specific multipliers.
- * Now includes influence penalty.
- */
 export const calculateVesselCost = (vesselId: string, currentLevel: number, influenceUsage: Partial<Record<WorshipperType, number>> = {}): number => {
   const def = VESSEL_DEFINITIONS.find(v => v.id === vesselId);
   if (!def) return 0;
   
-  let multiplier = 1.25; // fallback
+  let multiplier = 1.25; 
   if (def.tier === 1) multiplier = 1.15;
   else if (def.tier === 2) multiplier = 1.1675;
   else if (def.tier === 3) multiplier = 1.175;
   else if (def.tier === 4) multiplier = 1.2;
 
   const baseCost = Math.floor(def.baseCost * Math.pow(multiplier, currentLevel));
-  
-  // Apply influence penalty: +2% per use for this worshipper type
   const usageCount = influenceUsage[def.type] || 0;
   const penaltyMultiplier = 1 + (usageCount * 0.02);
 
   return Math.floor(baseCost * penaltyMultiplier);
 };
 
-/**
- * Calculates the output (worshippers per second) of a specific vessel, applying Relic bonuses.
- */
 export const calculateVesselOutput = (vesselId: string, currentLevel: number, relicLevels: Record<string, number> = {}): number => {
   const def = VESSEL_DEFINITIONS.find(v => v.id === vesselId);
   if (!def) return 0;
@@ -224,9 +226,6 @@ export const calculateBulkUpgrade = (
   }
 
   const nextMilestone = getNextMilestoneLevel(currentLevel);
-  let targetLevel: number;
-
-  // Calculate available funds based on locked worshippers
   const availableFunds = WORSHIPPER_ORDER
     .filter(t => !state.lockedWorshippers.includes(t))
     .reduce((sum, t) => sum + state.worshippers[t], 0);
@@ -310,18 +309,12 @@ export const calculateBulkVesselBuy = (
   }
 };
 
-/**
- * Revised soul calculation. 10 souls available exactly at 1,000,000.
- */
 export const calculateSoulsEarned = (totalWorshippers: number): number => {
   if (totalWorshippers < PRESTIGE_UNLOCK_THRESHOLD) return 0;
   const surplus = totalWorshippers - PRESTIGE_UNLOCK_THRESHOLD;
   return Math.floor(10 + 0.01 * Math.pow(surplus, 1/3));
 };
 
-/**
- * Calculates relic cost using the miracle progression formula.
- */
 export const calculateRelicCost = (relicId: string, currentLevel: number): number => {
   const def = RELIC_DEFINITIONS.find(r => r.id === relicId);
   if (!def) return 0;

@@ -98,27 +98,33 @@ export const WorshipperModal: React.FC<WorshipperModalProps> = ({ type, count, o
                 </div>
             </div>
 
-            {/* Penalties and Bonuses Breakdown */}
-            <div className="mb-6 space-y-2">
-                <div className="flex items-center justify-between bg-red-950/20 p-2 rounded border border-red-900/30">
-                    <div className="flex items-center gap-2">
-                        <AlertTriangle className="h-3 w-3 text-red-500" />
-                        <span className="text-xs text-red-300">Influence Penalty</span>
+            {/* Penalties and Bonuses Breakdown - Only show if > 0 */}
+            {(penalty > 0 || totalBonus > 0) && (
+              <div className="mb-6 space-y-2">
+                  {penalty > 0 && (
+                    <div className="flex items-center justify-between bg-red-950/20 p-2 rounded border border-red-900/30">
+                        <div className="flex items-center gap-2">
+                            <AlertTriangle className="h-3 w-3 text-red-500" />
+                            <span className="text-xs text-red-300">Influence Penalty</span>
+                        </div>
+                        <div className="text-xs font-bold text-red-400">
+                            +{penalty}% Cost
+                        </div>
                     </div>
-                    <div className="text-xs font-bold text-red-400">
-                        +{penalty}% Cost
+                  )}
+                  {totalBonus > 0 && (
+                    <div className="flex items-center justify-between bg-indigo-950/20 p-2 rounded border border-indigo-900/30">
+                        <div className="flex items-center gap-2">
+                            <Orbit className="h-3 w-3 text-indigo-400" />
+                            <span className="text-xs text-indigo-300">Relic Bonus</span>
+                        </div>
+                        <div className="text-xs font-bold text-indigo-400">
+                            +{totalBonus}% Output
+                        </div>
                     </div>
-                </div>
-                <div className="flex items-center justify-between bg-indigo-950/20 p-2 rounded border border-indigo-900/30">
-                    <div className="flex items-center gap-2">
-                        <Orbit className="h-3 w-3 text-indigo-400" />
-                        <span className="text-xs text-indigo-300">Relic Bonus</span>
-                    </div>
-                    <div className="text-xs font-bold text-indigo-400">
-                        +{totalBonus}% Output
-                    </div>
-                </div>
-            </div>
+                  )}
+              </div>
+            )}
 
             <div className="space-y-4 text-gray-300 font-sans leading-relaxed text-sm">
                 <p>{details.lore}</p>
