@@ -137,8 +137,9 @@ export const sacrificeWorshippers = (state: GameState): Record<WorshipperType, n
 
 /**
  * Calculates the cost to buy/upgrade a specific vessel using tier-specific multipliers.
+ * Now includes influence penalty.
  */
-export const calculateVesselCost = (vesselId: string, currentLevel: number): number => {
+export const calculateVesselCost = (vesselId: string, currentLevel: number, influenceUsage: Partial<Record<WorshipperType, number>> = {}): number => {
   const def = VESSEL_DEFINITIONS.find(v => v.id === vesselId);
   if (!def) return 0;
   
@@ -148,7 +149,13 @@ export const calculateVesselCost = (vesselId: string, currentLevel: number): num
   else if (def.tier === 3) multiplier = 1.175;
   else if (def.tier === 4) multiplier = 1.2;
 
-  return Math.floor(def.baseCost * Math.pow(multiplier, currentLevel));
+  const baseCost = Math.floor(def.baseCost * Math.pow(multiplier, currentLevel));
+  
+  // Apply influence penalty: +2% per use for this worshipper type
+  const usageCount = influenceUsage[def.type] || 0;
+  const penaltyMultiplier = 1 + (usageCount * 0.02);
+
+  return Math.floor(baseCost * penaltyMultiplier);
 };
 
 /**
@@ -276,7 +283,7 @@ export const calculateBulkVesselBuy = (
     let lvl = currentLevel;
     
     for (let i = 0; i < 1000; i++) {
-       const nextCost = calculateVesselCost(vesselId, lvl);
+       const nextCost = calculateVesselCost(vesselId, lvl, state.influenceUsage);
        if (available >= costSoFar + nextCost) {
          costSoFar += nextCost;
          lvl++;
@@ -286,7 +293,7 @@ export const calculateBulkVesselBuy = (
     }
     
     if (lvl === currentLevel) {
-       return { cost: calculateVesselCost(vesselId, currentLevel), count: 0, targetLevel: currentLevel + 1 };
+       return { cost: calculateVesselCost(vesselId, currentLevel, state.influenceUsage), count: 0, targetLevel: currentLevel + 1 };
     }
     return { cost: costSoFar, count: lvl - currentLevel, targetLevel: lvl };
 
@@ -296,7 +303,7 @@ export const calculateBulkVesselBuy = (
     
     let totalCost = 0;
     for (let l = currentLevel; l < target; l++) {
-        totalCost += calculateVesselCost(vesselId, l);
+        totalCost += calculateVesselCost(vesselId, l, state.influenceUsage);
     }
     
     return { cost: totalCost, count: target - currentLevel, targetLevel: target };
@@ -304,12 +311,12 @@ export const calculateBulkVesselBuy = (
 };
 
 /**
- * Revised soul calculation. 1 soul available exactly at 1,000,000.
+ * Revised soul calculation. 10 souls available exactly at 1,000,000.
  */
 export const calculateSoulsEarned = (totalWorshippers: number): number => {
   if (totalWorshippers < PRESTIGE_UNLOCK_THRESHOLD) return 0;
   const surplus = totalWorshippers - PRESTIGE_UNLOCK_THRESHOLD;
-  return Math.floor(1 + 0.01 * Math.pow(surplus, 1/3));
+  return Math.floor(10 + 0.01 * Math.pow(surplus, 1/3));
 };
 
 /**

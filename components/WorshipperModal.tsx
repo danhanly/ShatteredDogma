@@ -1,8 +1,8 @@
 
 import React from 'react';
-import { GameState, WorshipperType } from '../types';
+import { GameState, WorshipperType, RelicId } from '../types';
 import { WORSHIPPER_DETAILS } from '../constants';
-import { X, Activity, Lock, Unlock } from 'lucide-react';
+import { X, Activity, Lock, Unlock, AlertTriangle, Orbit } from 'lucide-react';
 import { formatNumber } from '../utils/format';
 import { calculatePassiveIncomeByType } from '../services/gameService';
 
@@ -34,6 +34,18 @@ export const WorshipperModal: React.FC<WorshipperModalProps> = ({ type, count, o
   const incomeByType = calculatePassiveIncomeByType(gameState.vesselLevels, gameState.relicLevels);
   const currentRate = incomeByType[type];
   const isLocked = gameState.lockedWorshippers.includes(type);
+
+  // Calculate penalties and bonuses
+  const penalty = (gameState.influenceUsage[type] || 0) * 2;
+  
+  let specificRelicId: RelicId = RelicId.INDOLENT_BOOST;
+  if (type === WorshipperType.LOWLY) specificRelicId = RelicId.LOWLY_BOOST;
+  if (type === WorshipperType.WORLDLY) specificRelicId = RelicId.WORLDLY_BOOST;
+  if (type === WorshipperType.ZEALOUS) specificRelicId = RelicId.ZEALOUS_BOOST;
+
+  const specificBonus = (gameState.relicLevels[specificRelicId] || 0) * 5;
+  const globalBonus = (gameState.relicLevels[RelicId.ALL_VESSEL_BOOST] || 0) * 2;
+  const totalBonus = specificBonus + globalBonus;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in" onClick={onClose}>
@@ -78,11 +90,33 @@ export const WorshipperModal: React.FC<WorshipperModalProps> = ({ type, count, o
                 <div className="flex flex-col rounded-lg bg-black/40 p-3 border border-white/5">
                     <div className="flex items-center gap-1.5 mb-0.5">
                         <Activity className="h-2 w-2 text-green-500" />
-                        <span className="text-[10px] uppercase text-gray-500 tracking-wider">Siphon Rate</span>
+                        <span className="text-[10px] uppercase text-gray-500 tracking-wider">New Worshippers Rate</span>
                     </div>
                     <span className="font-mono text-lg font-bold text-green-400">
                         +{formatNumber(currentRate)}/s
                     </span>
+                </div>
+            </div>
+
+            {/* Penalties and Bonuses Breakdown */}
+            <div className="mb-6 space-y-2">
+                <div className="flex items-center justify-between bg-red-950/20 p-2 rounded border border-red-900/30">
+                    <div className="flex items-center gap-2">
+                        <AlertTriangle className="h-3 w-3 text-red-500" />
+                        <span className="text-xs text-red-300">Influence Penalty</span>
+                    </div>
+                    <div className="text-xs font-bold text-red-400">
+                        +{penalty}% Cost
+                    </div>
+                </div>
+                <div className="flex items-center justify-between bg-indigo-950/20 p-2 rounded border border-indigo-900/30">
+                    <div className="flex items-center gap-2">
+                        <Orbit className="h-3 w-3 text-indigo-400" />
+                        <span className="text-xs text-indigo-300">Relic Bonus</span>
+                    </div>
+                    <div className="text-xs font-bold text-indigo-400">
+                        +{totalBonus}% Output
+                    </div>
                 </div>
             </div>
 

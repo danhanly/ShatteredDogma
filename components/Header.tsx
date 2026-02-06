@@ -13,10 +13,12 @@ interface HeaderProps {
   setActiveTab: (tab: any) => void;
   passiveIncome?: number;
   debugAddWorshippers?: (type: WorshipperType, amount: number) => void;
+  debugUnlockFeature?: (feature: 'GEMS' | 'VESSELS' | 'END_TIMES' | 'ABYSS') => void;
+  debugAddSouls?: (amount: number) => void;
   resetSave: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ gameState, toggleSound, toggleMusic, setMusicVolume, setActiveTab, passiveIncome = 0, debugAddWorshippers, resetSave }) => {
+export const Header: React.FC<HeaderProps> = ({ gameState, toggleSound, toggleMusic, setMusicVolume, setActiveTab, passiveIncome = 0, debugAddWorshippers, debugUnlockFeature, debugAddSouls, resetSave }) => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   return (
@@ -81,6 +83,8 @@ export const Header: React.FC<HeaderProps> = ({ gameState, toggleSound, toggleMu
         toggleMusic={toggleMusic}
         setMusicVolume={setMusicVolume}
         debugAddWorshippers={debugAddWorshippers}
+        debugUnlockFeature={debugUnlockFeature}
+        debugAddSouls={debugAddSouls}
         resetSave={resetSave}
       />
     </header>

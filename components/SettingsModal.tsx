@@ -9,11 +9,13 @@ interface SettingsModalProps {
   onClose: () => void;
   soundEnabled: boolean;
   musicEnabled: boolean;
-  musicVolume?: number; // Optional to handle legacy saves if not immediately passed, though logic handles it
+  musicVolume?: number; 
   toggleSound: () => void;
   toggleMusic: () => void;
   setMusicVolume: (volume: number) => void;
   debugAddWorshippers?: (type: WorshipperType, amount: number) => void;
+  debugUnlockFeature?: (feature: 'GEMS' | 'VESSELS' | 'END_TIMES' | 'ABYSS') => void;
+  debugAddSouls?: (amount: number) => void;
   resetSave: () => void;
 }
 
@@ -27,6 +29,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   toggleMusic,
   setMusicVolume,
   debugAddWorshippers,
+  debugUnlockFeature,
+  debugAddSouls,
   resetSave
 }) => {
   const [isDeveloper, setIsDeveloper] = useState(false);
@@ -35,7 +39,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (params.get('developer') === '1') {
+    const isAiStudio = window.location.hostname.includes('aistudio.google.com') || window.location.origin.includes('usercontent.goog');
+    if (params.get('developer') === '1' || isAiStudio) {
       setIsDeveloper(true);
     }
   }, []);
@@ -145,11 +150,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         </div>
       </div>
     </div>
-    {debugAddWorshippers && (
+    {debugAddWorshippers && debugUnlockFeature && (
         <DeveloperModal 
             isOpen={isDevModalOpen} 
             onClose={() => setIsDevModalOpen(false)} 
             debugAddWorshippers={debugAddWorshippers} 
+            debugUnlockFeature={debugUnlockFeature}
+            debugAddSouls={debugAddSouls}
         />
     )}
     </>

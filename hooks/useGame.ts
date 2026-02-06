@@ -15,8 +15,10 @@ import {
   calculateBulkUpgrade,
   calculateBulkVesselBuy,
   calculateSoulsEarned,
-  calculateRelicCost
+  calculateRelicCost,
+  calculateVesselOutput
 } from '../services/gameService';
+import { VESSEL_DEFINITIONS } from '../constants';
 
 const STORAGE_KEY = 'shattered_dogma_save_v1.4'; 
 
@@ -37,6 +39,18 @@ const INITIAL_STATE: GameState = {
   showGemDiscovery: null,
   souls: 0,
   relicLevels: {},
+  influenceUsage: {
+    [WorshipperType.WORLDLY]: 0,
+    [WorshipperType.LOWLY]: 0,
+    [WorshipperType.ZEALOUS]: 0,
+    [WorshipperType.INDOLENT]: 0,
+  },
+  lastInfluenceTime: {
+    [WorshipperType.WORLDLY]: 0,
+    [WorshipperType.LOWLY]: 0,
+    [WorshipperType.ZEALOUS]: 0,
+    [WorshipperType.INDOLENT]: 0,
+  },
   maxTotalWorshippers: 0,
   maxWorshippersByType: {
     [WorshipperType.WORLDLY]: 0,
@@ -47,6 +61,7 @@ const INITIAL_STATE: GameState = {
   hasSeenEodIntro: false,
   hasSeenStartSplash: false,
   hasSeenVesselIntro: false,
+  hasSeenAbyssIntro: false,
   settings: {
     soundEnabled: true,
     musicEnabled: true,
@@ -74,6 +89,8 @@ export const useGame = () => {
           lockedWorshippers: parsed.lockedWorshippers || [],
           // Migration: totalAccruedWorshippers fallback to maxTotalWorshippers or totalWorshippers if missing
           totalAccruedWorshippers: parsed.totalAccruedWorshippers ?? (parsed.maxTotalWorshippers ?? parsed.totalWorshippers ?? 0),
+          influenceUsage: parsed.influenceUsage || { ...INITIAL_STATE.influenceUsage },
+          lastInfluenceTime: parsed.lastInfluenceTime || { ...INITIAL_STATE.lastInfluenceTime },
           lastSaveTime: parsed.lastSaveTime || now 
         };
       }
@@ -308,7 +325,7 @@ export const useGame = () => {
     setGameState(prev => {
         const currentLevel = prev.vesselLevels[vesselId] || 0;
         let totalCost = 0;
-        for (let i = 0; i < count; i++) totalCost += calculateVesselCost(vesselId, currentLevel + i);
+        for (let i = 0; i < count; i++) totalCost += calculateVesselCost(vesselId, currentLevel + i, prev.influenceUsage);
         if (prev.worshippers[type] < totalCost) return prev;
 
         return {
@@ -335,6 +352,7 @@ export const useGame = () => {
           hasSeenEodIntro: true,
           hasSeenStartSplash: true,
           hasSeenVesselIntro: true,
+          hasSeenAbyssIntro: prev.hasSeenAbyssIntro,
           lastSaveTime: Date.now()
        };
     });
@@ -421,6 +439,43 @@ export const useGame = () => {
     });
   }, []);
 
+  const debugAddSouls = useCallback((amount: number) => {
+    setGameState(prev => ({
+        ...prev,
+        souls: prev.souls + amount,
+        lastSaveTime: Date.now()
+    }));
+  }, []);
+
+  const debugUnlockFeature = useCallback((feature: 'GEMS' | 'VESSELS' | 'END_TIMES' | 'ABYSS') => {
+    setGameState(prev => {
+        const newState = { ...prev };
+        switch(feature) {
+            case 'GEMS':
+                newState.unlockedGems = Object.values(GemType).filter(g => g !== GemType.NONE);
+                break;
+            case 'VESSELS':
+                // Vessels unlock when maxWorshippersByType[WorshipperType.INDOLENT] >= 100
+                newState.maxWorshippersByType[WorshipperType.INDOLENT] = Math.max(newState.maxWorshippersByType[WorshipperType.INDOLENT] || 0, 100);
+                newState.hasSeenVesselIntro = true; 
+                break;
+            case 'END_TIMES':
+                // End times unlock when maxTotalWorshippers >= PRESTIGE_UNLOCK_THRESHOLD (1,000,000)
+                newState.maxTotalWorshippers = Math.max(newState.maxTotalWorshippers, 1000000);
+                newState.totalAccruedWorshippers = Math.max(newState.totalAccruedWorshippers, 1000000);
+                newState.hasSeenEodIntro = true;
+                break;
+            case 'ABYSS':
+                // Abyss unlocks when miracleLevel > 50
+                newState.miracleLevel = Math.max(newState.miracleLevel, 51);
+                newState.hasSeenAbyssIntro = true;
+                break;
+        }
+        newState.lastSaveTime = Date.now();
+        return newState;
+    });
+  }, []);
+
   const resetSave = useCallback(() => {
     localStorage.removeItem(STORAGE_KEY);
     setGameState({
@@ -428,6 +483,59 @@ export const useGame = () => {
         lastSaveTime: Date.now()
     });
     setOfflineGains(null);
+  }, []);
+
+  const performInfluence = useCallback((sourceType: WorshipperType, targetType: WorshipperType) => {
+    setGameState(prev => {
+        const sourceCount = prev.worshippers[sourceType];
+        const amountToConvert = Math.floor(sourceCount * 0.5);
+        
+        // Calculate retention based on new Relics
+        let relicId: RelicId | null = null;
+        if (sourceType === WorshipperType.INDOLENT) relicId = RelicId.INFLUENCE_INDOLENT;
+        if (sourceType === WorshipperType.LOWLY) relicId = RelicId.INFLUENCE_LOWLY;
+        if (sourceType === WorshipperType.WORLDLY) relicId = RelicId.INFLUENCE_WORLDLY;
+
+        const relicLevel = relicId ? (prev.relicLevels[relicId] || 0) : 0;
+        const retentionRate = Math.min(relicLevel * 0.01, 1.0); // 1% per level, capped at 100%
+
+        // Reset vessel levels with potential retention
+        const newVesselLevels = { ...prev.vesselLevels };
+        VESSEL_DEFINITIONS.filter(v => v.type === sourceType).forEach(v => {
+            const currentLevel = prev.vesselLevels[v.id] || 0;
+            const retainedLevel = Math.floor(currentLevel * retentionRate);
+            newVesselLevels[v.id] = retainedLevel;
+        });
+
+        const newWorshippers = { ...prev.worshippers };
+        newWorshippers[sourceType] = 0; // "Removes all"
+        newWorshippers[targetType] += amountToConvert;
+
+        const newMaxByType = { ...prev.maxWorshippersByType };
+        newMaxByType[targetType] = Math.max(newMaxByType[targetType], newWorshippers[targetType]);
+
+        // Total worshippers change: -sourceCount + amountToConvert. (Net loss)
+        const netChange = amountToConvert - sourceCount;
+
+        // Increase usage count for the SOURCE type (the one being sacrificed/influenced)
+        const newInfluenceUsage = { ...prev.influenceUsage };
+        newInfluenceUsage[sourceType] = (newInfluenceUsage[sourceType] || 0) + 1;
+
+        // Update timestamp for effects
+        const newLastInfluenceTime = { ...prev.lastInfluenceTime };
+        newLastInfluenceTime[sourceType] = Date.now();
+        
+        return {
+            ...prev,
+            worshippers: newWorshippers,
+            vesselLevels: newVesselLevels,
+            totalWorshippers: prev.totalWorshippers + netChange,
+            maxWorshippersByType: newMaxByType,
+            influenceUsage: newInfluenceUsage,
+            lastInfluenceTime: newLastInfluenceTime,
+            lastSaveTime: Date.now()
+        };
+    });
   }, []);
 
   return {
@@ -450,6 +558,9 @@ export const useGame = () => {
     setFlag,
     toggleWorshipperLock,
     debugAddWorshippers,
-    resetSave
+    debugUnlockFeature,
+    debugAddSouls,
+    resetSave,
+    performInfluence
   };
 };

@@ -50,6 +50,16 @@ Upgrading your Miracle Level hits a "Milestone" at levels 5, 10, 25, 50, 75, 100
     *   **Zealous:** 1.25x
 *   **Reward:** Unlocking a milestone grants access to **Focus Gems**.
 
+### 4. Influence of the Abyss
+Unlocked after the first Zealous Milestone (Level 50). This mechanic allows you to forcibly evolve your flock, but comes at a grave cost.
+*   **Mechanism:** Transition a lower tier of worshipper to the next tier (e.g., Indolent -> Lowly).
+*   **Cost (Immediate):** Removes **ALL** worshippers of the source type and resets **ALL** vessel levels of that source type to **0** (unless preserved by Relics).
+*   **Cost (Permanent):** Every time you Influence a worshipper type, the cost to upgrade their vessels increases by **+2%** cumulatively.
+*   **Benefit:** You gain 50% of the sacrificed population as the higher tier.
+    *   *Motivate the Torpid*: Indolent -> Lowly
+    *   *Invest in the Poor*: Lowly -> Worldly
+    *   *Stoke The Fires of Zeal*: Worldly -> Zealous
+
 ---
 
 ## IV. The End of Days (Prestige)
@@ -57,17 +67,25 @@ Upgrading your Miracle Level hits a "Milestone" at levels 5, 10, 25, 50, 75, 100
 **Unlock Threshold:** 1,000,000 Total Worshippers.
 
 Triggering the Apocalypse resets the world to forge a stronger one.
-*   **RESET:** Worshippers, Miracle Levels, Vessel Levels, Unlocked Gems.
+*   **RESET:** Worshippers, Miracle Levels, Vessel Levels, Unlocked Gems, Influence Penalties.
 *   **KEPT:** Souls, Relics, Historical Stats (Max Worshippers).
 
 ### Souls
 Souls are the prestige currency used to buy Relics.
 **Formula:**
-$$Souls = \lfloor 1 + 0.01 \times \sqrt[3]{TotalWorshippers - 1,000,000} \rfloor$$
-*(You gain 1 Soul exactly at 1M worshippers, with diminishing returns thereafter.)*
+$$Souls = \lfloor 10 + 0.01 \times \sqrt[3]{TotalWorshippers - 1,000,000} \rfloor$$
+*(You gain 10 Souls exactly at 1M worshippers, with diminishing returns thereafter.)*
 
 ### Relics
-Permanent upgrades purchased with Souls.
+Permanent upgrades purchased with Souls. While the bonus provided by Relics is **additive (linear)** relative to their level, their cost grows **exponentially** to represent the strain of anchoring eternal artifacts.
+
+**Influence Retention Relics:**
+New relics now allow you to mitigate the devastation of the Abyss.
+*   **Sigil of Stagnation:** Retains **1%** of Indolent Vessel levels per level when using *Motivate the Torpid*.
+*   **Sigil of Servitude:** Retains **1%** of Lowly Vessel levels per level when using *Invest in the Poor*.
+*   **Sigil of Hubris:** Retains **1%** of Worldly Vessel levels per level when using *Stoke The Fires of Zeal*.
+
+**Standard Relics:**
 1.  **Hand of the Void:** Increases Click Power by +5% per level.
 2.  **Shepherd's Crook:** Increases Indolent Vessel output by +5% per level.
 3.  **Chain of Binding:** Increases Lowly Vessel output by +5% per level.
@@ -85,17 +103,18 @@ Permanent upgrades purchased with Souls.
 $$Cost = \lfloor 25 \times 1.15^{CurrentLevel} \rfloor$$
 
 ### 2. Vessel Costs
-Vessel costs scale exponentially based on their Tier to create rising difficulty curves.
-*   **Tier 1:** $Base \times 1.15^{Level}$
-*   **Tier 2:** $Base \times 1.1675^{Level}$
-*   **Tier 3:** $Base \times 1.175^{Level}$
-*   **Tier 4:** $Base \times 1.20^{Level}$
+Vessel costs scale exponentially based on their Tier.
+$$Cost = Base \times Multiplier^{Level} \times (1 + InfluencePenalty)$$
+*Influence Penalty is +0.02 per Influence usage on that specific worshipper type.*
 
-### 3. Vessel Output Calculation
+### 3. Vessel Output Calculation (Linear Benefit)
 $$Output = (BaseOutput \times Level) \times (1 + Relic_{Type} \times 0.05) \times (1 + Relic_{All} \times 0.02)$$
 
 ### 4. Click Power Calculation
 $$Power = (1 + MiracleLevel) \times (1 + Relic_{Miracle} \times 0.05)$$
+
+### 5. Relic Cost Scaling (Exponential)
+$$RelicCost = \lfloor 10 \times 1.15^{Level} \rfloor$$
 
 ---
 *Documented by the Disgraced Scholars of the First Rift.*

@@ -110,49 +110,67 @@ export const RELIC_DEFINITIONS: RelicDefinition[] = [
     id: RelicId.MIRACLE_BOOST,
     name: "Hand of the Void",
     description: "Miracles are 5% more effective per level.",
-    baseCost: 1
+    baseCost: 10
   },
   {
     id: RelicId.INDOLENT_BOOST,
     name: "Shepherd's Crook",
     description: "Indolent vessels produce +5% more per level.",
-    baseCost: 1
+    baseCost: 10
   },
   {
     id: RelicId.LOWLY_BOOST,
     name: "Chain of Binding",
     description: "Lowly vessels produce +5% more per level.",
-    baseCost: 1
+    baseCost: 10
   },
   {
     id: RelicId.WORLDLY_BOOST,
     name: "Coin of Charon",
     description: "Worldly vessels produce +5% more per level.",
-    baseCost: 1
+    baseCost: 10
   },
   {
     id: RelicId.ZEALOUS_BOOST,
     name: "Blade of the Martyr",
     description: "Zealous vessels produce +5% more per level.",
-    baseCost: 1
+    baseCost: 10
   },
   {
     id: RelicId.ALL_VESSEL_BOOST,
     name: "Crown of Eternity",
     description: "All vessels produce +2% more per level.",
-    baseCost: 1
+    baseCost: 10
   },
   {
     id: RelicId.OFFLINE_BOOST,
     name: "Hourglass of the Sleeper",
     description: "Increases max offline time by +5 minutes per level (Base: 30m).",
-    baseCost: 1
+    baseCost: 10
   },
   {
     id: RelicId.GEM_BOOST,
     name: "Prism of Desire",
     description: "Focus Gems are +50% more effective at attracting their target per level.",
-    baseCost: 1
+    baseCost: 10
+  },
+  {
+    id: RelicId.INFLUENCE_INDOLENT,
+    name: "Sigil of Stagnation",
+    description: "Retains 1% of Indolent Vessel levels when performing 'Motivate the Torpid' per level.",
+    baseCost: 10
+  },
+  {
+    id: RelicId.INFLUENCE_LOWLY,
+    name: "Sigil of Servitude",
+    description: "Retains 1% of Lowly Vessel levels when performing 'Invest in the Poor' per level.",
+    baseCost: 10
+  },
+  {
+    id: RelicId.INFLUENCE_WORLDLY,
+    name: "Sigil of Hubris",
+    description: "Retains 1% of Worldly Vessel levels when performing 'Stoke The Fires of Zeal' per level.",
+    baseCost: 10
   }
 ];
 
@@ -313,7 +331,6 @@ export const VESSEL_DEFINITIONS: VesselDefinition[] = [
   },
   {
     id: VesselId.WORLDLY_4,
-    // Added missing opening quote for name
     name: "High King Osric the Blinded",
     subtitle: "The Deluded King",
     lore: "Osric is the ultimate cautionary tale. He believes his crown was gifted by the gods to rule the stars themselves.",

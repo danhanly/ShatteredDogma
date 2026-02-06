@@ -1,7 +1,7 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { WorshipperType } from '../types';
-import { X, Book, Terminal, PlusCircle } from 'lucide-react';
+import { X, Book, Terminal, PlusCircle, Unlock, Gem, Orbit } from 'lucide-react';
 
 const RULES_CONTENT = `
 # Shattered Dogma: The Liturgy of Numbers
@@ -55,6 +55,16 @@ Upgrading your Miracle Level hits a "Milestone" at levels 5, 10, 25, 50, 75, 100
     *   **Zealous:** 1.25x
 *   **Reward:** Unlocking a milestone grants access to **Focus Gems**.
 
+### 4. Influence of the Abyss
+Unlocked after the first Zealous Milestone (Level 50). This mechanic allows you to forcibly evolve your flock, but comes at a grave cost.
+*   **Mechanism:** Transition a lower tier of worshipper to the next tier (e.g., Indolent -> Lowly).
+*   **Cost (Immediate):** Removes **ALL** worshippers of the source type and resets **ALL** vessel levels of that source type to **0** (unless preserved by Relics).
+*   **Cost (Permanent):** Every time you Influence a worshipper type, the cost to upgrade their vessels increases by **+2%** cumulatively.
+*   **Benefit:** You gain 50% of the sacrificed population as the higher tier.
+    *   *Motivate the Torpid*: Indolent -> Lowly
+    *   *Invest in the Poor*: Lowly -> Worldly
+    *   *Stoke The Fires of Zeal*: Worldly -> Zealous
+
 ---
 
 ## IV. The End of Days (Prestige)
@@ -62,17 +72,25 @@ Upgrading your Miracle Level hits a "Milestone" at levels 5, 10, 25, 50, 75, 100
 **Unlock Threshold:** 1,000,000 Total Worshippers.
 
 Triggering the Apocalypse resets the world to forge a stronger one.
-*   **RESET:** Worshippers, Miracle Levels, Vessel Levels, Unlocked Gems.
+*   **RESET:** Worshippers, Miracle Levels, Vessel Levels, Unlocked Gems, Influence Penalties.
 *   **KEPT:** Souls, Relics, Historical Stats (Max Worshippers).
 
 ### Souls
 Souls are the prestige currency used to buy Relics.
 **Formula:**
-$$Souls = \\lfloor 1 + 0.01 \\times \\sqrt[3]{TotalWorshippers - 1,000,000} \\rfloor$$
-*(You gain 1 Soul exactly at 1M worshippers, with diminishing returns thereafter.)*
+$$Souls = \lfloor 10 + 0.01 \times \sqrt[3]{TotalWorshippers - 1,000,000} \rfloor$$
+*(You gain 10 Souls exactly at 1M worshippers, with diminishing returns thereafter.)*
 
 ### Relics
-Permanent upgrades purchased with Souls.
+Permanent upgrades purchased with Souls. While the bonus provided by Relics is **additive (linear)** relative to their level, their cost grows **exponentially** to represent the strain of anchoring eternal artifacts.
+
+**Influence Retention Relics:**
+New relics now allow you to mitigate the devastation of the Abyss.
+*   **Sigil of Stagnation:** Retains **1%** of Indolent Vessel levels per level when using *Motivate the Torpid*.
+*   **Sigil of Servitude:** Retains **1%** of Lowly Vessel levels per level when using *Invest in the Poor*.
+*   **Sigil of Hubris:** Retains **1%** of Worldly Vessel levels per level when using *Stoke The Fires of Zeal*.
+
+**Standard Relics:**
 1.  **Hand of the Void:** Increases Click Power by +5% per level.
 2.  **Shepherd's Crook:** Increases Indolent Vessel output by +5% per level.
 3.  **Chain of Binding:** Increases Lowly Vessel output by +5% per level.
@@ -87,20 +105,21 @@ Permanent upgrades purchased with Souls.
 ## V. The Mathematics of Ascension
 
 ### 1. Miracle Upgrade Cost
-$$Cost = \\lfloor 25 \\times 1.15^{CurrentLevel} \\rfloor$$
+$$Cost = \lfloor 25 \times 1.15^{CurrentLevel} \rfloor$$
 
 ### 2. Vessel Costs
-Vessel costs scale exponentially based on their Tier to create rising difficulty curves.
-*   **Tier 1:** $Base \\times 1.15^{Level}$
-*   **Tier 2:** $Base \\times 1.1675^{Level}$
-*   **Tier 3:** $Base \\times 1.175^{Level}$
-*   **Tier 4:** $Base \\times 1.20^{Level}$
+Vessel costs scale exponentially based on their Tier.
+$$Cost = Base \times Multiplier^{Level} \times (1 + InfluencePenalty)$$
+*Influence Penalty is +0.02 per Influence usage on that specific worshipper type.*
 
-### 3. Vessel Output Calculation
-$$Output = (BaseOutput \\times Level) \\times (1 + Relic_{Type} \\times 0.05) \\times (1 + Relic_{All} \\times 0.02)$$
+### 3. Vessel Output Calculation (Linear Benefit)
+$$Output = (BaseOutput \times Level) \times (1 + Relic_{Type} \times 0.05) \times (1 + Relic_{All} \times 0.02)$$
 
 ### 4. Click Power Calculation
-$$Power = (1 + MiracleLevel) \\times (1 + Relic_{Miracle} \\times 0.05)$$
+$$Power = (1 + MiracleLevel) \times (1 + Relic_{Miracle} \times 0.05)$$
+
+### 5. Relic Cost Scaling (Exponential)
+$$RelicCost = \lfloor 10 \times 1.15^{Level} \rfloor$$
 
 ---
 *Documented by the Disgraced Scholars of the First Rift.*
@@ -110,16 +129,38 @@ interface DeveloperModalProps {
   isOpen: boolean;
   onClose: () => void;
   debugAddWorshippers: (type: WorshipperType, amount: number) => void;
+  debugUnlockFeature: (feature: 'GEMS' | 'VESSELS' | 'END_TIMES' | 'ABYSS') => void;
+  debugAddSouls?: (amount: number) => void;
 }
 
-export const DeveloperModal: React.FC<DeveloperModalProps> = ({ isOpen, onClose, debugAddWorshippers }) => {
+export const DeveloperModal: React.FC<DeveloperModalProps> = ({ isOpen, onClose, debugAddWorshippers, debugUnlockFeature, debugAddSouls }) => {
   const [viewRules, setViewRules] = useState(false);
+  const rulesContainerRef = useRef<HTMLDivElement>(null);
   const [inputs, setInputs] = useState<Record<WorshipperType, { mantissa: string, exponent: string }>>({
     [WorshipperType.INDOLENT]: { mantissa: '0', exponent: '0' },
     [WorshipperType.LOWLY]: { mantissa: '0', exponent: '0' },
     [WorshipperType.WORLDLY]: { mantissa: '0', exponent: '0' },
     [WorshipperType.ZEALOUS]: { mantissa: '0', exponent: '0' },
   });
+  const [soulsInput, setSoulsInput] = useState('0');
+
+  useEffect(() => {
+    if (viewRules && rulesContainerRef.current) {
+        // Small delay to ensure the DOM content is injected before rendering math
+        const timer = setTimeout(() => {
+            if ((window as any).renderMathInElement) {
+                (window as any).renderMathInElement(rulesContainerRef.current, {
+                    delimiters: [
+                        {left: '$$', right: '$$', display: true},
+                        {left: '$', right: '$', display: false}
+                    ],
+                    throwOnError: false
+                });
+            }
+        }, 50);
+        return () => clearTimeout(timer);
+    }
+  }, [viewRules]);
 
   if (!isOpen) return null;
 
@@ -141,10 +182,30 @@ export const DeveloperModal: React.FC<DeveloperModalProps> = ({ isOpen, onClose,
       }
   };
 
+  const handleInjectSouls = () => {
+      const amount = parseInt(soulsInput);
+      if (!isNaN(amount) && debugAddSouls) {
+          debugAddSouls(amount);
+          alert(`Injected ${amount} Souls`);
+      }
+  }
+
+  const handleUnlock = (feature: 'GEMS' | 'VESSELS' | 'END_TIMES' | 'ABYSS') => {
+      debugUnlockFeature(feature);
+      alert(`Unlocked ${feature}`);
+  }
+
   const parseMarkdown = (text: string) => {
-    // Basic parser for specific markdown features used in Rules.md
     if (!text) return '';
-    let html = text
+    
+    // Protect math blocks from markdown processing
+    const mathBlocks: string[] = [];
+    let processedText = text.replace(/\$\$[\s\S]*?\$\$|\$.*?\$/g, (match) => {
+        mathBlocks.push(match);
+        return `@@MATH${mathBlocks.length - 1}@@`;
+    });
+
+    processedText = processedText
         .replace(/^### (.*$)/gim, '<h3 class="text-lg font-bold text-eldritch-gold mt-4 mb-2">$1</h3>')
         .replace(/^## (.*$)/gim, '<h2 class="text-xl font-bold text-eldritch-gold mt-6 mb-3 border-b border-white/10 pb-1">$1</h2>')
         .replace(/^# (.*$)/gim, '<h1 class="text-2xl font-bold text-eldritch-gold mb-4 text-center">$1</h1>')
@@ -152,11 +213,15 @@ export const DeveloperModal: React.FC<DeveloperModalProps> = ({ isOpen, onClose,
         .replace(/\*(.*)\*/gim, '<em class="text-gray-400">$1</em>')
         .replace(/^\* (.*$)/gim, '<li class="ml-4 list-disc text-gray-300">$1</li>')
         .replace(/^\d\. (.*$)/gim, '<li class="ml-4 list-decimal text-gray-300">$1</li>')
-        .replace(/\$\\$(.*?)\\$\$/gs, '<div class="bg-black/40 p-2 my-2 font-mono text-center text-green-400 text-xs rounded border border-white/5">$1</div>') // Block Math
-        .replace(/\$(.*?)\$/gim, '<span class="font-mono text-green-400 text-xs bg-black/30 px-1 rounded">$1</span>') // Inline Math
         .replace(/\n/gim, '<br />')
         .replace(/---/gim, '<hr class="border-white/10 my-4" />');
-    return html;
+    
+    // Restore math blocks
+    processedText = processedText.replace(/@@MATH(\d+)@@/g, (_, index) => {
+        return mathBlocks[parseInt(index)];
+    });
+
+    return processedText;
   }
 
   return (
@@ -178,7 +243,7 @@ export const DeveloperModal: React.FC<DeveloperModalProps> = ({ isOpen, onClose,
                 onClick={() => setViewRules(false)} 
                 className={`flex-1 px-4 py-3 text-sm font-bold transition-all border-b-2 ${!viewRules ? 'bg-eldritch-lilac/10 text-eldritch-lilac border-eldritch-lilac' : 'text-gray-500 border-transparent hover:text-gray-300'}`}
             >
-                Resources
+                Tools
             </button>
             <button 
                 onClick={() => setViewRules(true)} 
@@ -191,52 +256,102 @@ export const DeveloperModal: React.FC<DeveloperModalProps> = ({ isOpen, onClose,
         {/* Content Area */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 bg-eldritch-dark scrollbar-thin scrollbar-thumb-white/10">
             {!viewRules ? (
-                <div className="max-w-xl mx-auto">
-                    <h3 className="text-lg sm:text-xl font-bold text-white mb-6 flex items-center gap-2"><PlusCircle className="h-5 w-5 text-green-400" /> Inject Worshippers</h3>
-                    <div className="space-y-4 sm:space-y-6">
-                        {(Object.keys(inputs) as WorshipperType[]).map(type => (
-                            <div key={type} className="bg-black/40 p-4 rounded-lg border border-white/5">
-                                <div className="mb-3 font-bold text-gray-300 text-sm sm:text-base border-b border-white/5 pb-1">{type}</div>
-                                <div className="flex flex-col sm:flex-row sm:items-end gap-3 sm:gap-2">
-                                    <div className="flex-1">
-                                        <label className="text-[10px] uppercase text-gray-500 block mb-1">Mantissa (0-9)</label>
-                                        <input 
-                                            type="number" 
-                                            min="0" max="9" 
-                                            value={inputs[type].mantissa}
-                                            onChange={(e) => handleInputChange(type, 'mantissa', e.target.value)}
-                                            className="w-full bg-black border border-gray-700 rounded p-2 text-white font-mono focus:border-eldritch-lilac outline-none transition-colors"
-                                        />
-                                    </div>
-                                    <div className="hidden sm:block pb-3 font-mono text-gray-500 text-xs">x 10^</div>
-                                    <div className="flex-1">
-                                        <label className="text-[10px] uppercase text-gray-500 block mb-1">Exponent</label>
-                                        <div className="flex items-center gap-2">
-                                            <span className="sm:hidden font-mono text-gray-500 text-xs">x 10^</span>
+                <div className="max-w-xl mx-auto space-y-8">
+                    {/* Unlocks (Moved to Top) */}
+                    <div>
+                        <h3 className="text-lg sm:text-xl font-bold text-white mb-6 flex items-center gap-2"><Unlock className="h-5 w-5 text-purple-400" /> Feature Unlocks</h3>
+                        <div className="grid grid-cols-2 gap-4">
+                            <button onClick={() => handleUnlock('GEMS')} className="flex flex-col items-center justify-center p-4 bg-black/40 border border-purple-500/30 rounded-lg hover:bg-purple-900/20 hover:border-purple-400 transition-colors">
+                                <Gem className="h-6 w-6 text-purple-400 mb-2" />
+                                <span className="font-bold text-sm text-purple-200">Unlock All Gems</span>
+                            </button>
+                            <button onClick={() => handleUnlock('VESSELS')} className="flex flex-col items-center justify-center p-4 bg-black/40 border border-blue-500/30 rounded-lg hover:bg-blue-900/20 hover:border-blue-400 transition-colors">
+                                <Book className="h-6 w-6 text-blue-400 mb-2" />
+                                <span className="font-bold text-sm text-blue-200">Unlock Vessels</span>
+                            </button>
+                            <button onClick={() => handleUnlock('END_TIMES')} className="flex flex-col items-center justify-center p-4 bg-black/40 border border-indigo-500/30 rounded-lg hover:bg-indigo-900/20 hover:border-indigo-400 transition-colors">
+                                <Terminal className="h-6 w-6 text-indigo-400 mb-2" />
+                                <span className="font-bold text-sm text-indigo-200">Unlock End Times</span>
+                            </button>
+                            <button onClick={() => handleUnlock('ABYSS')} className="flex flex-col items-center justify-center p-4 bg-black/40 border border-red-500/30 rounded-lg hover:bg-red-900/20 hover:border-red-400 transition-colors">
+                                <X className="h-6 w-6 text-red-400 mb-2" />
+                                <span className="font-bold text-sm text-red-200">Unlock Abyss</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Injectors */}
+                    <div>
+                        <h3 className="text-lg sm:text-xl font-bold text-white mb-6 flex items-center gap-2 border-t border-white/10 pt-6"><PlusCircle className="h-5 w-5 text-green-400" /> Inject Worshippers</h3>
+                        <div className="space-y-4 sm:space-y-6">
+                            {(Object.keys(inputs) as WorshipperType[]).map(type => (
+                                <div key={type} className="bg-black/40 p-4 rounded-lg border border-white/5">
+                                    <div className="mb-3 font-bold text-gray-300 text-sm sm:text-base border-b border-white/5 pb-1">{type}</div>
+                                    <div className="flex flex-col sm:flex-row sm:items-end gap-3 sm:gap-2">
+                                        <div className="flex-1">
+                                            <label className="text-[10px] uppercase text-gray-500 block mb-1">Mantissa (0-9)</label>
                                             <input 
                                                 type="number" 
-                                                value={inputs[type].exponent}
-                                                onChange={(e) => handleInputChange(type, 'exponent', e.target.value)}
+                                                min="0" max="9" 
+                                                value={inputs[type].mantissa}
+                                                onChange={(e) => handleInputChange(type, 'mantissa', e.target.value)}
                                                 className="w-full bg-black border border-gray-700 rounded p-2 text-white font-mono focus:border-eldritch-lilac outline-none transition-colors"
                                             />
                                         </div>
+                                        <div className="hidden sm:block pb-3 font-mono text-gray-500 text-xs">x 10^</div>
+                                        <div className="flex-1">
+                                            <label className="text-[10px] uppercase text-gray-500 block mb-1">Exponent</label>
+                                            <div className="flex items-center gap-2">
+                                                <span className="sm:hidden font-mono text-gray-500 text-xs">x 10^</span>
+                                                <input 
+                                                    type="number" 
+                                                    value={inputs[type].exponent}
+                                                    onChange={(e) => handleInputChange(type, 'exponent', e.target.value)}
+                                                    className="w-full bg-black border border-gray-700 rounded p-2 text-white font-mono focus:border-eldritch-lilac outline-none transition-colors"
+                                                />
+                                            </div>
+                                        </div>
+                                        <button 
+                                            onClick={() => handleInject(type)}
+                                            className="sm:h-[42px] px-6 py-2 sm:py-0 bg-eldritch-lilac/20 hover:bg-eldritch-lilac/30 text-eldritch-lilac border border-eldritch-lilac/50 rounded-lg font-bold text-sm transition-colors active:scale-95"
+                                        >
+                                            Add
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Inject Souls */}
+                    {debugAddSouls && (
+                        <div>
+                            <h3 className="text-lg sm:text-xl font-bold text-white mb-6 flex items-center gap-2 border-t border-white/10 pt-6"><Orbit className="h-5 w-5 text-indigo-400" /> Inject Souls</h3>
+                            <div className="bg-black/40 p-4 rounded-lg border border-white/5">
+                                <div className="flex flex-col sm:flex-row sm:items-end gap-3 sm:gap-2">
+                                    <div className="flex-1">
+                                        <label className="text-[10px] uppercase text-gray-500 block mb-1">Amount</label>
+                                        <input 
+                                            type="number" 
+                                            min="0"
+                                            value={soulsInput}
+                                            onChange={(e) => setSoulsInput(e.target.value)}
+                                            className="w-full bg-black border border-gray-700 rounded p-2 text-white font-mono focus:border-indigo-500 outline-none transition-colors"
+                                        />
                                     </div>
                                     <button 
-                                        onClick={() => handleInject(type)}
-                                        className="sm:h-[42px] px-6 py-2 sm:py-0 bg-eldritch-lilac/20 hover:bg-eldritch-lilac/30 text-eldritch-lilac border border-eldritch-lilac/50 rounded-lg font-bold text-sm transition-colors active:scale-95"
+                                        onClick={handleInjectSouls}
+                                        className="sm:h-[42px] px-6 py-2 sm:py-0 bg-indigo-900/30 hover:bg-indigo-900/50 text-indigo-300 border border-indigo-500/50 rounded-lg font-bold text-sm transition-colors active:scale-95"
                                     >
-                                        Add
+                                        Add Souls
                                     </button>
                                 </div>
-                                <div className="mt-2 text-[10px] sm:text-xs text-gray-500 font-mono text-right">
-                                    Preview: {(parseFloat(inputs[type].mantissa) || 0) * Math.pow(10, parseFloat(inputs[type].exponent) || 0)}
-                                </div>
                             </div>
-                        ))}
-                    </div>
+                        </div>
+                    )}
                 </div>
             ) : (
-                <div className="prose prose-invert max-w-none px-2 sm:px-4">
+                <div ref={rulesContainerRef} className="prose prose-invert max-w-none px-2 sm:px-4">
                     <div className="flex items-center gap-2 mb-4 pb-4 border-b border-white/10">
                         < Book className="h-5 w-5 text-gray-400" />
                         <span className="font-mono text-xs sm:text-sm text-gray-500">RULES.md</span>

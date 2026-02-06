@@ -45,6 +45,9 @@ export enum RelicId {
   ALL_VESSEL_BOOST = 'ALL_VESSEL_BOOST',
   OFFLINE_BOOST = 'OFFLINE_BOOST',
   GEM_BOOST = 'GEM_BOOST',
+  INFLUENCE_INDOLENT = 'INFLUENCE_INDOLENT',
+  INFLUENCE_LOWLY = 'INFLUENCE_LOWLY',
+  INFLUENCE_WORLDLY = 'INFLUENCE_WORLDLY',
 }
 
 export interface VesselDefinition {
@@ -78,6 +81,10 @@ export interface GameState {
   souls: number;
   relicLevels: Record<string, number>; // Map RelicId to level
   
+  // Influence Mechanics
+  influenceUsage: Record<WorshipperType, number>; // Tracks how many times influence was used per type
+  lastInfluenceTime: Record<WorshipperType, number>; // Timestamp of last influence usage for VFX
+
   // Historical stats
   maxTotalWorshippers: number;
   maxWorshippersByType: Record<WorshipperType, number>;
@@ -86,6 +93,7 @@ export interface GameState {
   hasSeenEodIntro: boolean;
   hasSeenStartSplash: boolean;
   hasSeenVesselIntro: boolean;
+  hasSeenAbyssIntro: boolean;
 
   settings: {
     soundEnabled: boolean;

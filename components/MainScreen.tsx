@@ -1,10 +1,12 @@
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { GameState, WorshipperType, ClickEffect, GemType, WORSHIPPER_ORDER } from '../types';
 import { GEM_DEFINITIONS } from '../constants';
-import { Crown, Ghost, Frown, ChevronRight, Sword, Lock } from 'lucide-react';
+import { Crown, Ghost, Frown, Sword, Lock } from 'lucide-react';
 import { WorshipperModal } from './WorshipperModal';
 import { formatNumber } from '../utils/format';
+import { WorshipperStat } from './WorshipperStat';
+import { ZipParticleElement, ZipParticle } from './ZipParticleElement';
 
 interface MainScreenProps {
   gameState: GameState;
@@ -13,15 +15,6 @@ interface MainScreenProps {
   worshipperImages: Record<WorshipperType, string>;
   bgUrl: string;
   toggleWorshipperLock: (type: WorshipperType) => void;
-}
-
-interface ZipParticle {
-    id: number;
-    startX: number;
-    startY: number;
-    endX: number;
-    endY: number;
-    color: string;
 }
 
 export const MainScreen: React.FC<MainScreenProps> = ({ gameState, milestoneState, onTap, worshipperImages, bgUrl, toggleWorshipperLock }) => {
@@ -133,53 +126,12 @@ export const MainScreen: React.FC<MainScreenProps> = ({ gameState, milestoneStat
       isAdjusted = true;
   }
 
-  const WorshipperStat = ({ type, count, icon: Icon, colorClass, textColor, iconColor, priorityIndex, isLast }: any) => {
-    const isGlowing = glowingStats[type];
-    const isLocked = gameState.lockedWorshippers.includes(type);
-    let opacityClass = 'opacity-100';
-    let scaleClass = isGlowing ? 'scale-110' : 'scale-100';
-    let ringClass = '';
-    let glowShadow = '';
-
-    if (isGlowing) {
-        switch(type) {
-            case WorshipperType.INDOLENT: glowShadow = 'shadow-[0_0_30px_rgba(96,165,250,0.8)] border-blue-400'; break;
-            case WorshipperType.LOWLY: glowShadow = 'shadow-[0_0_30px_rgba(156,163,175,0.8)] border-gray-300'; break;
-            case WorshipperType.WORLDLY: glowShadow = 'shadow-[0_0_30px_rgba(74,222,128,0.8)] border-green-400'; break;
-            case WorshipperType.ZEALOUS: glowShadow = 'shadow-[0_0_30px_rgba(239,68,68,0.8)] border-red-400'; break;
-        }
-    }
-
-    if (milestoneState.isMilestone && milestoneState.definition) {
-        if (milestoneState.definition.type === type) {
-            opacityClass = 'opacity-100';
-            if (!isGlowing) {
-                scaleClass = 'scale-105 shadow-[0_0_20px_rgba(255,255,255,0.2)]';
-                ringClass = `ring-2 ${textColor.replace('text-', 'ring-')}`;
-            }
-        } else {
-            opacityClass = 'opacity-30 grayscale';
-        }
-    }
-
-    return (
-    <div className="flex items-center">
-        <div 
-            ref={(el) => { statBoxRefs.current[type] = el; }}
-            onPointerDown={(e) => { e.stopPropagation(); setSelectedWorshipper(type); }}
-            data-clickable="true"
-            className={`group relative flex w-[70px] cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border ${colorClass} bg-black/60 p-2 backdrop-blur-sm transition-all duration-300 hover:bg-black/80 hover:scale-105 active:scale-95 sm:w-[100px] sm:min-w-[100px] ${opacityClass} ${scaleClass} ${ringClass} ${glowShadow}`}
-        >
-            <div className="absolute -left-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-eldritch-grey text-[8px] font-bold text-white border border-gray-600 sm:-left-2 sm:-top-2 sm:h-5 sm:w-5 sm:text-[10px]">{priorityIndex}</div>
-            {isLocked && <div className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-eldritch-crimson text-white sm:-right-2 sm:-top-2 sm:h-5 sm:w-5"><Lock className="h-3 w-3" /></div>}
-            <Icon className={`h-4 w-4 ${iconColor} sm:h-6 w-6`} />
-            <span className={`hidden font-serif text-xs ${textColor} sm:block`}>{type}</span>
-            <span className={`block font-serif text-[10px] ${textColor} sm:hidden`}>{type.slice(0, 3)}</span>
-            <span className="font-mono text-xs font-bold text-white sm:text-lg">{formatNumber(count)}</span>
-        </div>
-        {!isLast && <div className="mx-1 flex items-center justify-center sm:mx-2"><ChevronRight className="h-4 w-4 text-eldritch-gold/50 sm:h-6 w-6 animate-pulse" /></div>}
-    </div>
-    );
+  const commonStatProps = {
+      gameState,
+      milestoneState,
+      glowingStats,
+      onSelect: setSelectedWorshipper,
+      setStatBoxRef: (type: string, el: HTMLDivElement | null) => { statBoxRefs.current[type] = el; }
   };
 
   return (
@@ -192,10 +144,10 @@ export const MainScreen: React.FC<MainScreenProps> = ({ gameState, milestoneStat
       <div className="absolute inset-0 z-0 bg-cover bg-center opacity-70 grayscale-[50%] blur-sm" style={{ backgroundImage: `url('${bgUrl}')` }} />
       <div className="pointer-events-none absolute inset-0 z-0 bg-black/30" />
       <div className="relative z-10 mt-2 flex w-full justify-center">
-        <WorshipperStat type={WorshipperType.INDOLENT} count={gameState.worshippers[WorshipperType.INDOLENT]} icon={Ghost} colorClass="border-blue-900/30 hover:border-blue-500" textColor="text-blue-200" iconColor="text-blue-400" priorityIndex={1} isLast={false} />
-        <WorshipperStat type={WorshipperType.LOWLY} count={gameState.worshippers[WorshipperType.LOWLY]} icon={Frown} colorClass="border-gray-700/30 hover:border-gray-400" textColor="text-gray-300" iconColor="text-gray-400" priorityIndex={2} isLast={false} />
-        <WorshipperStat type={WorshipperType.WORLDLY} count={gameState.worshippers[WorshipperType.WORLDLY]} icon={Crown} colorClass="border-green-900/30 hover:border-green-500" textColor="text-green-200" iconColor="text-green-500" priorityIndex={3} isLast={false} />
-        <WorshipperStat type={WorshipperType.ZEALOUS} count={gameState.worshippers[WorshipperType.ZEALOUS]} icon={Sword} colorClass="border-red-900/30 hover:border-red-500" textColor="text-red-200" iconColor="text-red-500" priorityIndex={4} isLast={true} />
+        <WorshipperStat type={WorshipperType.INDOLENT} count={gameState.worshippers[WorshipperType.INDOLENT]} icon={Ghost} colorClass="border-blue-900/30 hover:border-blue-500" textColor="text-blue-200" iconColor="text-blue-400" priorityIndex={1} isLast={false} {...commonStatProps} />
+        <WorshipperStat type={WorshipperType.LOWLY} count={gameState.worshippers[WorshipperType.LOWLY]} icon={Frown} colorClass="border-gray-700/30 hover:border-gray-400" textColor="text-gray-300" iconColor="text-gray-400" priorityIndex={2} isLast={false} {...commonStatProps} />
+        <WorshipperStat type={WorshipperType.WORLDLY} count={gameState.worshippers[WorshipperType.WORLDLY]} icon={Crown} colorClass="border-green-900/30 hover:border-green-500" textColor="text-green-200" iconColor="text-green-500" priorityIndex={3} isLast={false} {...commonStatProps} />
+        <WorshipperStat type={WorshipperType.ZEALOUS} count={gameState.worshippers[WorshipperType.ZEALOUS]} icon={Sword} colorClass="border-red-900/30 hover:border-red-500" textColor="text-red-200" iconColor="text-red-500" priorityIndex={4} isLast={true} {...commonStatProps} />
       </div>
       <div className="pointer-events-none relative z-10 flex flex-1 items-center justify-center">
         <div className="relative flex items-center justify-center">
@@ -236,34 +188,4 @@ export const MainScreen: React.FC<MainScreenProps> = ({ gameState, milestoneStat
     />
     </>
   );
-};
-
-const ZipParticleElement: React.FC<{ particle: ZipParticle }> = ({ particle }) => {
-    const [style, setStyle] = useState<React.CSSProperties>({
-        left: particle.startX,
-        top: particle.startY,
-        opacity: 1,
-        transform: 'scale(1)',
-    });
-
-    useEffect(() => {
-        // Trigger the transition immediately after mount
-        const timer = requestAnimationFrame(() => {
-            setStyle({
-                left: particle.endX,
-                top: particle.endY,
-                opacity: 0,
-                transform: 'scale(0.5)',
-                transition: 'all 1.0s cubic-bezier(0.2, 0, 0.2, 1)',
-            });
-        });
-        return () => cancelAnimationFrame(timer);
-    }, [particle]);
-
-    return (
-        <div 
-            className={`pointer-events-none absolute z-30 h-4 w-4 rounded-full ${particle.color}`}
-            style={style}
-        />
-    );
 };
