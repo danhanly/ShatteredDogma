@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { GameState, WorshipperType } from '../types';
 import { Settings, Users, Activity, Orbit, Coffee } from 'lucide-react';
@@ -13,7 +12,7 @@ interface HeaderProps {
   setActiveTab: (tab: any) => void;
   passiveIncome?: number;
   debugAddWorshippers?: (type: WorshipperType, amount: number) => void;
-  debugUnlockFeature?: (feature: 'GEMS' | 'VESSELS' | 'END_TIMES' | 'ABYSS') => void;
+  debugUnlockFeature?: (feature: 'GEMS' | 'VESSELS' | 'END_TIMES' | 'ASSISTANT') => void;
   debugAddSouls?: (amount: number) => void;
   resetSave: () => void;
 }

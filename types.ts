@@ -6,14 +6,6 @@ export enum WorshipperType {
   INDOLENT = 'Indolent',
 }
 
-export enum GemType {
-  NONE = 'None',
-  GREED_STONE = 'Greed Stone',       // Favors Worldly
-  POOR_MANS_TEAR = 'Poor Man\'s Tear', // Favors Lowly
-  BLOOD_RUBY = 'Blood Ruby',         // Favors Zealous
-  SLOTH_SAPPHIRE = 'Sloth Sapphire', // Favors Indolent
-}
-
 export enum VesselId {
   INDOLENT_1 = 'INDOLENT_1',
   LOWLY_1 = 'LOWLY_1',
@@ -36,20 +28,6 @@ export enum VesselId {
   ZEALOUS_4 = 'ZEALOUS_4',
 }
 
-export enum RelicId {
-  MIRACLE_BOOST = 'MIRACLE_BOOST',
-  INDOLENT_BOOST = 'INDOLENT_BOOST',
-  LOWLY_BOOST = 'LOWLY_BOOST',
-  WORLDLY_BOOST = 'WORLDLY_BOOST',
-  ZEALOUS_BOOST = 'ZEALOUS_BOOST',
-  ALL_VESSEL_BOOST = 'ALL_VESSEL_BOOST',
-  OFFLINE_BOOST = 'OFFLINE_BOOST',
-  GEM_BOOST = 'GEM_BOOST',
-  INFLUENCE_INDOLENT = 'INFLUENCE_INDOLENT',
-  INFLUENCE_LOWLY = 'INFLUENCE_LOWLY',
-  INFLUENCE_WORLDLY = 'INFLUENCE_WORLDLY',
-}
-
 export interface VesselDefinition {
   id: VesselId;
   name: string;
@@ -61,44 +39,31 @@ export interface VesselDefinition {
   tier: number;
 }
 
-export interface RelicDefinition {
-  id: RelicId;
-  name: string;
-  description: string;
-  baseCost: number;
+export enum GemType {
+  LAPIS = 'LAPIS',
+  QUARTZ = 'QUARTZ',
+  EMERALD = 'EMERALD',
+  RUBY = 'RUBY'
 }
 
 export interface Bulletin {
-  id: number;
+  id: string;
+  volume: number;
+  date: string;
   title: string;
   body: string;
-  rewardType: WorshipperType;
+  rewardType: string;
   rewardAmount: number;
-  date: string;
-  volume: number;
 }
 
 export interface GameState {
   worshippers: Record<WorshipperType, number>;
   totalWorshippers: number;
-  totalAccruedWorshippers: number; 
-  lockedWorshippers: WorshipperType[]; 
+  totalAccruedWorshippers: number;
   miracleLevel: number;
   vesselLevels: Record<string, number>; // Map VesselId to level
-  equippedGem: GemType;
-  unlockedGems: GemType[];
-  showGemDiscovery: GemType | null;
   souls: number;
-  relicLevels: Record<string, number>; // Map RelicId to level
   
-  // Bulletin
-  activeBulletin: Bulletin | null;
-  lastBulletinTime: number; 
-
-  // Influence Mechanics
-  influenceUsage: Record<WorshipperType, number>; 
-  lastInfluenceTime: Record<WorshipperType, number>; 
-
   // Historical stats
   maxTotalWorshippers: number;
   maxWorshippersByType: Record<WorshipperType, number>;
@@ -107,7 +72,37 @@ export interface GameState {
   hasSeenEodIntro: boolean;
   hasSeenStartSplash: boolean;
   hasSeenVesselIntro: boolean;
+  hasSeenMiracleIntro: boolean;
   hasSeenAbyssIntro: boolean;
+  hasSeenLowlyModal: boolean;
+  hasSeenWorldlyModal: boolean;
+  hasSeenZealousModal: boolean;
+  hasSeenPausedModal: boolean;
+  hasAcknowledgedPausedModal: boolean;
+  hasSeenAssistantIntro: boolean;
+
+  // New features
+  lockedWorshippers: WorshipperType[];
+  lastInfluenceTime: Record<WorshipperType, number>;
+
+  // Starvation state
+  isPaused: Record<WorshipperType, boolean>;
+  pausedStartTime: number;
+  ignoredHaltVessels: string[]; // Track which vessels have had their starvation warning dismissed
+
+  // Assistant features
+  assistantLevel: number;
+  totalClicks: number;
+
+  // Gem features
+  unlockedGems: GemType[];
+  activeGem: GemType | null;
+  activeGemTimeRemaining: number; // seconds
+  gemCooldowns: Record<GemType, number>; // seconds
+  showGemDiscovery: GemType | null;
+
+  // Bulletin features
+  activeBulletin: Bulletin | null;
 
   settings: {
     soundEnabled: boolean;

@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { Ghost, Frown, Crown, Sword } from 'lucide-react';
+import { BaseModal } from './BaseModal';
 
 interface SplashIntroProps {
   bgUrl: string;
@@ -8,11 +9,11 @@ interface SplashIntroProps {
 }
 
 export const SplashIntro: React.FC<SplashIntroProps> = ({ bgUrl, onStart }) => (
-  <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black animate-fade-in">
+  <BaseModal zIndex={100} containerClassName="max-w-xl w-full border-white/5" backdropClassName="bg-black">
     <div className="absolute inset-0 z-0 flex items-center justify-center overflow-hidden">
         <img src={bgUrl} className="h-full w-full object-cover grayscale opacity-30 blur-sm" alt="Background" />
     </div>
-    <div className="relative z-10 max-w-xl p-8 text-center bg-black/60 backdrop-blur-sm rounded-3xl border border-white/5 shadow-2xl">
+    <div className="relative z-10 p-8 text-center bg-black/60 backdrop-blur-sm">
       <h1 className="mb-6 font-gothic text-6xl font-black uppercase tracking-widest text-eldritch-gold drop-shadow-2xl">Shattered Dogma</h1>
       <div className="mb-8 space-y-4 font-serif text-lg leading-relaxed text-gray-300">
         <p>"In the void between the stars, a silence yearns to be filled. You are the echo that answers. The veil has thinned, and the mortal cattle drift aimlessly, seeking a master to harness their ephemeral souls."</p>
@@ -34,5 +35,5 @@ export const SplashIntro: React.FC<SplashIntroProps> = ({ bgUrl, onStart }) => (
         <div className="absolute inset-0 -z-10 animate-pulse bg-eldritch-gold/5" />
       </button>
     </div>
-  </div>
+  </BaseModal>
 );

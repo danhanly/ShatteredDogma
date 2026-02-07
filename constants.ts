@@ -1,17 +1,25 @@
 
-import { GemType, WorshipperType, VesselId, VesselDefinition, RelicId, RelicDefinition } from "./types";
+import { WorshipperType, VesselId, VesselDefinition, GemType } from "./types";
 
 export const INITIAL_UPGRADE_COST = 25;
 export const COST_MULTIPLIER = 1.15;
-export const MILESTONE_INTERVAL = 25;
 
-export const PRESTIGE_UNLOCK_THRESHOLD = 1000000;
+export const PRESTIGE_UNLOCK_THRESHOLD = 100000;
 
-export const MILESTONE_MULTIPLIERS: Record<WorshipperType, number> = {
-  [WorshipperType.INDOLENT]: 5,
-  [WorshipperType.LOWLY]: 2.5,
-  [WorshipperType.WORLDLY]: 1.75,
-  [WorshipperType.ZEALOUS]: 1.25,
+// Consumption Rates (Per worshipper per second)
+export const CONSUMPTION_RATES: Record<WorshipperType, Partial<Record<WorshipperType, number>>> = {
+  [WorshipperType.INDOLENT]: {},
+  [WorshipperType.LOWLY]: {
+    [WorshipperType.INDOLENT]: 3
+  },
+  [WorshipperType.WORLDLY]: {
+    [WorshipperType.LOWLY]: 5
+  },
+  [WorshipperType.ZEALOUS]: {
+    [WorshipperType.INDOLENT]: 3,
+    [WorshipperType.LOWLY]: 3,
+    [WorshipperType.WORLDLY]: 3
+  }
 };
 
 export const WORSHIPPER_DETAILS: Record<WorshipperType, {
@@ -20,192 +28,66 @@ export const WORSHIPPER_DETAILS: Record<WorshipperType, {
 }> = {
   [WorshipperType.INDOLENT]: {
     description: "The passive masses.",
-    lore: "They drift into the cult seeking easy answers and effortless salvation. They contribute little but their sheer numbers, acting as the raw, metaphysical biomass required to fuel the initial stages of ascension. They are the slumbering fuel for the fire."
+    lore: "They drift into the cult seeking easy answers and effortless salvation. They contribute little but their sheer numbers, acting as the raw, metaphysical biomass required to fuel the initial stages of ascension."
   },
   [WorshipperType.LOWLY]: {
     description: "The desperate and downtrodden.",
-    lore: "Broken by the cruelties of the mortal world, they turn to the Eldritch Truth not out of ambition, but out of necessity. Their suffering has carved out a hollow space within their souls that is easily filled by your dark influence. They are the foundation."
+    lore: "Broken by the cruelties of the mortal world, they turn to the Eldritch Truth not out of ambition, but out of necessity. Their suffering has carved out a hollow space within their souls that is easily filled by your dark influence."
   },
   [WorshipperType.WORLDLY]: {
     description: "The wealthy and ambitious.",
-    lore: "Merchants, nobles, and kings who foolishly believe their earthly assets can purchase divine favor. They seek to harness your power for political gain, unaware that in your eyes, their gold is merely another chain to be broken and repurposed."
+    lore: "Merchants, nobles, and kings who foolishly believe their earthly assets can purchase divine favor. They seek to harness your power for political gain, unaware that in your eyes, their gold is merely another chain."
   },
   [WorshipperType.ZEALOUS]: {
     description: "The fanatical vanguard.",
-    lore: "Those who have stared into the abyss and smiled back. They require no coercion, only direction. Their fury is a focused beam of psionic energy, capable of tearing the veil between worlds. They are the apex of your flock, forged from the sacrifice of the lesser."
+    lore: "Those who have stared into the abyss and smiled back. They require no coercion, only direction. Their fury is a focused beam of psionic energy, capable of tearing the veil between worlds."
   }
 };
 
-export const BULLETIN_STORIES: Record<WorshipperType, { title: string; body: string }[]> = {
-  [WorshipperType.INDOLENT]: [
-    { title: "CITY SQUARE CROWDS 'JUST STANDING THERE'", body: "Authorities are baffled as hundreds of citizens have gathered in the market square, reportedly doing absolutely nothing. 'They just stare at the sky,' says one guard. 'It's easier than working,' claims another." },
-    { title: "MASS LETHARGY SWEEPS DOCKS", body: "Work at the shipyards has ground to a halt. The foremen report that laborers have simply laid down their tools, muttering about 'the sweet embrace of the void'. Productivity is at an all-time low." },
-    { title: "SLEEPING SICKNESS OR DIVINE NAP?", body: "Doctors are investigating a strange phenomenon where entire households are refusing to leave their beds. No fever is present, only a profound lack of desire to participate in reality." }
-  ],
-  [WorshipperType.LOWLY]: [
-    { title: "ORPHANAGE OVERFLOW SPILLS INTO STREETS", body: "The recent famine has left thousands destitute. They wander the alleyways, hollow-eyed and hungry, whispering of a new god who demands nothing but their emptiness." },
-    { title: "BEGGARS GUILD DISSOLVES", body: "The Organized Union of Beggars has disbanded. Its members were last seen marching en masse towards the undercity, claiming they have found a 'True Purpose' in their suffering." },
-    { title: "WORKHOUSES EMPTY OVERNIGHT", body: "Industrial district owners are in an uproar as their workforce vanished under the cover of fog. Notes left behind simply read: 'The machine is broken. We go to the one who fixes.'" }
-  ],
-  [WorshipperType.WORLDLY]: [
-    { title: "MARKET CRASH DRIVES MERCHANTS MAD", body: "The fluctuations in the gold standard have ruined many noble houses today. In their desperation, fallen aristocrats are turning to esoteric cults to restore their fortunes." },
-    { title: "SCANDAL AT THE ROYAL BALL", body: "Lady Vane was seen casting her diamond necklace into a sewer grate, laughing hysterically. 'It is but weight!' she screamed. Her peers are intrigued by this new, liberating philosophy." },
-    { title: "GUILD MASTERS SEEK NEW ALLIANCES", body: "With the trade routes blocked by 'unnatural storms', the Merchant Princes are seeking supernatural aid. A hefty donation has been made to 'The Cause' in exchange for safe passage." }
-  ],
-  [WorshipperType.ZEALOUS]: [
-    { title: "RIOTS IN THE TEMPLE DISTRICT", body: "The old gods are dead, or so the mobs claim. Statues of the sun deity were defaced last night by figures wielding strange, geometric daggers. The city guard is terrified." },
-    { title: "LOCAL GUARD REGIMENT VANISHES", body: "The 7th Infantry Battalion failed to report for duty. Their barracks were found empty, save for a single message carved into the wall: 'WE ARE THE SWORD NOW.'" },
-    { title: "FLAGELLANTS ROAM THE HIGHWAY", body: "A procession of self-mortifying fanatics has entered the city gates. They bleed freely, shouting that pain is the only way to wake up from the dream of life." }
-  ]
-};
-
-export const MILESTONE_DEFINITIONS = [
-  {
+export const GEM_DEFINITIONS: Record<GemType, {
+  name: string;
+  description: string;
+  color: string;
+  type: WorshipperType;
+  image: string;
+}> = {
+  [GemType.LAPIS]: {
+    name: "Lapis of the Torpid",
+    description: "Attuning to this Lapis makes your miracles burn ever brighter for the Indolent",
+    color: "#60a5fa",
     type: WorshipperType.INDOLENT,
-    name: "Awaken the Slumbering",
-    description: "The lazy must be roused to fuel the ascension.",
-    gemReward: GemType.SLOTH_SAPPHIRE
+    image: './public/gems/1.jpg'
   },
-  {
+  [GemType.QUARTZ]: {
+    name: "Quartz of the Industrious",
+    description: "Attuning to this Quartz allows your miracles to be seen by the Lowly",
+    color: "#9ca3af",
     type: WorshipperType.LOWLY,
-    name: "Cull the Weak",
-    description: "The downtrodden shall form the foundation.",
-    gemReward: GemType.POOR_MANS_TEAR
+    image: './public/gems/2.jpg'
   },
-  {
+  [GemType.EMERALD]: {
+    name: "Emerald of the Greedy",
+    description: "Attuning to this Emerald allows your miracles to be seen by the Worldly",
+    color: "#4ade80",
     type: WorshipperType.WORLDLY,
-    name: "Seize the Assets",
-    description: "Strip the wealthy of their earthly tethers.",
-    gemReward: GemType.GREED_STONE
+    image: './public/gems/3.jpg'
   },
-  {
+  [GemType.RUBY]: {
+    name: "Ruby of the Fervent",
+    description: "Attuning to this Ruby allows your miracles to be seen by the Zealous",
+    color: "#ef4444",
     type: WorshipperType.ZEALOUS,
-    name: "Channel the Fury",
-    description: "Focus the blinding rage of the fanatics.",
-    gemReward: GemType.BLOOD_RUBY
+    image: './public/gems/4.jpg'
   }
-];
+};
 
 export const GEM_DISCOVERY_FLAVOR = {
-  title: "A Shard of Intent",
-  description: "As the milestone reveals itself, a crystalline resonance forms. This 'Focus Gem' allows you to tune your miracles to specific soul frequencies, drawing more of their kind to your call."
+  title: "The Abyss Grants a Gift",
+  description: "As your shadow stretches across the mortal realm, the very fabric of the void crystallizes. These focus gems allow you to channel your miracles with terrifying precision."
 };
-
-export const GEM_DEFINITIONS: Record<GemType, { 
-  name: string; 
-  description: string; 
-  favoredType?: WorshipperType;
-  color: string;
-}> = {
-  [GemType.NONE]: {
-    name: "Empty Slot",
-    description: "No specific influence on worshippers.",
-    color: "bg-gray-900 border-gray-700"
-  },
-  [GemType.GREED_STONE]: {
-    name: "Greed Stone",
-    description: "Significantly improves the chance to attract those bound to earthly possessions (Worldly).",
-    favoredType: WorshipperType.WORLDLY,
-    color: "bg-green-900 border-green-500 shadow-[0_0_15px_rgba(74,222,128,0.3)]"
-  },
-  [GemType.POOR_MANS_TEAR]: {
-    name: "Poor Man's Tear",
-    description: "Significantly improves the chance to attract the downtrodden and meek (Lowly).",
-    favoredType: WorshipperType.LOWLY,
-    color: "bg-gray-700 border-gray-400 shadow-[0_0_15px_rgba(156,163,175,0.3)]"
-  },
-  [GemType.BLOOD_RUBY]: {
-    name: "Blood Ruby",
-    description: "Significantly improves the chance to attract the fanatical and aggressive (Zealous).",
-    favoredType: WorshipperType.ZEALOUS,
-    color: "bg-red-900 border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.3)]"
-  },
-  [GemType.SLOTH_SAPPHIRE]: {
-    name: "Sloth Sapphire",
-    description: "Significantly improves the chance to attract the lazy and passive (Indolent).",
-    favoredType: WorshipperType.INDOLENT,
-    color: "bg-blue-900 border-blue-500 shadow-[0_0_15px_rgba(96,165,250,0.3)]"
-  }
-};
-
-export const RELIC_DEFINITIONS: RelicDefinition[] = [
-  {
-    id: RelicId.MIRACLE_BOOST,
-    name: "Hand of the Void",
-    description: "Miracles are 5% more effective per level.",
-    baseCost: 10
-  },
-  {
-    id: RelicId.INDOLENT_BOOST,
-    name: "Shepherd's Crook",
-    description: "Indolent vessels produce +5% more per level.",
-    baseCost: 10
-  },
-  {
-    id: RelicId.LOWLY_BOOST,
-    name: "Chain of Binding",
-    description: "Lowly vessels produce +5% more per level.",
-    baseCost: 10
-  },
-  {
-    id: RelicId.WORLDLY_BOOST,
-    name: "Coin of Charon",
-    description: "Worldly vessels produce +5% more per level.",
-    baseCost: 10
-  },
-  {
-    id: RelicId.ZEALOUS_BOOST,
-    name: "Blade of the Martyr",
-    description: "Zealous vessels produce +5% more per level.",
-    baseCost: 10
-  },
-  {
-    id: RelicId.ALL_VESSEL_BOOST,
-    name: "Crown of Eternity",
-    description: "All vessels produce +2% more per level.",
-    baseCost: 10
-  },
-  {
-    id: RelicId.OFFLINE_BOOST,
-    name: "Hourglass of the Sleeper",
-    description: "Increases max offline time by +5 minutes per level (Base: 30m).",
-    baseCost: 10
-  },
-  {
-    id: RelicId.GEM_BOOST,
-    name: "Prism of Desire",
-    description: "Focus Gems are +50% more effective at attracting their target per level.",
-    baseCost: 10
-  },
-  {
-    id: RelicId.INFLUENCE_INDOLENT,
-    name: "Sigil of Stagnation",
-    description: "Retains 1% of Indolent Vessel levels when performing 'Motivate the Torpid' per level.",
-    baseCost: 10
-  },
-  {
-    id: RelicId.INFLUENCE_LOWLY,
-    name: "Sigil of Servitude",
-    description: "Retains 1% of Lowly Vessel levels when performing 'Invest in the Poor' per level.",
-    baseCost: 10
-  },
-  {
-    id: RelicId.INFLUENCE_WORLDLY,
-    name: "Sigil of Hubris",
-    description: "Retains 1% of Worldly Vessel levels when performing 'Stoke The Fires of Zeal' per level.",
-    baseCost: 10
-  }
-];
-
-export const GEM_DISPLAY_ORDER = [
-  GemType.SLOTH_SAPPHIRE, // Indolent
-  GemType.POOR_MANS_TEAR, // Lowly
-  GemType.GREED_STONE,    // Worldly
-  GemType.BLOOD_RUBY      // Zealous
-];
 
 export const VESSEL_DEFINITIONS: VesselDefinition[] = [
-  // TIER 1 (Benefit: 15/s each)
+  // TIER 1
   {
     id: VesselId.INDOLENT_1,
     name: "Mudge the Slumbering",
@@ -247,7 +129,7 @@ export const VESSEL_DEFINITIONS: VesselDefinition[] = [
     tier: 1
   },
 
-  // TIER 2 (Benefit: 400/s each)
+  // TIER 2
   {
     id: VesselId.INDOLENT_2,
     name: "Haman of the Heavy Breath",
@@ -262,7 +144,7 @@ export const VESSEL_DEFINITIONS: VesselDefinition[] = [
     id: VesselId.LOWLY_2,
     name: "Kaelen the Unmade",
     subtitle: "The Broken Worker",
-    lore: "Kaelen was a man of iron until the day the mine collapsed, taking his legs and his hope. The despair that followed was so profound it became a physical weight.",
+    lore: "Kaelen was a man of iron until the day the mine collapsed, taking his legs and his hope.",
     type: WorshipperType.LOWLY,
     baseCost: 15000,
     baseOutput: 400,
@@ -289,12 +171,12 @@ export const VESSEL_DEFINITIONS: VesselDefinition[] = [
     tier: 2
   },
 
-  // TIER 3 (Benefit: 12,000/s each)
+  // TIER 3
   {
     id: VesselId.INDOLENT_3,
     name: "Master Silas Vane",
     subtitle: "The Merchant",
-    lore: "Silas once believed that a full belly and a locked vault were the only shields a man needed. When the cult came, he tried to bribe the shadows.",
+    lore: "Silas once believed that a full belly and a locked vault were the only shields a man needed.",
     type: WorshipperType.INDOLENT,
     baseCost: 250000,
     baseOutput: 12000,
@@ -331,12 +213,12 @@ export const VESSEL_DEFINITIONS: VesselDefinition[] = [
     tier: 3
   },
 
-  // TIER 4 (Benefit: 500,000/s each)
+  // TIER 4
   {
     id: VesselId.INDOLENT_4,
     name: "Lord Alaric Morn",
     subtitle: "The Noble",
-    lore: "The Morn lineage was old when the capital was founded, but Alaric is the last of his blood. He has traded his family’s history for a seat at the end of the world.",
+    lore: "The Morn lineage was old when the capital was founded, but Alaric is the last of his blood.",
     type: WorshipperType.INDOLENT,
     baseCost: 10000000,
     baseOutput: 500000,
@@ -346,7 +228,7 @@ export const VESSEL_DEFINITIONS: VesselDefinition[] = [
     id: VesselId.LOWLY_4,
     name: "Sir Gawen the Reft",
     subtitle: "The Ruined Knight",
-    lore: "A knight without a quest is a dangerous thing. After failing to protect his manor from the very horrors he now serves, Gawen’s spirit shattered.",
+    lore: "A knight without a quest is a dangerous thing. Gawen’s spirit shattered after failing to protect his manor.",
     type: WorshipperType.LOWLY,
     baseCost: 25000000,
     baseOutput: 500000,

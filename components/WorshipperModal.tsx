@@ -1,10 +1,11 @@
 
 import React from 'react';
-import { GameState, WorshipperType, RelicId } from '../types';
-import { WORSHIPPER_DETAILS } from '../constants';
-import { X, Activity, Lock, Unlock, AlertTriangle, Orbit } from 'lucide-react';
+import { GameState, WorshipperType } from '../types';
+import { WORSHIPPER_DETAILS, CONSUMPTION_RATES, VESSEL_DEFINITIONS } from '../constants';
+import { Activity, Utensils, ZapOff, Factory, TrendingUp, TrendingDown } from 'lucide-react';
 import { formatNumber } from '../utils/format';
-import { calculatePassiveIncomeByType } from '../services/gameService';
+import { calculateProductionByType, calculateConsumptionByType, calculateVesselOutput } from '../services/gameService';
+import { BaseModal } from './BaseModal';
 
 interface WorshipperModalProps {
   type: WorshipperType | null;
@@ -12,143 +13,136 @@ interface WorshipperModalProps {
   onClose: () => void;
   imageUrl: string;
   gameState: GameState;
-  toggleWorshipperLock: (type: WorshipperType) => void;
 }
 
-export const WorshipperModal: React.FC<WorshipperModalProps> = ({ type, count, onClose, imageUrl, gameState, toggleWorshipperLock }) => {
+export const WorshipperModal: React.FC<WorshipperModalProps> = ({ type, count, onClose, imageUrl, gameState }) => {
   if (!type) return null;
-
   const details = WORSHIPPER_DETAILS[type];
-
-  const getTypeColor = (t: WorshipperType) => {
-    switch (t) {
-      case WorshipperType.WORLDLY: return 'text-green-400 border-green-900';
-      case WorshipperType.LOWLY: return 'text-gray-400 border-gray-700';
-      case WorshipperType.ZEALOUS: return 'text-red-500 border-red-900';
-      case WorshipperType.INDOLENT: return 'text-blue-400 border-blue-900';
-      default: return 'text-white border-white';
-    }
-  };
-
-  const typeColor = getTypeColor(type);
-  const incomeByType = calculatePassiveIncomeByType(gameState.vesselLevels, gameState.relicLevels);
-  const currentRate = incomeByType[type];
-  const isLocked = gameState.lockedWorshippers.includes(type);
-
-  // Calculate penalties and bonuses
-  const penalty = (gameState.influenceUsage[type] || 0) * 2;
+  const typeColor = type === WorshipperType.WORLDLY ? 'text-green-400 border-green-900' : type === WorshipperType.ZEALOUS ? 'text-red-500 border-red-900' : type === WorshipperType.INDOLENT ? 'text-blue-400 border-blue-900' : 'text-gray-400 border-gray-700';
   
-  let specificRelicId: RelicId = RelicId.INDOLENT_BOOST;
-  if (type === WorshipperType.LOWLY) specificRelicId = RelicId.LOWLY_BOOST;
-  if (type === WorshipperType.WORLDLY) specificRelicId = RelicId.WORLDLY_BOOST;
-  if (type === WorshipperType.ZEALOUS) specificRelicId = RelicId.ZEALOUS_BOOST;
+  const productionRate = calculateProductionByType(gameState.vesselLevels, gameState.isPaused)[type];
+  const consumptionRate = calculateConsumptionByType(gameState.vesselLevels, gameState.isPaused)[type];
+  const netRate = productionRate - consumptionRate;
+  
+  const hasAnyVessel = Object.values(gameState.vesselLevels).some(lvl => (lvl as number) > 0);
+  const isPaused = gameState.isPaused[type] && hasAnyVessel;
 
-  const specificBonus = (gameState.relicLevels[specificRelicId] || 0) * 5;
-  const globalBonus = (gameState.relicLevels[RelicId.ALL_VESSEL_BOOST] || 0) * 2;
-  const totalBonus = specificBonus + globalBonus;
+  const hasRecruitedType = (vType: WorshipperType) => 
+    VESSEL_DEFINITIONS.some(vd => vd.type === vType && (gameState.vesselLevels[vd.id] || 0) > 0);
+
+  // Find who consumes THIS type
+  const consumers: { type: WorshipperType, rate: number }[] = [];
+  const prodByType = calculateProductionByType(gameState.vesselLevels, gameState.isPaused);
+  (Object.keys(CONSUMPTION_RATES) as WorshipperType[]).forEach(consumerType => {
+      const rates = CONSUMPTION_RATES[consumerType];
+      if (rates[type] && hasRecruitedType(consumerType)) {
+          const productionOfCaste = prodByType[consumerType];
+          consumers.push({ type: consumerType, rate: (rates[type] || 0) * productionOfCaste });
+      }
+  });
+
+  // Find production sources for THIS type
+  const productionSources: { name: string, rate: number }[] = [];
+  VESSEL_DEFINITIONS.forEach(vessel => {
+    if (vessel.type === type) {
+      const level = gameState.vesselLevels[vessel.id] || 0;
+      if (level > 0 && !gameState.isPaused[type]) {
+        productionSources.push({
+          name: vessel.name,
+          rate: calculateVesselOutput(vessel.id, level)
+        });
+      }
+    }
+  });
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in" onClick={onClose}>
-      <div 
-        className={`relative w-full max-w-md overflow-hidden rounded-xl border-2 bg-eldritch-dark shadow-[0_0_50px_rgba(0,0,0,0.9)] ${typeColor.split(' ')[1]}`}
-        onClick={(e) => e.stopPropagation()} 
-      >
-        <div className="relative h-80 w-full overflow-hidden bg-black">
-            <div 
-                className="absolute inset-0 bg-no-repeat" 
-                style={{ 
-                    backgroundImage: `url('${imageUrl}')`,
-                    backgroundSize: 'cover', 
-                    backgroundPosition: 'center' 
-                }} 
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-eldritch-dark via-eldritch-dark/30 to-transparent" />
-            
-            <button 
-                onClick={onClose}
-                className="absolute right-2 top-2 rounded-full bg-black/50 p-2 text-white hover:bg-black hover:text-red-500 transition-colors z-10"
-            >
-                <X className="h-6 w-6" />
-            </button>
-
-            <div className="absolute bottom-4 left-6 z-10">
-                 <h2 className={`font-serif text-3xl font-bold uppercase tracking-widest drop-shadow-md ${typeColor.split(' ')[0]}`} style={{ textShadow: '0 2px 4px rgba(0,0,0,0.8)' }}>
-                    {type}
-                 </h2>
-                 <p className="text-sm text-gray-300 italic drop-shadow-md">{details.description}</p>
-            </div>
-        </div>
-
-        <div className="p-6">
-            <div className="grid grid-cols-2 gap-3 mb-6">
-                <div className="flex flex-col rounded-lg bg-black/40 p-3 border border-white/5">
-                    <span className="text-[10px] uppercase text-gray-500 tracking-wider">Current Count</span>
-                    <span className={`font-mono text-lg font-bold ${typeColor.split(' ')[0]}`}>
-                        {formatNumber(count)}
-                    </span>
-                </div>
-                <div className="flex flex-col rounded-lg bg-black/40 p-3 border border-white/5">
-                    <div className="flex items-center gap-1.5 mb-0.5">
-                        <Activity className="h-2 w-2 text-green-500" />
-                        <span className="text-[10px] uppercase text-gray-500 tracking-wider">New Worshippers Rate</span>
-                    </div>
-                    <span className="font-mono text-lg font-bold text-green-400">
-                        +{formatNumber(currentRate)}/s
-                    </span>
-                </div>
-            </div>
-
-            {/* Penalties and Bonuses Breakdown - Only show if > 0 */}
-            {(penalty > 0 || totalBonus > 0) && (
-              <div className="mb-6 space-y-2">
-                  {penalty > 0 && (
-                    <div className="flex items-center justify-between bg-red-950/20 p-2 rounded border border-red-900/30">
-                        <div className="flex items-center gap-2">
-                            <AlertTriangle className="h-3 w-3 text-red-500" />
-                            <span className="text-xs text-red-300">Influence Penalty</span>
-                        </div>
-                        <div className="text-xs font-bold text-red-400">
-                            +{penalty}% Cost
-                        </div>
-                    </div>
-                  )}
-                  {totalBonus > 0 && (
-                    <div className="flex items-center justify-between bg-indigo-950/20 p-2 rounded border border-indigo-900/30">
-                        <div className="flex items-center gap-2">
-                            <Orbit className="h-3 w-3 text-indigo-400" />
-                            <span className="text-xs text-indigo-300">Relic Bonus</span>
-                        </div>
-                        <div className="text-xs font-bold text-indigo-400">
-                            +{totalBonus}% Output
-                        </div>
-                    </div>
-                  )}
+    <BaseModal onClose={onClose} showCloseButton={true} zIndex={50} containerClassName={`max-w-md w-full ${typeColor.split(' ')[1]}`}>
+      <div className="relative h-80 w-full overflow-hidden bg-black">
+          <div className="absolute inset-0 bg-no-repeat" style={{ backgroundImage: `url('${imageUrl}')`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
+          <div className="absolute inset-0 bg-gradient-to-t from-eldritch-dark via-eldritch-dark/30 to-transparent" />
+          
+          {isPaused && (
+              <div className="absolute top-4 left-4 z-20 flex items-center gap-2 rounded bg-red-900 px-3 py-1 border border-red-500 animate-pulse">
+                  <ZapOff className="h-4 w-4 text-white" />
+                  <span className="text-xs font-bold text-white uppercase">Production Halted</span>
               </div>
-            )}
+          )}
 
-            <div className="space-y-4 text-gray-300 font-sans leading-relaxed text-sm">
-                <p>{details.lore}</p>
-            </div>
-
-            <div className="mt-8 flex items-center justify-between border-t border-white/5 pt-4">
-                <div className="text-xs text-gray-600 uppercase tracking-widest">
-                    Sacrifice Status
-                </div>
-                <button 
-                    onClick={() => toggleWorshipperLock(type)}
-                    className={`flex items-center gap-2 rounded px-3 py-1.5 transition-colors ${isLocked ? 'bg-eldritch-crimson text-white border border-red-500' : 'bg-black/40 text-gray-400 border border-white/10 hover:bg-white/10'}`}
-                >
-                    {isLocked ? <Lock className="h-3 w-3" /> : <Unlock className="h-3 w-3" />}
-                    <span className="text-xs font-bold uppercase tracking-wider">{isLocked ? 'Locked' : 'Unlocked'}</span>
-                </button>
-            </div>
-            {isLocked && (
-                <div className="mt-4 rounded bg-red-950/40 border border-red-500/30 p-2 text-center animate-in fade-in slide-in-from-top-1">
-                    <p className="text-xs text-red-300 font-bold italic">This worshipper type will NOT be sacrificed for miracles.</p>
-                </div>
-            )}
-        </div>
+          <div className="absolute bottom-4 left-6 z-10">
+               <h2 className={`font-serif text-3xl font-bold uppercase tracking-widest drop-shadow-md ${typeColor.split(' ')[0]}`}>{type}</h2>
+               <p className="text-sm text-gray-300 italic">{details.description}</p>
+          </div>
       </div>
-    </div>
+      <div className="px-6 pb-6">
+          <div className="grid grid-cols-2 gap-3 mb-6">
+              <div className="flex flex-col rounded-lg bg-black/40 p-3 border border-white/5">
+                  <span className="text-[10px] uppercase text-gray-500">Current Count</span>
+                  <span className={`font-mono text-lg font-bold ${typeColor.split(' ')[0]}`}>{formatNumber(count)}</span>
+              </div>
+              <div className="flex flex-col rounded-lg bg-black/40 p-3 border border-white/5">
+                  <div className="flex items-center gap-1.5 mb-0.5">
+                    {netRate >= 0 ? <TrendingUp className="h-2 w-2 text-green-500" /> : <TrendingDown className="h-2 w-2 text-red-500" />}
+                    <span className="text-[10px] uppercase text-gray-500">Net Growth</span>
+                  </div>
+                  <span className={`font-mono text-lg font-bold ${netRate >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                      {netRate >= 0 ? '+' : ''}{formatNumber(netRate)}/s
+                  </span>
+              </div>
+          </div>
+
+
+          <div className="space-y-4 text-gray-300 font-sans leading-relaxed text-sm mb-4"><p>{details.lore}</p></div>
+
+          {/* Production Sources Box */}
+          {hasAnyVessel && (
+            <div className="mb-4 rounded-lg bg-green-950/20 p-4 border border-green-900/30">
+                <div className="flex items-center gap-2 mb-2 text-green-400">
+                    <Factory className="h-4 w-4" />
+                    <span className="text-xs font-bold uppercase tracking-widest">Active Production</span>
+                </div>
+                <div className="flex justify-between items-center border-b border-green-900/20 pb-2 mb-2">
+                    <span className="text-sm text-gray-400">Total Yield:</span>
+                    <span className="font-mono text-green-400 font-bold">+{formatNumber(productionRate)}/s</span>
+                </div>
+                <div className="space-y-1">
+                    <p className="text-[10px] text-gray-500 uppercase mb-1">Generated By:</p>
+                    {productionSources.length > 0 ? productionSources.map(s => (
+                        <div key={s.name} className="flex justify-between text-xs">
+                            <span className="text-gray-300">{s.name}:</span>
+                            <span className="text-green-400/70 font-mono">+{formatNumber(s.rate)}/s</span>
+                        </div>
+                    )) : (
+                        <p className="text-xs text-gray-600 italic">No automated vessels active for this caste.</p>
+                    )}
+                </div>
+            </div>
+          )}
+
+          {/* Consumption Box */}
+          {consumptionRate > 0 && (
+            <div className="mb-6 rounded-lg bg-red-950/20 p-4 border border-red-900/30">
+                <div className="flex items-center gap-2 mb-2 text-red-400">
+                    <Utensils className="h-4 w-4" />
+                    <span className="text-xs font-bold uppercase tracking-widest">Soul Consumption</span>
+                </div>
+                <div className="flex justify-between items-center border-b border-red-900/20 pb-2 mb-2">
+                    <span className="text-sm text-gray-400">Total Lost:</span>
+                    <span className="font-mono text-red-400 font-bold">-{formatNumber(consumptionRate)}/s</span>
+                </div>
+                <div className="space-y-1">
+                    <p className="text-[10px] text-gray-500 uppercase mb-1">Consumed By:</p>
+                    {consumers.length > 0 ? consumers.map(c => (
+                        <div key={c.type} className="flex justify-between text-xs">
+                            <span className="text-gray-300">{c.type}:</span>
+                            <span className="text-red-400/70 font-mono">-{formatNumber(c.rate)}/s</span>
+                        </div>
+                    )) : (
+                        <p className="text-xs text-gray-600 italic">No higher castes feeding on these souls yet.</p>
+                    )}
+                </div>
+            </div>
+          )}
+      </div>
+    </BaseModal>
   );
 };
