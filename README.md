@@ -25,6 +25,7 @@ Your power is measured by **Worshippers**. There are four distinct castes:
 ### 1. Dark Miracles (Active Clicking)
 Manifesting miracles attracts Indolent worshippers.
 *   **Base Power:** `1 + MiracleLevel` (modified by multipliers).
+*   **Milestones:** Every 10 levels (10, 20, 30...), the connection to the void strengthens. At these milestones, the Click Power doubles, though the cost to purchase that specific level also doubles.
 *   **Rounding Up:** When purchasing bulk upgrades (x5, x10, etc.), the first purchase rounds your level up to the next multiple of that increment.
 *   **Soul Bonus:** Souls currently provide no click power bonus.
 
@@ -75,7 +76,7 @@ $$Souls = \lfloor 10 + 0.01 \times \sqrt[3]{MaxZealous - 100,000} \rfloor$$
 
 ### 1. Miracle Upgrade Cost
 $$Cost = \lfloor 25 \times 1.15^{CurrentLevel-1} \rfloor$$
-*Note: Costs double every 10th level.*
+*Note: At every 10th level (10, 20, 30...), the calculated cost is multiplied by 2.*
 
 ### 2. Vessel Costs
 Vessel costs scale based on Tier:
@@ -87,6 +88,7 @@ $$Output = \lfloor Base \times 1.07^{Level} \rfloor$$
 
 ### 4. Click Power Calculation
 $$Power = CurrentLevel \times 2^{\lfloor Level/10 \rfloor}$$
+*The term $2^{\lfloor Level/10 \rfloor}$ represents the doubling effect that occurs every 10 levels.*
 
 ---
 *Documented by the Disgraced Scholars of the First Rift.*
