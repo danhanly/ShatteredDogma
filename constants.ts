@@ -1,5 +1,4 @@
 
-
 import { WorshipperType, VesselId, VesselDefinition, GemType } from "./types";
 
 export const INITIAL_UPGRADE_COST = 25;
@@ -11,14 +10,13 @@ export const PRESTIGE_UNLOCK_THRESHOLD = 100000;
 export const CONSUMPTION_RATES: Record<WorshipperType, Partial<Record<WorshipperType, number>>> = {
   [WorshipperType.INDOLENT]: {},
   [WorshipperType.LOWLY]: {
-    [WorshipperType.INDOLENT]: 3
+    [WorshipperType.INDOLENT]: 2
   },
   [WorshipperType.WORLDLY]: {
-    [WorshipperType.LOWLY]: 5
+    [WorshipperType.LOWLY]: 4
   },
   [WorshipperType.ZEALOUS]: {
-    [WorshipperType.LOWLY]: 3,
-    [WorshipperType.WORLDLY]: 3
+    [WorshipperType.WORLDLY]: 6
   }
 };
 

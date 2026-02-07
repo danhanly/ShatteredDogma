@@ -1,5 +1,4 @@
 
-
 import { COST_MULTIPLIER, INITIAL_UPGRADE_COST, VESSEL_DEFINITIONS, PRESTIGE_UNLOCK_THRESHOLD, CONSUMPTION_RATES } from "../constants";
 import { GameState, WorshipperType, WORSHIPPER_ORDER } from "../types";
 
@@ -18,12 +17,16 @@ export const calculateUpgradeCost = (currentLevel: number): number => {
 
 /**
  * Calculates the production power (worshippers per click).
- * WPC = (CurrentLevel * 1.15^(floor(L/10))) * (1 + Souls * 0.01)
+ * WPC = (CurrentLevel * 2^(floor(L/10)))
+ * Removed Soul multiplier.
+ * Guardrail ensures minimum return of 1.
  */
-export const calculateClickPower = (currentLevel: number, souls: number = 0): number => {
-  const bonusMultiplier = Math.pow(1.15, Math.floor(currentLevel / 10));
-  const soulMultiplier = 1 + (souls * 0.01);
-  return Math.max(1, Math.floor(currentLevel * bonusMultiplier * soulMultiplier));
+export const calculateClickPower = (currentLevel: number): number => {
+  // Ensure valid level input, defaulting to 1 if missing or invalid
+  const level = (typeof currentLevel === 'number' && !isNaN(currentLevel)) ? Math.max(1, currentLevel) : 1;
+  const bonusMultiplier = Math.pow(2, Math.floor(level / 10));
+  const power = Math.floor(level * bonusMultiplier);
+  return Math.max(1, power);
 };
 
 /**
@@ -107,16 +110,16 @@ export const calculateAssistantInterval = (level: number): number => {
 /**
  * Calculates the output (worshippers per second) of a specific vessel.
  * Updated Formula: Base * 1.07^Level (rounded down)
+ * Removed Soul multiplier.
  */
-export const calculateVesselOutput = (vesselId: string, currentLevel: number, souls: number = 0): number => {
+export const calculateVesselOutput = (vesselId: string, currentLevel: number): number => {
   const def = VESSEL_DEFINITIONS.find(v => v.id === vesselId);
-  if (!def || currentLevel === 0) return 0;
+  if (!def || !currentLevel || currentLevel === 0) return 0;
   
-  const soulMultiplier = 1 + (souls * 0.01);
-  return Math.floor(def.baseOutput * Math.pow(1.07, currentLevel) * soulMultiplier);
+  return Math.floor(def.baseOutput * Math.pow(1.07, currentLevel));
 };
 
-export const calculateProductionByType = (vesselLevels: Record<string, number>, isPaused: Record<WorshipperType, boolean>, souls: number = 0): Record<WorshipperType, number> => {
+export const calculateProductionByType = (vesselLevels: Record<string, number>, isPaused: Record<WorshipperType, boolean>): Record<WorshipperType, number> => {
   const production: Record<WorshipperType, number> = {
     [WorshipperType.INDOLENT]: 0,
     [WorshipperType.LOWLY]: 0,
@@ -127,7 +130,7 @@ export const calculateProductionByType = (vesselLevels: Record<string, number>, 
   VESSEL_DEFINITIONS.forEach(def => {
     const level = vesselLevels[def.id] || 0;
     if (level > 0 && !isPaused[def.type]) {
-      const output = calculateVesselOutput(def.id, level, souls);
+      const output = calculateVesselOutput(def.id, level);
       production[def.type] += output;
     }
   });
@@ -138,7 +141,7 @@ export const calculateProductionByType = (vesselLevels: Record<string, number>, 
 /**
  * Consumption is tied to Vessel production capacity.
  */
-export const calculateConsumptionByType = (vesselLevels: Record<string, number>, isPaused: Record<WorshipperType, boolean>, souls: number = 0): Record<WorshipperType, number> => {
+export const calculateConsumptionByType = (vesselLevels: Record<string, number>, isPaused: Record<WorshipperType, boolean>): Record<WorshipperType, number> => {
   const totalConsumption: Record<WorshipperType, number> = {
     [WorshipperType.INDOLENT]: 0,
     [WorshipperType.LOWLY]: 0,
@@ -149,7 +152,7 @@ export const calculateConsumptionByType = (vesselLevels: Record<string, number>,
   VESSEL_DEFINITIONS.forEach(def => {
     const level = vesselLevels[def.id] || 0;
     if (level > 0 && !isPaused[def.type]) {
-      const output = calculateVesselOutput(def.id, level, souls);
+      const output = calculateVesselOutput(def.id, level);
       const rates = CONSUMPTION_RATES[def.type];
       
       (Object.keys(rates) as WorshipperType[]).forEach(resourceType => {
@@ -163,8 +166,8 @@ export const calculateConsumptionByType = (vesselLevels: Record<string, number>,
 };
 
 export const calculateNetIncomeByType = (gameState: GameState): Record<WorshipperType, number> => {
-  const production = calculateProductionByType(gameState.vesselLevels, gameState.isPaused, gameState.souls);
-  const consumption = calculateConsumptionByType(gameState.vesselLevels, gameState.isPaused, gameState.souls);
+  const production = calculateProductionByType(gameState.vesselLevels, gameState.isPaused);
+  const consumption = calculateConsumptionByType(gameState.vesselLevels, gameState.isPaused);
   
   const net: Record<WorshipperType, number> = {
     [WorshipperType.INDOLENT]: 0,
@@ -180,8 +183,8 @@ export const calculateNetIncomeByType = (gameState: GameState): Record<Worshippe
   return net;
 };
 
-export const calculateTotalPassiveIncome = (vesselLevels: Record<string, number>, isPaused: Record<WorshipperType, boolean>, souls: number = 0): number => {
-  const prodByType = calculateProductionByType(vesselLevels, isPaused, souls);
+export const calculateTotalPassiveIncome = (vesselLevels: Record<string, number>, isPaused: Record<WorshipperType, boolean>): number => {
+  const prodByType = calculateProductionByType(vesselLevels, isPaused);
   return Object.values(prodByType).reduce((total: number, val: number) => total + val, 0);
 };
 
@@ -284,13 +287,13 @@ export const calculateBulkVesselBuy = (
   let isCappedBySustainability = false;
 
   if (vesselType === WorshipperType.LOWLY) {
-    const prod = calculateProductionByType(state.vesselLevels, state.isPaused, state.souls);
+    const prod = calculateProductionByType(state.vesselLevels, state.isPaused);
     const potentialCons = calculateConsumptionByType(state.vesselLevels, {
         [WorshipperType.INDOLENT]: false,
         [WorshipperType.LOWLY]: false,
         [WorshipperType.WORLDLY]: false,
         [WorshipperType.ZEALOUS]: false,
-    }, state.souls);
+    });
     
     const indolentProd = prod[WorshipperType.INDOLENT];
     const indolentCons = potentialCons[WorshipperType.INDOLENT];

@@ -1,7 +1,6 @@
 
 import React from 'react';
 import { GameState, WorshipperType } from '../../types';
-// Fix: Import calculateProductionByType instead of non-existent calculatePassiveIncomeByType
 import { calculateProductionByType } from '../../services/gameService';
 import { formatNumber } from '../../utils/format';
 import { BarChart2, Crown, Frown, Ghost, Sword } from 'lucide-react';
@@ -19,7 +18,6 @@ interface CultTabProps {
 }
 
 export const CultTab: React.FC<CultTabProps> = ({ gameState, vesselsUnlocked }) => {
-  // Fix: Use calculateProductionByType with both required arguments
   const currentTypeRates = calculateProductionByType(gameState.vesselLevels, gameState.isPaused);
   const totalRate = Object.values(currentTypeRates).reduce((a: number, b: number) => a + b, 0);
 

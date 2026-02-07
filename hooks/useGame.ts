@@ -125,7 +125,7 @@ export const useGame = () => {
       setGameState(prev => {
         const maxTime = 30 * 60; // 30 mins cap
         const effectiveTime = Math.min(timeDiffSeconds, maxTime);
-        const incomeByType = calculateProductionByType(prev.vesselLevels, prev.isPaused, prev.souls);
+        const incomeByType = calculateProductionByType(prev.vesselLevels, prev.isPaused);
         const totalIncome = Object.values(incomeByType).reduce((a: number, b: number) => a + b, 0);
 
         if (totalIncome > 0) {
@@ -178,8 +178,8 @@ export const useGame = () => {
         lastPassiveTick.current = now;
 
         setGameState(prev => {
-          const production = calculateProductionByType(prev.vesselLevels, prev.isPaused, prev.souls);
-          const consumption = calculateConsumptionByType(prev.vesselLevels, prev.isPaused, prev.souls);
+          const production = calculateProductionByType(prev.vesselLevels, prev.isPaused);
+          const consumption = calculateConsumptionByType(prev.vesselLevels, prev.isPaused);
           
           const newWorshippers = { ...prev.worshippers };
           const newPaused = { ...prev.isPaused };
@@ -224,7 +224,7 @@ export const useGame = () => {
                 VESSEL_DEFINITIONS.forEach(def => {
                   if (def.type === consumerType) {
                     const level = prev.vesselLevels[def.id] || 0;
-                    const output = calculateVesselOutput(def.id, level, prev.souls);
+                    const output = calculateVesselOutput(def.id, level);
                     (Object.keys(requirements) as WorshipperType[]).forEach(res => {
                       potentialNeeds[res] = (potentialNeeds[res] || 0) + output * (requirements[res] || 0);
                     });
@@ -344,7 +344,7 @@ export const useGame = () => {
   }, [gameState.souls]);
 
   const performMiracle = useCallback((isAuto: boolean = false) => {
-    const powerBase = calculateClickPower(gameState.miracleLevel, gameState.souls);
+    const powerBase = calculateClickPower(gameState.miracleLevel);
     let power = powerBase;
     let type = rollWorshipperType(); 
 
@@ -546,8 +546,8 @@ export const useGame = () => {
 
   return {
     gameState,
-    clickPower: calculateClickPower(gameState.miracleLevel, gameState.souls),
-    passiveIncome: calculateTotalPassiveIncome(gameState.vesselLevels, gameState.isPaused, gameState.souls),
+    clickPower: calculateClickPower(gameState.miracleLevel),
+    passiveIncome: calculateTotalPassiveIncome(gameState.vesselLevels, gameState.isPaused),
     performMiracle,
     lastMiracleEvent,
     activateGem,

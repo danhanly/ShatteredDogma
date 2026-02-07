@@ -146,17 +146,30 @@ export const DeveloperModal: React.FC<DeveloperModalProps> = ({
                       <ul className="list-disc pl-5">
                         <li>Base Power: <code className="bg-black/50 px-1 rounded">1 + MiracleLevel</code> (modified by multipliers).</li>
                         <li>Rounding: First bulk purchase rounds level up to next multiple of increment.</li>
-                        <li>Soul Bonus: Each Soul owned provides +1% bonus to click power.</li>
+                        <li>Soul Bonus: Souls currently provide no click power bonus.</li>
                       </ul>
                     </div>
                     <div>
                       <h3 className="font-bold text-eldritch-gold">2. The Liturgy of Vessels</h3>
                       <p>Vessels generate Worshippers automatically per second.</p>
                       <ul className="list-disc pl-5">
-                        <li>Lowly consume Indolent (3/s per output).</li>
-                        <li>Worldly consume Lowly (5/s per output).</li>
-                        <li>Zealous consume Lowly and Worldly (3/s each per output).</li>
+                        <li>Lowly consume Indolent (2/s per output).</li>
+                        <li>Worldly consume Lowly (4/s per output).</li>
+                        <li>Zealous consume Worldly (6/s per output).</li>
                         <li>Starvation: Production halts if resources are exhausted.</li>
+                        <li><strong>Safety Block:</strong> You cannot upgrade Lowly vessels if doing so would cause your consumption of Indolent to exceed your production. This safeguard prevents the collapse of your cult's foundation.</li>
+                      </ul>
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-eldritch-gold">3. The Assistant</h3>
+                      <p>Mattelock Verbinsk acts as your assistant, performing miracles automatically.</p>
+                      <ul className="list-disc pl-5">
+                         <li>Level 0: Recruit (Costs 1 Worldly).</li>
+                         <li>Level 1: 1 click/s (Costs 1 Zealous).</li>
+                         <li>Level 2: 1.33 clicks/s (Costs 100k Zealous).</li>
+                         <li>Level 3: 2 clicks/s (Costs 100m Zealous).</li>
+                         <li>Level 4: 4 clicks/s (Costs 100b Zealous).</li>
+                         <li>Level 5: 8 clicks/s (Costs 100t Zealous).</li>
                       </ul>
                     </div>
                   </div>
@@ -169,7 +182,6 @@ export const DeveloperModal: React.FC<DeveloperModalProps> = ({
                   <div className="bg-black/40 p-3 rounded font-mono text-center my-4 border border-indigo-500/20">
                     <MathDisplay block tex="Souls = \lfloor 10 + 0.01 \times \sqrt[3]{MaxZealous - 100,000} \rfloor" />
                   </div>
-                  <p>Each Soul provides a flat +1% bonus to all acquisitions.</p>
                 </section>
 
                 <section>
@@ -185,13 +197,13 @@ export const DeveloperModal: React.FC<DeveloperModalProps> = ({
                     <li>
                       <p className="font-bold">Output Calculation:</p>
                       <div className="bg-black/40 p-3 rounded font-mono text-center my-2 border border-white/5">
-                        <MathDisplay block tex="Output = \lfloor Base \times 1.07^{Level} \rfloor \times (1 + Souls \times 0.01)" />
+                        <MathDisplay block tex="Output = \lfloor Base \times 1.07^{Level} \rfloor" />
                       </div>
                     </li>
                     <li>
                       <p className="font-bold">Click Power:</p>
                       <div className="bg-black/40 p-3 rounded font-mono text-center my-2 border border-white/5">
-                        <MathDisplay block tex="Power = (Level \times 1.15^{\lfloor Level/10 \rfloor}) \times (1 + Souls \times 0.01)" />
+                        <MathDisplay block tex="Power = CurrentLevel \times 2^{\lfloor Level/10 \rfloor}" />
                       </div>
                     </li>
                   </ul>

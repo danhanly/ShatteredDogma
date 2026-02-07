@@ -1,5 +1,6 @@
 
 
+
 import React from 'react';
 import { AlertCircle, ArrowRight } from 'lucide-react';
 import { BaseModal } from './BaseModal';
@@ -63,7 +64,7 @@ export const ZealousModal: React.FC<IntroModalProps> = ({ onClose, imageUrl }) =
       <p className="mb-4 text-gray-300 text-sm leading-relaxed">The Zealots brook no laxity for Worshippers of the Abyss. Wherever they look they see a potential heretic, an unbeliever, a posturer, and they can stand nothing but total orthodoxy.</p>
       <div className="rounded-lg bg-black/40 p-4 border border-red-900/30 mb-8">
           <p className="text-red-400 text-xs font-bold uppercase mb-1">Consumption Mechanics</p>
-          <p className="text-gray-400 text-xs">Zealot worshippers now consume the souls of the Lowly and the Worldly to sustain themselves. Manage your supply of all your worshippers if you wish to grow the Zealots.</p>
+          <p className="text-gray-400 text-xs">Zealot worshippers now consume the souls of the Worldly to sustain themselves. Manage your supply of Worldly worshippers if you wish to grow the Zealots.</p>
       </div>
       <button onClick={onClose} className="w-full flex items-center justify-center gap-2 rounded-lg bg-red-900/20 border border-red-700 py-4 font-serif font-bold uppercase tracking-widest text-red-500 hover:bg-red-900/30 transition-colors">
         Stoke the Fires of Zeal <ArrowRight className="h-4 w-4" />

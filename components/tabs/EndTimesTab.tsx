@@ -42,7 +42,7 @@ export const EndTimesTab: React.FC<EndTimesTabProps> = ({ gameState, eodUnlocked
                     <Construction className="h-5 w-5 shrink-0 text-amber-500" />
                     <div>
                         <p className="text-[10px] font-bold uppercase tracking-widest text-amber-500">Divine Development</p>
-                        <p className="text-[11px] text-amber-200/80 leading-relaxed">System in active development, shortly there will be many interesting ways for you to spend your Souls. Currently, each soul provides a permanent +1% bonus to all worshipper acquisitions.</p>
+                        <p className="text-[11px] text-amber-200/80 leading-relaxed">System in active development. Souls currently provide no benefit, but in the near future they will be used to purchase powerful Relics that persist through the End of Days.</p>
                     </div>
                 </div>
 
