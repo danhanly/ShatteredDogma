@@ -64,7 +64,7 @@ export const MiraclesTab: React.FC<MiraclesTabProps> = ({
 
   const worldlyLevels = Object.entries(gameState.vesselLevels)
     .filter(([id]) => id.startsWith('WORLDLY'))
-    .reduce((sum, [_, lvl]) => sum + lvl, 0);
+    .reduce((sum, [_, lvl]) => sum + (lvl as number), 0);
 
   const assistantUnlocked = gameState.totalClicks >= 100 && worldlyLevels >= 2;
   const assistantBulk = calculateAssistantBulkVesselBuy(gameState.assistantLevel, increment, gameState);

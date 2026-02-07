@@ -1,3 +1,4 @@
+
 # Shattered Dogma: The Liturgy of Numbers
 
 *A definitive guide to the mechanics governing the ascension.*
@@ -32,7 +33,7 @@ Vessels are permanent anchors in reality that generate Worshippers automatically
 *   **Consumption:** Higher castes consume the souls of lower castes to sustain themselves.
     *   **Lowly** consume **Indolent**.
     *   **Worldly** consume **Lowly**.
-    *   **Zealous** consume **Indolent, Lowly, and Worldly**.
+    *   **Zealous** consume **Lowly and Worldly**.
 *   **Starvation:** If a resource is exhausted, the caste consuming it will "Halt" production until a surplus is restored.
 *   **Rounding Up:** Vessel upgrades also round to the next increment multiple on the first purchase.
 
@@ -75,7 +76,7 @@ $$Cost = Base \times Multiplier^{Level}$$
 *Multipliers range from 1.15 (Tier 1) to 1.2 (Tier 4).*
 
 ### 3. Output Calculation
-$$Output = (BaseOutput \times Level) \times (1 + Souls \times 0.01)$$
+$$Output = \lfloor Base \times 1.07^{Level} \rfloor \times (1 + Souls \times 0.01)$$
 
 ### 4. Click Power Calculation
 $$Power = (CurrentLevel \times 1.15^{\lfloor Level/10 \rfloor}) \times (1 + Souls \times 0.01)$$

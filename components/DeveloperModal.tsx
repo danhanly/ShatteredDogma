@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { WorshipperType, WORSHIPPER_ORDER } from '../types';
 import { X, Terminal, PlusCircle, Unlock, Sparkles, BookOpen } from 'lucide-react';
@@ -154,7 +155,7 @@ export const DeveloperModal: React.FC<DeveloperModalProps> = ({
                       <ul className="list-disc pl-5">
                         <li>Lowly consume Indolent (3/s per output).</li>
                         <li>Worldly consume Lowly (5/s per output).</li>
-                        <li>Zealous consume Indolent, Lowly, and Worldly (3/s each per output).</li>
+                        <li>Zealous consume Lowly and Worldly (3/s each per output).</li>
                         <li>Starvation: Production halts if resources are exhausted.</li>
                       </ul>
                     </div>
@@ -184,7 +185,7 @@ export const DeveloperModal: React.FC<DeveloperModalProps> = ({
                     <li>
                       <p className="font-bold">Output Calculation:</p>
                       <div className="bg-black/40 p-3 rounded font-mono text-center my-2 border border-white/5">
-                        <MathDisplay block tex="Output = (BaseOutput \times Level) \times (1 + Souls \times 0.01)" />
+                        <MathDisplay block tex="Output = \lfloor Base \times 1.07^{Level} \rfloor \times (1 + Souls \times 0.01)" />
                       </div>
                     </li>
                     <li>

@@ -290,7 +290,7 @@ export const useGame = () => {
             }
           });
 
-          const totalProd = Object.values(production).reduce((a, b) => a + b, 0);
+          const totalProd = Object.values(production).reduce((a: number, b: number) => a + b, 0);
           const newMaxByType = { ...prev.maxWorshippersByType };
           WORSHIPPER_ORDER.forEach(type => {
             newMaxByType[type] = Math.max(newMaxByType[type], newWorshippers[type]);
@@ -320,9 +320,9 @@ export const useGame = () => {
 
           return {
              ...prev,
-             totalWorshippers: Object.values(newWorshippers).reduce((a, b) => a + b, 0),
+             totalWorshippers: Object.values(newWorshippers).reduce((a: number, b: number) => a + b, 0),
              totalAccruedWorshippers: prev.totalAccruedWorshippers + (totalProd * delta),
-             maxTotalWorshippers: Math.max(prev.maxTotalWorshippers, Object.values(newWorshippers).reduce((a, b) => a + b, 0)),
+             maxTotalWorshippers: Math.max(prev.maxTotalWorshippers, Object.values(newWorshippers).reduce((a: number, b: number) => a + b, 0)),
              worshippers: newWorshippers,
              maxWorshippersByType: newMaxByType,
              isPaused: newPaused,
@@ -368,9 +368,9 @@ export const useGame = () => {
         return {
             ...prev,
             worshippers: newWorshippers,
-            totalWorshippers: Object.values(newWorshippers).reduce((a, b) => a + b, 0),
+            totalWorshippers: Object.values(newWorshippers).reduce((a: number, b: number) => a + b, 0),
             totalAccruedWorshippers: prev.totalAccruedWorshippers + power,
-            maxTotalWorshippers: Math.max(prev.maxTotalWorshippers, Object.values(newWorshippers).reduce((a, b) => a + b, 0)),
+            maxTotalWorshippers: Math.max(prev.maxTotalWorshippers, Object.values(newWorshippers).reduce((a: number, b: number) => a + b, 0)),
             maxWorshippersByType: {
                 ...prev.maxWorshippersByType,
                 [type]: Math.max(prev.maxWorshippersByType[type], newWorshippers[type])
@@ -426,7 +426,7 @@ export const useGame = () => {
       return {
         ...prev,
         worshippers: newWorshippers,
-        totalWorshippers: Object.values(newWorshippers).reduce((a, b) => a + b, 0),
+        totalWorshippers: Object.values(newWorshippers).reduce((a: number, b: number) => a + b, 0),
         miracleLevel: prev.miracleLevel + bulk.count,
         lastSaveTime: Date.now()
       };
@@ -443,7 +443,7 @@ export const useGame = () => {
         return {
             ...prev,
             worshippers: newWorshippers,
-            totalWorshippers: Object.values(newWorshippers).reduce((a, b) => a + b, 0),
+            totalWorshippers: Object.values(newWorshippers).reduce((a: number, b: number) => a + b, 0),
             vesselLevels: { ...prev.vesselLevels, [vesselId]: currentLevel + bulk.count },
             lastSaveTime: Date.now()
         };
@@ -467,7 +467,7 @@ export const useGame = () => {
         return {
             ...prev,
             worshippers: newWorshippers,
-            totalWorshippers: Object.values(newWorshippers).reduce((a, b) => a + b, 0),
+            totalWorshippers: Object.values(newWorshippers).reduce((a: number, b: number) => a + b, 0),
             assistantLevel: currentLvl,
             lastSaveTime: Date.now()
         };

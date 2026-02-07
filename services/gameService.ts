@@ -1,4 +1,5 @@
 
+
 import { COST_MULTIPLIER, INITIAL_UPGRADE_COST, VESSEL_DEFINITIONS, PRESTIGE_UNLOCK_THRESHOLD, CONSUMPTION_RATES } from "../constants";
 import { GameState, WorshipperType, WORSHIPPER_ORDER } from "../types";
 
@@ -105,13 +106,14 @@ export const calculateAssistantInterval = (level: number): number => {
 
 /**
  * Calculates the output (worshippers per second) of a specific vessel.
- * Now includes the Soul bonus.
+ * Updated Formula: Base * 1.07^Level (rounded down)
  */
 export const calculateVesselOutput = (vesselId: string, currentLevel: number, souls: number = 0): number => {
   const def = VESSEL_DEFINITIONS.find(v => v.id === vesselId);
-  if (!def) return 0;
+  if (!def || currentLevel === 0) return 0;
+  
   const soulMultiplier = 1 + (souls * 0.01);
-  return Math.floor(def.baseOutput * currentLevel * soulMultiplier);
+  return Math.floor(def.baseOutput * Math.pow(1.07, currentLevel) * soulMultiplier);
 };
 
 export const calculateProductionByType = (vesselLevels: Record<string, number>, isPaused: Record<WorshipperType, boolean>, souls: number = 0): Record<WorshipperType, number> => {

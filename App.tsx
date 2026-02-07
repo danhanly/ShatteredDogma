@@ -242,7 +242,7 @@ const App: React.FC = () => {
 
   const worldlyLevels = Object.entries(gameState.vesselLevels)
     .filter(([id]) => id.startsWith('WORLDLY'))
-    .reduce((sum, [_, lvl]) => sum + lvl, 0);
+    .reduce((sum, [_, lvl]) => sum + (lvl as number), 0);
 
   const assistantUnlocked = gameState.totalClicks >= 100 && worldlyLevels >= 2;
   const showAssistantIntro = assistantUnlocked && !gameState.hasSeenAssistantIntro;

@@ -1,4 +1,5 @@
 
+
 import { WorshipperType, VesselId, VesselDefinition, GemType } from "./types";
 
 export const INITIAL_UPGRADE_COST = 25;
@@ -16,7 +17,6 @@ export const CONSUMPTION_RATES: Record<WorshipperType, Partial<Record<Worshipper
     [WorshipperType.LOWLY]: 5
   },
   [WorshipperType.ZEALOUS]: {
-    [WorshipperType.INDOLENT]: 3,
     [WorshipperType.LOWLY]: 3,
     [WorshipperType.WORLDLY]: 3
   }
