@@ -1,3 +1,4 @@
+
 export enum WorshipperType {
   WORLDLY = 'Worldly',
   LOWLY = 'Lowly',
@@ -114,6 +115,7 @@ export interface GameState {
   maxTotalWorshippers: number;
   maxWorshippersByType: Record<WorshipperType, number>;
   
+  hasUnlockedEndTimes: boolean;
   hasSeenEodIntro: boolean;
   hasSeenStartSplash: boolean;
   hasSeenVesselIntro: boolean;

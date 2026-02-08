@@ -45,7 +45,8 @@ export const Menu: React.FC<MenuProps> = ({
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const vesselsUnlocked = gameState.maxWorshippersByType[WorshipperType.INDOLENT] >= 100 || (gameState.relics[RelicId.FALSE_IDOL] > 0);
-  const endTimesUnlocked = gameState.maxWorshippersByType[WorshipperType.ZEALOUS] >= PRESTIGE_UNLOCK_THRESHOLD;
+  // Unlocked if flag is true OR if threshold is met (fallback)
+  const endTimesUnlocked = gameState.hasUnlockedEndTimes || gameState.maxWorshippersByType[WorshipperType.ZEALOUS] >= PRESTIGE_UNLOCK_THRESHOLD;
 
   const visibleVessels = VESSEL_DEFINITIONS.filter(v => {
     if (gameState.relics[RelicId.FALSE_IDOL] > 0) return true;

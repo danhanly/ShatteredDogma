@@ -20,7 +20,7 @@ export const EndTimesTab: React.FC<EndTimesTabProps> = ({ gameState, onPrestige,
   const [currentTime, setCurrentTime] = useState(Date.now());
   const soulsToEarn = calculateSoulsEarned(gameState);
   
-  const isUnlocked = gameState.maxWorshippersByType[WorshipperType.ZEALOUS] >= PRESTIGE_UNLOCK_THRESHOLD;
+  const isUnlocked = gameState.hasUnlockedEndTimes || gameState.maxWorshippersByType[WorshipperType.ZEALOUS] >= PRESTIGE_UNLOCK_THRESHOLD;
   const fateCost = Math.floor(10 * Math.pow(1.2, gameState.fatePurchases));
 
   useEffect(() => {

@@ -54,6 +54,7 @@ const INITIAL_STATE: GameState = {
     [WorshipperType.ZEALOUS]: 0,
     [WorshipperType.INDOLENT]: 0,
   },
+  hasUnlockedEndTimes: false,
   hasSeenStartSplash: false,
   hasSeenVesselIntro: false,
   hasSeenEodIntro: false,
@@ -291,6 +292,12 @@ export const useGame = () => {
             finalAssistantLevel = 1;
           }
 
+          // PERMANENT END TIMES UNLOCK
+          let endTimesUnlocked = prev.hasUnlockedEndTimes;
+          if (!endTimesUnlocked && newMaxByType[WorshipperType.ZEALOUS] >= PRESTIGE_UNLOCK_THRESHOLD) {
+            endTimesUnlocked = true;
+          }
+
           return {
              ...prev,
              worshippers: newWorshippers,
@@ -308,7 +315,8 @@ export const useGame = () => {
              rebellionTimeRemaining: newRebellionTime,
              rebelCaste: newRebelCaste,
              unlockedGems: newUnlockedGems,
-             showGemDiscovery: newShowDiscovery
+             showGemDiscovery: newShowDiscovery,
+             hasUnlockedEndTimes: endTimesUnlocked
           };
         });
 
@@ -347,6 +355,7 @@ export const useGame = () => {
           fates: prev.fates,
           fatePurchases: prev.fatePurchases,
           settings: prev.settings,
+          hasUnlockedEndTimes: true, // Keep End Times unlocked
           hasSeenStartSplash: prev.hasSeenStartSplash,
           hasSeenVesselIntro: prev.hasSeenVesselIntro,
           hasSeenEodIntro: prev.hasSeenEodIntro,
@@ -443,6 +452,7 @@ export const useGame = () => {
         newState.worshippers[WorshipperType.INDOLENT] += 1000;
       } else if (feature === 'END_TIMES') {
         newState.worshippers[WorshipperType.ZEALOUS] += 100;
+        newState.hasUnlockedEndTimes = true;
       } else if (feature === 'ASSISTANT') {
         newState.assistantLevel = 1;
       }

@@ -48,12 +48,14 @@ const App: React.FC = () => {
     resetSave
   } = useGame();
 
-  const [isEntering, setIsEntering] = useState(true);
-  const [loadProgress, setLoadProgress] = useState(0);
   const [activeTab, setActiveTab] = useState<'MIRACLES' | 'VESSELS' | 'CULT' | 'END_TIMES'>('MIRACLES');
   const [highlightVessels, setHighlightVessels] = useState(false);
   const [highlightAssistant, setHighlightAssistant] = useState(false);
-  
+  const [ascensionPhase, setAscensionPhase] = useState<'IDLE' | 'IN' | 'OUT'>('IDLE');
+
+  const [loadingProgress, setLoadingProgress] = useState(0);
+  const [assetsLoaded, setAssetsLoaded] = useState(false);
+
   const [worshipperImages, setWorshipperImages] = useState<Record<WorshipperType, string>>({
     [WorshipperType.INDOLENT]: "",
     [WorshipperType.LOWLY]: "",
@@ -82,119 +84,83 @@ const App: React.FC = () => {
 
   useEffect(() => {
     const prefix = getAssetPrefix();
-    const IMAGE_PATHS = {
-      [WorshipperType.INDOLENT]: `${prefix}indolent.jpeg`,
-      [WorshipperType.LOWLY]: `${prefix}lowly.jpeg`,
-      [WorshipperType.WORLDLY]: `${prefix}worldly.jpeg`,
-      [WorshipperType.ZEALOUS]: `${prefix}zealous.jpeg`,
-    };
-    const BG_PATH = `${prefix}bg.jpeg`;
-    const END_OF_DAYS_PATH = `${prefix}endofdays.jpeg`;
-    const ASSISTANT_PATH = `${prefix}assistant.jpg`;
     const MUSIC_PATH = `${prefix}audio/music.ogg`;
-    
     setMusicUrl(MUSIC_PATH);
 
     const loadImages = async () => {
-      const gemEntries = Object.entries(GEM_DEFINITIONS);
-      // Total assets calculation:
-      // 4 Worshippers + 1 BG + 1 EOD + 1 Assistant + 16 Vessels + 4 Gems + 1 Music = 28
-      const totalAssets = 4 + 1 + 1 + 1 + VESSEL_DEFINITIONS.length + gemEntries.length + 1;
-      let loadedCount = 0;
+      const assetsToLoad: Array<{ type: string; id?: string; path: string }> = [];
 
-      const incrementProgress = () => {
-        loadedCount++;
-        setLoadProgress((loadedCount / totalAssets) * 100);
+      // Static Images
+      assetsToLoad.push({ type: 'BG', path: `${prefix}bg.jpeg` });
+      assetsToLoad.push({ type: 'EOD', path: `${prefix}endofdays.jpeg` });
+      assetsToLoad.push({ type: 'ASSISTANT', path: `${prefix}assistant.jpg` });
+
+      // Worshippers
+      const IMAGE_PATHS = {
+        [WorshipperType.INDOLENT]: `${prefix}indolent.jpeg`,
+        [WorshipperType.LOWLY]: `${prefix}lowly.jpeg`,
+        [WorshipperType.WORLDLY]: `${prefix}worldly.jpeg`,
+        [WorshipperType.ZEALOUS]: `${prefix}zealous.jpeg`,
       };
+      Object.entries(IMAGE_PATHS).forEach(([type, path]) => {
+        assetsToLoad.push({ type: 'WORSHIPPER', id: type, path });
+      });
 
-      // 1. Worshipper Icons
-      const newWorshipperImages = { ...worshipperImages };
-      for (const [type, path] of Object.entries(IMAGE_PATHS)) {
-        try {
-          const response = await fetch(path);
-          if (response.ok) {
-            const blob = await response.blob();
-            newWorshipperImages[type as WorshipperType] = URL.createObjectURL(blob);
-          }
-        } catch (e) {}
-        incrementProgress();
-      }
-      setWorshipperImages(newWorshipperImages);
-
-      // 2. Main BG
-      try {
-        const response = await fetch(BG_PATH);
-        if (response.ok) {
-          const blob = await response.blob();
-          setBgUrl(URL.createObjectURL(blob));
-        }
-      } catch (e) {}
-      incrementProgress();
-
-      // 3. End of Days
-      try {
-        const response = await fetch(END_OF_DAYS_PATH);
-        if (response.ok) {
-          const blob = await response.blob();
-          setEndOfDaysUrl(URL.createObjectURL(blob));
-        }
-      } catch (e) {}
-      incrementProgress();
-
-      // 4. Assistant
-      try {
-        const response = await fetch(ASSISTANT_PATH);
-        if (response.ok) {
-          const blob = await response.blob();
-          setAssistantUrl(URL.createObjectURL(blob));
-        }
-      } catch (e) {}
-      incrementProgress();
-
-      // 5. Vessels
-      const newVesselImages: Record<string, string> = {};
+      // Vessels
       for (const def of VESSEL_DEFINITIONS) {
          const parts = def.id.split('_');
          if (parts.length === 2) {
              const typeFolder = def.type.toLowerCase();
              const number = parts[1];
              const path = `${prefix}vessels/${typeFolder}/${number}.jpeg`;
-             try {
-                const response = await fetch(path);
-                if (response.ok) {
-                    const blob = await response.blob();
-                    newVesselImages[def.id] = URL.createObjectURL(blob);
-                }
-             } catch (e) {}
+             assetsToLoad.push({ type: 'VESSEL', id: def.id, path });
          }
-         incrementProgress();
       }
-      setVesselImages(newVesselImages);
 
-      // 6. Gems
-      const newGemImages: Record<string, string> = {};
-      for (const [gemKey, def] of gemEntries) {
+      // Gems
+      for (const [gemKey, def] of Object.entries(GEM_DEFINITIONS)) {
+        // Fix: cast as any to bypass TS unknown property access issue
+        const normalizedPath = (def as any).image.replace(/^\.\//, '');
+        const path = `${prefix}${normalizedPath.replace(/^public\//, '')}`;
+        assetsToLoad.push({ type: 'GEM', id: gemKey, path });
+      }
+
+      const totalAssets = assetsToLoad.length;
+      let loadedCount = 0;
+
+      // Temp storage for batched state updates
+      const loadedWorshippers = { ...worshipperImages };
+      const loadedVessels: Record<string, string> = {};
+      const loadedGems: Record<string, string> = {};
+
+      await Promise.all(assetsToLoad.map(async (asset) => {
         try {
-          const normalizedPath = (def as any).image.replace(/^\.\//, '');
-          const path = `${prefix}${normalizedPath.replace(/^public\//, '')}`;
-          const response = await fetch(path);
+          const response = await fetch(asset.path);
           if (response.ok) {
             const blob = await response.blob();
-            newGemImages[gemKey] = URL.createObjectURL(blob);
+            const url = URL.createObjectURL(blob);
+            
+            switch (asset.type) {
+              case 'BG': setBgUrl(url); break;
+              case 'EOD': setEndOfDaysUrl(url); break;
+              case 'ASSISTANT': setAssistantUrl(url); break;
+              case 'WORSHIPPER': if(asset.id) loadedWorshippers[asset.id as WorshipperType] = url; break;
+              case 'VESSEL': if(asset.id) loadedVessels[asset.id] = url; break;
+              case 'GEM': if(asset.id) loadedGems[asset.id] = url; break;
+            }
           }
-        } catch (e) {}
-        incrementProgress();
-      }
-      setGemImages(newGemImages);
-
-      // 7. Music (Check availability)
-      try {
-        const response = await fetch(MUSIC_PATH);
-        if (response.ok) {
-          // Just verify it exists
+        } catch (e) {
+          console.warn(`Failed to load asset: ${asset.path}`);
+        } finally {
+          loadedCount++;
+          setLoadingProgress((loadedCount / totalAssets) * 100);
         }
-      } catch (e) {}
-      incrementProgress();
+      }));
+
+      setWorshipperImages(loadedWorshippers);
+      setVesselImages(loadedVessels);
+      setGemImages(loadedGems);
+      setAssetsLoaded(true);
     };
 
     loadImages();
@@ -211,8 +177,7 @@ const App: React.FC = () => {
     const audio = audioRef.current;
     audio.volume = gameState.settings.musicVolume ?? 0.3;
     
-    // Only play music after user interacts with the splash start
-    if (gameState.settings.musicEnabled && !isEntering) {
+    if (gameState.settings.musicEnabled && gameState.hasSeenStartSplash) {
         const playPromise = audio.play();
         if (playPromise !== undefined) {
             playPromise.catch(error => console.log(error));
@@ -220,154 +185,163 @@ const App: React.FC = () => {
     } else {
         audio.pause();
     }
-  }, [musicUrl, gameState.settings.musicEnabled, gameState.settings.musicVolume, isEntering]);
+  }, [musicUrl, gameState.settings.musicEnabled, gameState.settings.musicVolume, gameState.hasSeenStartSplash]);
 
   const handleSplashStart = () => {
-    setIsEntering(false);
-    setFlag('hasSeenStartSplash', true); // Keep tracking for game logic
+    setFlag('hasSeenStartSplash', true);
     if (gameState.settings.musicEnabled && audioRef.current) {
         audioRef.current.play().catch(e => console.log(e));
     }
   };
 
-  const isLoaded = loadProgress >= 100;
-  const showSplash = isEntering;
+  const handleAscension = () => {
+    // 1. Fade IN (White) over 50ms
+    setAscensionPhase('IN');
+    
+    setTimeout(() => {
+        // 2. Perform Data Reset at peak brightness
+        triggerPrestige();
+        
+        // 3. Fade OUT (Transparent) over 2s
+        setAscensionPhase('OUT');
+        
+        setTimeout(() => {
+            // 4. Reset animation state
+            setAscensionPhase('IDLE');
+        }, 2000);
+    }, 50);
+  };
 
-  const showMiracleIntro = !isEntering && gameState.totalAccruedWorshippers > 0 && !gameState.hasSeenMiracleIntro;
-  const showVesselIntro = !isEntering && gameState.maxWorshippersByType[WorshipperType.INDOLENT] >= 100 && !gameState.hasSeenVesselIntro;
-  const showEodIntro = !isEntering && gameState.maxWorshippersByType[WorshipperType.ZEALOUS] >= PRESTIGE_UNLOCK_THRESHOLD && !gameState.hasSeenEodIntro;
-  
+  const showMiracleIntro = gameState.hasSeenStartSplash && gameState.totalAccruedWorshippers > 0 && !gameState.hasSeenMiracleIntro;
+  const showVesselIntro = gameState.maxWorshippersByType[WorshipperType.INDOLENT] >= 100 && !gameState.hasSeenVesselIntro;
+  const showEodIntro = gameState.maxWorshippersByType[WorshipperType.ZEALOUS] >= PRESTIGE_UNLOCK_THRESHOLD && !gameState.hasSeenEodIntro;
   const assistantUnlocked = gameState.maxWorshippersByType[WorshipperType.INDOLENT] >= 1000;
-  const showAssistantIntro = !isEntering && assistantUnlocked && !gameState.hasSeenAssistantIntro;
-
+  const showAssistantIntro = assistantUnlocked && !gameState.hasSeenAssistantIntro;
   const hasLowlyVessel = (gameState.vesselLevels['LOWLY_1'] || 0) > 0;
   const hasWorldlyVessel = (gameState.vesselLevels['WORLDLY_1'] || 0) > 0;
   const hasZealousVessel = (gameState.vesselLevels['ZEALOUS_1'] || 0) > 0;
-
-  const showLowlyModal = !isEntering && hasLowlyVessel && !gameState.hasSeenLowlyModal;
-  const showWorldlyModal = !isEntering && hasWorldlyVessel && !gameState.hasSeenWorldlyModal;
-  const showZealousModal = !isEntering && hasZealousVessel && !gameState.hasSeenZealousModal;
-
-  const canShowStarvedModal = !isEntering && gameState.hasSeenPausedModal && !gameState.hasAcknowledgedPausedModal;
+  const showLowlyModal = hasLowlyVessel && !gameState.hasSeenLowlyModal;
+  const showWorldlyModal = hasWorldlyVessel && !gameState.hasSeenWorldlyModal;
+  const showZealousModal = hasZealousVessel && !gameState.hasSeenZealousModal;
+  const canShowStarvedModal = gameState.hasSeenPausedModal && !gameState.hasAcknowledgedPausedModal && gameState.hasSeenStartSplash;
 
   return (
-    <div className="flex h-[100dvh] w-screen flex-col overflow-hidden bg-black text-gray-200">
-      {showSplash && (
-        <SplashIntro 
-          bgUrl={bgUrl} 
-          onStart={handleSplashStart} 
-          progress={loadProgress}
-          isLoaded={isLoaded}
+    <div className="flex h-[100dvh] w-screen flex-col overflow-hidden bg-black text-gray-200 relative">
+      
+      {/* Ascension Flash Overlay */}
+      <div 
+        className={`pointer-events-none absolute inset-0 z-[200] bg-white transition-opacity 
+            ${ascensionPhase === 'IDLE' ? 'opacity-0' : ''}
+            ${ascensionPhase === 'IN' ? 'opacity-100 duration-[50ms] ease-in' : ''}
+            ${ascensionPhase === 'OUT' ? 'opacity-0 duration-[2000ms] ease-out' : ''}
+        `} 
+      />
+
+      {!gameState.hasSeenStartSplash && <SplashIntro bgUrl={bgUrl} onStart={handleSplashStart} progress={loadingProgress} isLoaded={assetsLoaded} />}
+      
+      {showMiracleIntro && (
+        <MiracleIntroModal 
+          imageUrl={vesselImages['INDOLENT_1']} 
+          onClose={() => setFlag('hasSeenMiracleIntro', true)} 
         />
       )}
-      
-      {!isEntering && (
-        <>
-          {showMiracleIntro && (
-            <MiracleIntroModal 
-              imageUrl={vesselImages['INDOLENT_1']} 
-              onClose={() => setFlag('hasSeenMiracleIntro', true)} 
-            />
-          )}
 
-          {showVesselIntro && <VesselUnlockModal 
-            zealotVesselUrl={vesselImages['ZEALOUS_4']} 
-            mudgeUrl={vesselImages['INDOLENT_1']}
-            onClose={() => {
-                setFlag('hasSeenVesselIntro', true);
-                setActiveTab('VESSELS');
-                setHighlightVessels(true);
-                setTimeout(() => setHighlightVessels(false), 3000);
-            }} 
-          />}
+      {showVesselIntro && <VesselUnlockModal 
+        zealotVesselUrl={vesselImages['ZEALOUS_4']} 
+        mudgeUrl={vesselImages['INDOLENT_1']}
+        onClose={() => {
+            setFlag('hasSeenVesselIntro', true);
+            setActiveTab('VESSELS');
+            setHighlightVessels(true);
+            setTimeout(() => setHighlightVessels(false), 3000);
+        }} 
+      />}
 
-          {showAssistantIntro && (
-            <IntroduceAssistantModal 
-              imageUrl={assistantUrl} 
-              onClose={() => {
-                setFlag('hasSeenAssistantIntro', true);
-                setActiveTab('MIRACLES');
-                setHighlightAssistant(true);
-                setTimeout(() => setHighlightAssistant(false), 3000);
-              }} 
-            />
-          )}
-
-          {showEodIntro && <EodUnlockModal endOfDaysUrl={endOfDaysUrl} onClose={() => {
-            setFlag('hasSeenEodIntro', true);
-            setActiveTab('END_TIMES');
-          }} />}
-
-          {showLowlyModal && <LowlyModal imageUrl={vesselImages['LOWLY_1']} onClose={() => setFlag('hasSeenLowlyModal', true)} />}
-          {showWorldlyModal && <WorldlyModal imageUrl={vesselImages['WORLDLY_1']} onClose={() => setFlag('hasSeenWorldlyModal', true)} />}
-          {showZealousModal && <ZealousModal imageUrl={vesselImages['ZEALOUS_1']} onClose={() => setFlag('hasSeenZealousModal', true)} />}
-          
-          {canShowStarvedModal && (
-              <ProductionStarvedModal onClose={() => {
-                  setFlag('hasAcknowledgedPausedModal', true); 
-              }} />
-          )}
-
-          {gameState.showGemDiscovery && (
-            <GemDiscoveryModal 
-              gem={gameState.showGemDiscovery} 
-              onClose={closeDiscovery} 
-              imageUrl={gemImages[gameState.showGemDiscovery]}
-            />
-          )}
-
-          <Header 
-            gameState={gameState}
-            toggleSound={toggleSound}
-            toggleMusic={toggleMusic}
-            setMusicVolume={setMusicVolume}
-            setActiveTab={setActiveTab}
-            passiveIncome={passiveIncome} 
-            debugAddWorshippers={debugAddWorshippers}
-            debugUnlockFeature={debugUnlockFeature}
-            debugAddSouls={debugAddSouls}
-            resetSave={resetSave}
-          />
-          
-          <main className="flex flex-1 flex-col lg:flex-row lg:overflow-hidden">
-            <MainScreen 
-              gameState={gameState} 
-              onTap={(x, y) => performMiracle()} 
-              autoClickTrigger={lastMiracleEvent}
-              worshipperImages={worshipperImages}
-              bgUrl={bgUrl}
-              onToggleAllVessels={toggleAllVessels}
-            />
-            
-            <Menu 
-              gameState={gameState}
-              clickPower={clickPower}
-              activeTab={activeTab}
-              setActiveTab={setActiveTab}
-              onUpgrade={purchaseUpgrade}
-              onPurchaseVessel={purchaseVessel}
-              onPurchaseAssistant={purchaseAssistant}
-              onToggleAssistant={toggleAssistant}
-              onActivateGem={activateGem}
-              setMiracleIncrement={setMiracleIncrement}
-              setVesselIncrement={setVesselIncrement}
-              vesselImages={vesselImages}
-              assistantUrl={assistantUrl}
-              onPrestige={triggerPrestige}
-              onPurchaseRelic={purchaseRelic}
-              onPurchaseFate={purchaseFateRelic}
-              onToggleVessel={toggleVessel}
-              onToggleAllVessels={toggleAllVessels}
-              endOfDaysUrl={endOfDaysUrl}
-              highlightVessels={highlightVessels}
-              highlightAssistant={highlightAssistant}
-              lastGemRefresh={lastGemRefresh}
-            />
-          </main>
-
-          {offlineGains && <OfflineModal gains={offlineGains.gains} timeOffline={offlineGains.time} onClose={closeOfflineModal} />}
-        </>
+      {showAssistantIntro && (
+        <IntroduceAssistantModal 
+          imageUrl={assistantUrl} 
+          onClose={() => {
+            setFlag('hasSeenAssistantIntro', true);
+            setActiveTab('MIRACLES');
+            setHighlightAssistant(true);
+            setTimeout(() => setHighlightAssistant(false), 3000);
+          }} 
+        />
       )}
+
+      {showEodIntro && <EodUnlockModal endOfDaysUrl={endOfDaysUrl} onClose={() => {
+        setFlag('hasSeenEodIntro', true);
+        setActiveTab('END_TIMES');
+      }} />}
+
+      {showLowlyModal && <LowlyModal imageUrl={vesselImages['LOWLY_1']} onClose={() => setFlag('hasSeenLowlyModal', true)} />}
+      {showWorldlyModal && <WorldlyModal imageUrl={vesselImages['WORLDLY_1']} onClose={() => setFlag('hasSeenWorldlyModal', true)} />}
+      {showZealousModal && <ZealousModal imageUrl={vesselImages['ZEALOUS_1']} onClose={() => setFlag('hasSeenZealousModal', true)} />}
+      
+      {canShowStarvedModal && (
+          <ProductionStarvedModal onClose={() => {
+              setFlag('hasAcknowledgedPausedModal', true); 
+          }} />
+      )}
+
+      {gameState.showGemDiscovery && (
+        <GemDiscoveryModal 
+          gem={gameState.showGemDiscovery} 
+          onClose={closeDiscovery} 
+          imageUrl={gemImages[gameState.showGemDiscovery]}
+        />
+      )}
+
+      <Header 
+        gameState={gameState}
+        toggleSound={toggleSound}
+        toggleMusic={toggleMusic}
+        setMusicVolume={setMusicVolume}
+        setActiveTab={setActiveTab}
+        passiveIncome={passiveIncome} 
+        debugAddWorshippers={debugAddWorshippers}
+        debugUnlockFeature={debugUnlockFeature}
+        debugAddSouls={debugAddSouls}
+        resetSave={resetSave}
+      />
+      
+      <main className="flex flex-1 flex-col lg:flex-row lg:overflow-hidden">
+        <MainScreen 
+          gameState={gameState} 
+          onTap={(x, y) => performMiracle()} 
+          autoClickTrigger={lastMiracleEvent}
+          worshipperImages={worshipperImages}
+          bgUrl={bgUrl}
+          onToggleAllVessels={toggleAllVessels}
+        />
+        
+        <Menu 
+          gameState={gameState}
+          clickPower={clickPower}
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          onUpgrade={purchaseUpgrade}
+          onPurchaseVessel={purchaseVessel}
+          onPurchaseAssistant={purchaseAssistant}
+          onToggleAssistant={toggleAssistant}
+          onActivateGem={activateGem}
+          setMiracleIncrement={setMiracleIncrement}
+          setVesselIncrement={setVesselIncrement}
+          vesselImages={vesselImages}
+          assistantUrl={assistantUrl}
+          onPrestige={handleAscension}
+          onPurchaseRelic={purchaseRelic}
+          onPurchaseFate={purchaseFateRelic}
+          onToggleVessel={toggleVessel}
+          onToggleAllVessels={toggleAllVessels}
+          endOfDaysUrl={endOfDaysUrl}
+          highlightVessels={highlightVessels}
+          highlightAssistant={highlightAssistant}
+          lastGemRefresh={lastGemRefresh}
+        />
+      </main>
+
+      {offlineGains && <OfflineModal gains={offlineGains.gains} timeOffline={offlineGains.time} onClose={closeOfflineModal} />}
     </div>
   );
 };
