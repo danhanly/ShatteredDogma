@@ -21,16 +21,15 @@ const App: React.FC = () => {
     clickPower, 
     passiveIncome,
     performMiracle, 
-    lastMiracleEvent,
     activateGem,
     closeDiscovery,
     purchaseUpgrade, 
     purchaseVessel,
     purchaseAssistant,
-    // Fix: Destructure toggleAssistant from useGame hook
     toggleAssistant,
     purchaseRelic,
     toggleVessel,
+    toggleAllVessels,
     setMiracleIncrement,
     setVesselIncrement,
     toggleSound,
@@ -216,7 +215,7 @@ const App: React.FC = () => {
   const showWorldlyModal = hasWorldlyVessel && !gameState.hasSeenWorldlyModal;
   const showZealousModal = hasZealousVessel && !gameState.hasSeenZealousModal;
 
-  const canShowStarvedModal = gameState.hasSeenPausedModal && !gameState.hasAcknowledgedPausedModal && gameState.hasSeenStartSplash;
+  const canShowStarvedModal = gameState.hasSeenNetNegative && !gameState.hasAcknowledgedPausedModal && gameState.hasSeenStartSplash;
 
   return (
     <div className="flex h-[100dvh] w-screen flex-col overflow-hidden bg-black text-gray-200">
@@ -292,9 +291,9 @@ const App: React.FC = () => {
         <MainScreen 
           gameState={gameState} 
           onTap={(x, y) => performMiracle()} 
-          autoClickTrigger={lastMiracleEvent}
           worshipperImages={worshipperImages}
           bgUrl={bgUrl}
+          onToggleAllVessels={toggleAllVessels}
         />
         
         <Menu 
@@ -305,7 +304,6 @@ const App: React.FC = () => {
           onUpgrade={purchaseUpgrade}
           onPurchaseVessel={purchaseVessel}
           onPurchaseAssistant={purchaseAssistant}
-          // Fix: Pass onToggleAssistant prop to Menu component
           onToggleAssistant={toggleAssistant}
           onActivateGem={activateGem}
           setMiracleIncrement={setMiracleIncrement}
@@ -315,6 +313,7 @@ const App: React.FC = () => {
           onPrestige={triggerPrestige}
           onPurchaseRelic={purchaseRelic}
           onToggleVessel={toggleVessel}
+          onToggleAllVessels={toggleAllVessels}
           endOfDaysUrl={endOfDaysUrl}
           highlightVessels={highlightVessels}
           highlightAssistant={highlightAssistant}

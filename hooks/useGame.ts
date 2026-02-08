@@ -1,7 +1,7 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { GameState, WorshipperType, VesselId, WORSHIPPER_ORDER, GemType, RelicId, IncrementType } from '../types';
-import { PRESTIGE_UNLOCK_THRESHOLD } from '../constants';
+import { PRESTIGE_UNLOCK_THRESHOLD, VESSEL_DEFINITIONS } from '../constants';
 import { 
   calculateClickPower, 
   calculateProductionByType,
@@ -51,6 +51,7 @@ const INITIAL_STATE: GameState = {
   hasSeenWorldlyModal: false,
   hasSeenZealousModal: false,
   hasSeenPausedModal: false,
+  hasSeenNetNegative: false,
   hasAcknowledgedPausedModal: false,
   hasSeenAssistantIntro: false,
   lockedWorshippers: [],
@@ -177,10 +178,15 @@ export const useGame = () => {
           const consumption = calculateConsumptionByType(prev);
           
           const newWorshippers = { ...prev.worshippers };
-          
+          let detectedNetNegative = false;
+
           // Apply passive income
           WORSHIPPER_ORDER.forEach(type => {
-            newWorshippers[type] = Math.max(0, newWorshippers[type] + (production[type] - consumption[type]) * delta);
+            const net = production[type] - consumption[type];
+            if (net < 0 && !prev.hasSeenNetNegative && !detectedNetNegative) {
+                detectedNetNegative = true;
+            }
+            newWorshippers[type] = Math.max(0, newWorshippers[type] + net * delta);
           });
 
           // Apply auto-miracle if triggered
@@ -232,9 +238,9 @@ export const useGame = () => {
           return {
              ...prev,
              worshippers: newWorshippers,
-             totalWorshippers: Object.values(newWorshippers).reduce((a, b) => a + b, 0),
+             totalWorshippers: Object.values(newWorshippers).reduce((a: number, b: number) => a + b, 0),
              totalAccruedWorshippers: prev.totalAccruedWorshippers + (autoMiracle?.power || 0),
-             maxTotalWorshippers: Math.max(prev.maxTotalWorshippers, Object.values(newWorshippers).reduce((a, b) => a + b, 0)),
+             maxTotalWorshippers: Math.max(prev.maxTotalWorshippers, Object.values(newWorshippers).reduce((a: number, b: number) => a + b, 0)),
              maxWorshippersByType: newMaxByType,
              activeGem: newActiveGem,
              activeGemTimeRemaining: newActiveGemTimeRemaining,
@@ -244,6 +250,7 @@ export const useGame = () => {
              assistantActive: newAssistantActive,
              showGemDiscovery: prev.showGemDiscovery || gemDiscovered,
              lastSaveTime: now,
+             hasSeenNetNegative: prev.hasSeenNetNegative || detectedNetNegative,
           };
         });
 
@@ -298,8 +305,20 @@ export const useGame = () => {
     }));
   }, []);
 
+  const toggleAllVessels = useCallback((caste: WorshipperType, imprison: boolean) => {
+    setGameState((prev: GameState) => {
+        const nextToggles = { ...prev.vesselToggles };
+        VESSEL_DEFINITIONS.filter(v => v.type === caste).forEach(v => {
+            if (prev.vesselLevels[v.id] > 0) {
+                nextToggles[v.id] = imprison;
+            }
+        });
+        return { ...prev, vesselToggles: nextToggles };
+    });
+  }, []);
+
   const triggerPrestige = useCallback(() => {
-    setGameState(prev => {
+    setGameState((prev: GameState) => {
        const soulsEarned = calculateSoulsEarned(prev);
        const contractActive = prev.relics[RelicId.CONTRACT] > 0;
        return {
@@ -318,7 +337,7 @@ export const useGame = () => {
   }, []);
 
   const purchaseUpgrade = useCallback(() => {
-    setGameState(prev => {
+    setGameState((prev: GameState) => {
       const bulk = calculateBulkUpgrade(prev.miracleLevel, prev.miracleIncrement, prev);
       if (prev.worshippers[WorshipperType.INDOLENT] < bulk.cost || bulk.count === 0) return prev;
       return { 
@@ -330,7 +349,7 @@ export const useGame = () => {
   }, []);
 
   const purchaseVessel = useCallback((vesselId: string) => {
-    setGameState(prev => {
+    setGameState((prev: GameState) => {
         const lvl = prev.vesselLevels[vesselId] || 0;
         const bulk = calculateBulkVesselBuy(vesselId, lvl, prev.vesselIncrement, prev);
         if (prev.worshippers[bulk.costType] < bulk.cost || bulk.count === 0) return prev;
@@ -343,7 +362,7 @@ export const useGame = () => {
   }, []);
 
   const purchaseAssistant = useCallback(() => {
-    setGameState(prev => {
+    setGameState((prev: GameState) => {
         const bulk = calculateAssistantBulkVesselBuy(prev.assistantLevel, prev.miracleIncrement, prev);
         if (prev.worshippers[bulk.costType] < bulk.cost || bulk.count === 0) return prev;
         return { 
@@ -376,6 +395,7 @@ export const useGame = () => {
     closeDiscovery: () => setGameState(prev => ({ ...prev, showGemDiscovery: null })),
     purchaseRelic,
     toggleVessel,
+    toggleAllVessels,
     toggleAssistant,
     triggerPrestige,
     purchaseUpgrade,

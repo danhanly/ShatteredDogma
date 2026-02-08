@@ -42,6 +42,14 @@ export const rollWorshipperType = (): WorshipperType => {
   return WorshipperType.INDOLENT; 
 };
 
+const getGemForCaste = (caste: WorshipperType | null): GemType | null => {
+  if (caste === WorshipperType.INDOLENT) return GemType.LAPIS;
+  if (caste === WorshipperType.LOWLY) return GemType.QUARTZ;
+  if (caste === WorshipperType.WORLDLY) return GemType.EMERALD;
+  if (caste === WorshipperType.ZEALOUS) return GemType.RUBY;
+  return null;
+};
+
 export const calculateVesselEfficiency = (state: GameState, vesselId: VesselId): number => {
   const requirements = CONSUMPTION_RATES_PER_LVL[vesselId];
   if (!requirements || Object.keys(requirements).length === 0) return 1.0;
@@ -72,12 +80,32 @@ export const calculateVesselEfficiency = (state: GameState, vesselId: VesselId):
   return minEfficiency;
 };
 
-const getGemForCaste = (caste: WorshipperType | null): GemType | null => {
-  if (caste === WorshipperType.INDOLENT) return GemType.LAPIS;
-  if (caste === WorshipperType.LOWLY) return GemType.QUARTZ;
-  if (caste === WorshipperType.WORLDLY) return GemType.EMERALD;
-  if (caste === WorshipperType.ZEALOUS) return GemType.RUBY;
-  return null;
+export const calculateSingleVesselConsumption = (state: GameState, vesselId: VesselId, level: number): { type: WorshipperType, amount: number } | null => {
+  const requirements = CONSUMPTION_RATES_PER_LVL[vesselId];
+  if (!requirements) return null;
+
+  const def = VESSEL_DEFINITIONS.find(v => v.id === vesselId);
+  if (!def) return null;
+
+  // Find the consumed type (assuming 1 for now based on data)
+  const consumedType = Object.keys(requirements)[0] as WorshipperType;
+  if (!consumedType) return null;
+
+  const baseRate = requirements[consumedType]!;
+  
+  const relicGluttonyLvl = state.relics[RelicId.GLUTTONY] || 0;
+  const consumptionReduction = relicGluttonyLvl * 0.05;
+  
+  const efficiency = calculateVesselEfficiency(state, vesselId);
+  
+  let currentReduction = consumptionReduction;
+  if (state.activeGem && getGemForCaste(def.type) === state.activeGem) {
+      currentReduction = Math.min(1.0, currentReduction + 0.5);
+  }
+
+  const amount = Math.floor(baseRate * level * efficiency * (1 - currentReduction));
+  
+  return { type: consumedType, amount };
 };
 
 const getVesselMultiplier = (vesselId: string): number => {

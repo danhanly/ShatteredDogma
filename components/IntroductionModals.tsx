@@ -1,6 +1,6 @@
 
-import React from 'react';
-import { AlertCircle, ArrowRight } from 'lucide-react';
+import React, { useState } from 'react';
+import { AlertCircle, ArrowRight, Lock, ZapOff } from 'lucide-react';
 import { BaseModal } from './BaseModal';
 
 interface IntroModalProps {
@@ -71,29 +71,49 @@ export const ZealousModal: React.FC<IntroModalProps> = ({ onClose, imageUrl }) =
   </BaseModal>
 );
 
-export const ProductionStarvedModal: React.FC<IntroModalProps> = ({ onClose, imageUrl }) => (
-  <BaseModal onClose={onClose} zIndex={130} containerClassName="max-w-lg w-full border-eldritch-crimson shadow-[0_0_50px_rgba(255,0,0,0.3)]" backdropClassName="bg-black/95 backdrop-blur-xl">
-    <div className="h-64 w-full bg-black overflow-hidden relative flex items-center justify-center">
-      {imageUrl ? (
-        <img src={imageUrl} className="h-full w-full object-cover opacity-60" alt="Starved" />
-      ) : (
-        <div className="h-full w-full bg-gradient-to-b from-red-950 to-black flex items-center justify-center">
-          <AlertCircle className="h-24 w-24 text-red-500 animate-pulse" />
-        </div>
-      )}
-      <div className="absolute inset-0 bg-gradient-to-t from-eldritch-dark via-transparent to-transparent" />
-    </div>
-    <div className="p-8 text-center">
-      <h2 className="mb-2 font-serif text-3xl font-bold text-white uppercase">An Empty Vessel Procures No Worshippers</h2>
-      <h3 className="mb-6 font-serif text-eldritch-crimson italic">"With the loss of the population it needs, there is no essence to grant the Abyss."</h3>
-      <p className="mb-4 text-gray-300 text-sm leading-relaxed">The Abyss demands more, yet supplies have run dry. Look to the populace to correct this heinous mistake…</p>
-      <div className="rounded-lg bg-red-950/40 p-4 border border-red-800/30 mb-8">
-          <p className="text-red-500 text-xs font-bold uppercase mb-1">Production Starved</p>
-          <p className="text-gray-400 text-xs">A Vessel has been starved of souls, as there aren't enough of its input caste to sustain it. Manage your supply of worshippers if you wish to grow the cult.</p>
+export const ProductionStarvedModal: React.FC<IntroModalProps> = ({ onClose }) => {
+  const [step, setStep] = useState(1);
+
+  return (
+    <BaseModal onClose={onClose} zIndex={130} containerClassName="max-w-lg w-full border-eldritch-crimson shadow-[0_0_50px_rgba(255,0,0,0.3)]" backdropClassName="bg-black/95 backdrop-blur-xl">
+      <div className="h-56 w-full bg-black overflow-hidden relative flex items-center justify-center bg-gradient-to-b from-red-950 to-black">
+         <div className="relative">
+             <AlertCircle className="h-24 w-24 text-red-500 animate-pulse" />
+             <ZapOff className="absolute -bottom-4 -right-4 h-12 w-12 text-red-300" />
+         </div>
       </div>
-      <button onClick={onClose} className="w-full flex items-center justify-center gap-2 rounded-lg bg-red-900/20 border border-red-700 py-4 font-serif font-bold uppercase tracking-widest text-red-500 hover:bg-red-900/30 transition-colors">
-        The Abyss Demands Contrition
-      </button>
-    </div>
-  </BaseModal>
-);
+      
+      {step === 1 ? (
+          <div className="p-8 text-center">
+            <h2 className="mb-2 font-serif text-3xl font-bold text-white uppercase">The Abyss Starves</h2>
+            <h3 className="mb-6 font-serif text-eldritch-crimson italic">"Net production has collapsed."</h3>
+            <p className="mb-6 text-gray-300 text-sm leading-relaxed">Your consumption has outpaced your production. A caste is being drained faster than it can be replenished. If this continues, your economy will crumble.</p>
+            <div className="rounded-lg bg-red-950/40 p-4 border border-red-800/30 mb-8">
+                <p className="text-red-500 text-xs font-bold uppercase mb-1">Warning: Net Negative</p>
+                <p className="text-gray-400 text-xs">When a resource bar glows red, it means you are losing more than you are gaining. You must act to balance the Liturgy.</p>
+            </div>
+            <button onClick={() => setStep(2)} className="w-full flex items-center justify-center gap-2 rounded-lg bg-red-900/20 border border-red-700 py-4 font-serif font-bold uppercase tracking-widest text-red-500 hover:bg-red-900/30 transition-colors">
+              How do I fix this? <ArrowRight className="h-4 w-4" />
+            </button>
+          </div>
+      ) : (
+          <div className="p-8 text-center">
+            <h2 className="mb-2 font-serif text-2xl font-bold text-white uppercase">Imprison the Gluttonous</h2>
+            <p className="mb-6 text-gray-300 text-sm leading-relaxed">You have the power to <strong>Imprison</strong> any vessel. This halts both their production and their consumption instantly.</p>
+            
+            <div className="flex justify-center mb-8">
+                <div className="flex items-center gap-2 px-6 py-3 rounded bg-red-900 border border-red-500 text-white font-bold uppercase text-sm pointer-events-none opacity-90 shadow-lg">
+                    <Lock className="h-4 w-4" /> Imprison Vessel
+                </div>
+            </div>
+
+            <p className="mb-8 text-xs text-gray-500 italic">Use this power to punish over-consumption until your lower castes have recovered their numbers.</p>
+
+            <button onClick={onClose} className="w-full flex items-center justify-center gap-2 rounded-lg bg-red-900/20 border border-red-700 py-4 font-serif font-bold uppercase tracking-widest text-red-500 hover:bg-red-900/30 transition-colors">
+              I Understand My Power
+            </button>
+          </div>
+      )}
+    </BaseModal>
+  );
+};

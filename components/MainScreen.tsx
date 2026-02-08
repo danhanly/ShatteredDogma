@@ -14,9 +14,10 @@ interface MainScreenProps {
   autoClickTrigger?: { power: number, type: WorshipperType, timestamp: number } | null;
   worshipperImages: Record<WorshipperType, string>;
   bgUrl: string;
+  onToggleAllVessels: (caste: WorshipperType, imprison: boolean) => void;
 }
 
-export const MainScreen: React.FC<MainScreenProps> = ({ gameState, onTap, autoClickTrigger, worshipperImages, bgUrl }) => {
+export const MainScreen: React.FC<MainScreenProps> = ({ gameState, onTap, autoClickTrigger, worshipperImages, bgUrl, onToggleAllVessels }) => {
   const [clickEffects, setClickEffects] = useState<ClickEffect[]>([]);
   const [zipParticles, setZipParticles] = useState<ZipParticle[]>([]);
   const [glowingStats, setGlowingStats] = useState<Record<string, boolean>>({});
@@ -139,7 +140,14 @@ export const MainScreen: React.FC<MainScreenProps> = ({ gameState, onTap, autoCl
       ))}
       {zipParticles.map(particle => <ZipParticleElement key={particle.id} particle={particle} />)}
     </div>
-    <WorshipperModal type={selectedWorshipper} count={selectedWorshipper ? gameState.worshippers[selectedWorshipper] : 0} onClose={() => setSelectedWorshipper(null)} imageUrl={selectedWorshipper ? worshipperImages[selectedWorshipper] : ''} gameState={gameState} />
+    <WorshipperModal 
+      type={selectedWorshipper} 
+      count={selectedWorshipper ? gameState.worshippers[selectedWorshipper] : 0} 
+      onClose={() => setSelectedWorshipper(null)} 
+      imageUrl={selectedWorshipper ? worshipperImages[selectedWorshipper] : ''} 
+      gameState={gameState}
+      onToggleVessels={onToggleAllVessels}
+    />
     </>
   );
 };

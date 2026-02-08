@@ -26,6 +26,7 @@ interface MenuProps {
   onPrestige: () => void;
   onPurchaseRelic: (id: RelicId) => void;
   onToggleVessel: (id: string) => void;
+  onToggleAllVessels: (caste: WorshipperType, imprison: boolean) => void;
   endOfDaysUrl: string;
   highlightVessels?: boolean;
   highlightAssistant?: boolean;
@@ -34,7 +35,7 @@ interface MenuProps {
 export const Menu: React.FC<MenuProps> = ({
   gameState, clickPower, activeTab, setActiveTab, onUpgrade, onPurchaseVessel,
   onPurchaseAssistant, onToggleAssistant, onActivateGem, setMiracleIncrement, setVesselIncrement,
-  vesselImages, assistantUrl, onPrestige, onPurchaseRelic, onToggleVessel, endOfDaysUrl,
+  vesselImages, assistantUrl, onPrestige, onPurchaseRelic, onToggleVessel, onToggleAllVessels, endOfDaysUrl,
   highlightVessels, highlightAssistant
 }) => {
   const [isMobileExpanded, setIsMobileExpanded] = useState(true);
@@ -109,6 +110,7 @@ export const Menu: React.FC<MenuProps> = ({
             increment={gameState.vesselIncrement} onSetIncrement={setVesselIncrement}
             vesselImages={vesselImages} onPurchaseVessel={onPurchaseVessel} 
             onSelectVessel={setSelectedVessel} 
+            onToggleAllVessels={onToggleAllVessels}
           />
         )}
         {activeTab === 'CULT' && <CultTab gameState={gameState} vesselsUnlocked={vesselsUnlocked} />}
@@ -118,6 +120,7 @@ export const Menu: React.FC<MenuProps> = ({
     <VesselModal 
       vessel={selectedVessel} 
       level={selectedVessel ? (gameState.vesselLevels[selectedVessel.id] || 0) : 0} 
+      gameState={gameState}
       isImprisoned={selectedVessel ? !!gameState.vesselToggles[selectedVessel.id] : false}
       onToggle={() => selectedVessel && onToggleVessel(selectedVessel.id)}
       onClose={() => setSelectedVessel(null)} 

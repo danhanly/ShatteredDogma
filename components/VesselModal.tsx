@@ -1,8 +1,8 @@
 
 import React from 'react';
-import { VesselDefinition, WorshipperType } from '../types';
-import { User, Crown, Frown, Ghost, Sword, Lock, Unlock } from 'lucide-react';
-import { calculateVesselOutput } from '../services/gameService';
+import { GameState, VesselDefinition, WorshipperType, VesselId } from '../types';
+import { User, Crown, Frown, Ghost, Sword, Lock, Unlock, Activity, Utensils } from 'lucide-react';
+import { calculateVesselOutput, calculateSingleVesselConsumption, calculateVesselEfficiency } from '../services/gameService';
 import { formatNumber } from '../utils/format';
 import { BaseModal } from './BaseModal';
 
@@ -13,6 +13,7 @@ interface VesselModalProps {
   onToggle: () => void;
   onClose: () => void;
   imageUrl?: string;
+  gameState: GameState;
 }
 
 const ICON_MAP = {
@@ -29,11 +30,18 @@ const ROMAN_NUMERALS: Record<number, string> = {
   4: 'IV'
 };
 
-export const VesselModal: React.FC<VesselModalProps> = ({ vessel, level, isImprisoned, onToggle, onClose, imageUrl }) => {
+export const VesselModal: React.FC<VesselModalProps> = ({ vessel, level, isImprisoned, onToggle, onClose, imageUrl, gameState }) => {
   if (!vessel) return null;
-  const currentOutput = calculateVesselOutput(vessel.id, level);
+  
+  const potentialOutput = calculateVesselOutput(vessel.id, level);
+  const efficiency = calculateVesselEfficiency(gameState, vessel.id as VesselId);
+  const currentOutput = Math.floor(potentialOutput * efficiency);
+  const consumption = calculateSingleVesselConsumption(gameState, vessel.id as VesselId, level);
+
   const TypeIcon = ICON_MAP[vessel.type];
   const typeColor = vessel.type === WorshipperType.WORLDLY ? 'text-green-400 border-green-900 bg-green-950' : vessel.type === WorshipperType.ZEALOUS ? 'text-red-500 border-red-900 bg-red-950' : vessel.type === WorshipperType.INDOLENT ? 'text-blue-400 border-blue-900 bg-blue-950' : 'text-gray-400 border-gray-700 bg-gray-900';
+
+  const canImprison = !vessel.isGenerator;
 
   return (
     <BaseModal onClose={onClose} showCloseButton={true} zIndex={60} containerClassName={`max-w-md w-full ${typeColor.split(' ')[1]}`}>
@@ -58,15 +66,37 @@ export const VesselModal: React.FC<VesselModalProps> = ({ vessel, level, isImpri
                   <div className="text-[10px] uppercase text-gray-500">Operation Status</div>
                   <div className={`font-serif text-lg font-bold ${isImprisoned ? 'text-red-500' : 'text-green-500'}`}>{isImprisoned ? 'Imprisoned' : 'Active'}</div>
               </div>
-              <button 
-                onClick={onToggle}
-                className={`flex items-center gap-2 px-4 py-2 rounded font-bold uppercase text-xs transition-colors ${isImprisoned ? 'bg-green-600 text-white' : 'bg-red-600 text-white'}`}
-              >
-                {isImprisoned ? <><Unlock className="h-4 w-4" /> Release</> : <><Lock className="h-4 w-4" /> Imprison</>}
-              </button>
+              {canImprison && (
+                <button 
+                  onClick={onToggle}
+                  className={`flex items-center gap-2 px-4 py-2 rounded font-bold uppercase text-xs transition-colors ${isImprisoned ? 'bg-green-600 text-white' : 'bg-red-600 text-white'}`}
+                >
+                  {isImprisoned ? <><Unlock className="h-4 w-4" /> Release</> : <><Lock className="h-4 w-4" /> Imprison</>}
+                </button>
+              )}
           </div>
+
+          <div className="grid grid-cols-2 gap-3 mb-6">
+              <div className="flex flex-col p-3 rounded bg-black/30 border border-green-900/30">
+                  <div className="flex items-center gap-2 text-green-400 mb-1">
+                      <Activity className="h-4 w-4" />
+                      <span className="text-[10px] uppercase font-bold">Production</span>
+                  </div>
+                  <span className="font-mono text-lg font-bold text-green-300">+{formatNumber(currentOutput)}</span>
+              </div>
+              {consumption && consumption.amount > 0 && (
+                <div className="flex flex-col p-3 rounded bg-black/30 border border-red-900/30">
+                    <div className="flex items-center gap-2 text-red-400 mb-1">
+                        <Utensils className="h-4 w-4" />
+                        <span className="text-[10px] uppercase font-bold">Consumption</span>
+                    </div>
+                    <span className="font-mono text-lg font-bold text-red-300">-{formatNumber(consumption.amount)}</span>
+                </div>
+              )}
+          </div>
+
           <div className="space-y-4 text-gray-300 font-sans leading-relaxed text-sm mb-4"><p>{vessel.lore}</p></div>
-          <div className="text-xs text-gray-500">Imprisoning a vessel halts both its production and its consumption of lower castes. Use this to stabilize your cult's foundation.</div>
+          {canImprison && <div className="text-xs text-gray-500">Imprisoning a vessel halts both its production and its consumption of lower castes. Use this to stabilize your cult's foundation.</div>}
       </div>
     </BaseModal>
   );

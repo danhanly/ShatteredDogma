@@ -1,13 +1,12 @@
 
 import React from 'react';
 import { GameState, WorshipperType, RelicId, GemType, VesselId } from '../types';
-// Fixed: Removed missing CONSUMPTION_RATES and added CONSUMPTION_RATES_PER_LVL
 import { WORSHIPPER_DETAILS, VESSEL_DEFINITIONS, CONSUMPTION_RATES_PER_LVL } from '../constants';
-import { Activity, Utensils, ZapOff, Factory, TrendingUp, TrendingDown } from 'lucide-react';
+import { Activity, Utensils, ZapOff, Factory, TrendingUp, TrendingDown, Lock, Unlock } from 'lucide-react';
 import { formatNumber } from '../utils/format';
-// Fixed: Added calculateVesselEfficiency to imports
 import { calculateProductionByType, calculateConsumptionByType, calculateVesselOutput, calculateVesselEfficiency } from '../services/gameService';
 import { BaseModal } from './BaseModal';
+import { useGame } from '../hooks/useGame';
 
 interface WorshipperModalProps {
   type: WorshipperType | null;
@@ -15,9 +14,10 @@ interface WorshipperModalProps {
   onClose: () => void;
   imageUrl: string;
   gameState: GameState;
+  onToggleVessels?: (caste: WorshipperType, imprison: boolean) => void;
 }
 
-export const WorshipperModal: React.FC<WorshipperModalProps> = ({ type, count, onClose, imageUrl, gameState }) => {
+export const WorshipperModal: React.FC<WorshipperModalProps> = ({ type, count, onClose, imageUrl, gameState, onToggleVessels }) => {
   if (!type) return null;
   const details = WORSHIPPER_DETAILS[type];
   const typeColor = type === WorshipperType.WORLDLY ? 'text-green-400 border-green-900' : type === WorshipperType.ZEALOUS ? 'text-red-500 border-red-900' : type === WorshipperType.INDOLENT ? 'text-blue-400 border-blue-900' : 'text-gray-400 border-gray-700';
@@ -29,10 +29,10 @@ export const WorshipperModal: React.FC<WorshipperModalProps> = ({ type, count, o
   const hasAnyVessel = Object.values(gameState.vesselLevels).some(lvl => (lvl as number) > 0);
   const isPaused = gameState.isPaused[type] && hasAnyVessel;
 
-  // Fixed: Replaced incorrect CONSUMPTION_RATES logic with an aggregation of consumption by vessel type
-  const consumers: { type: WorshipperType, rate: number }[] = [];
+  // Breakdown consumption by caste type
+  const consumers: { type: WorshipperType, rate: number, vessels: string[], hasActive: boolean }[] = [];
   const consumptionReduction = (gameState.relics[RelicId.GLUTTONY] || 0) * 0.05;
-  const consumerAggregator: Partial<Record<WorshipperType, number>> = {};
+  const consumerAggregator: Partial<Record<WorshipperType, { rate: number, vessels: string[], hasActive: boolean }>> = {};
 
   const gemForCaste = (c: WorshipperType) => {
     if (c === WorshipperType.INDOLENT) return GemType.LAPIS;
@@ -44,26 +44,33 @@ export const WorshipperModal: React.FC<WorshipperModalProps> = ({ type, count, o
 
   VESSEL_DEFINITIONS.forEach(def => {
     const level = gameState.vesselLevels[def.id] || 0;
-    if (level > 0 && !gameState.vesselToggles[def.id]) {
-      const requirements = CONSUMPTION_RATES_PER_LVL[def.id as VesselId];
-      if (requirements && requirements[type]) {
-        const efficiency = calculateVesselEfficiency(gameState, def.id as VesselId);
-        
-        let currentReduction = consumptionReduction;
-        if (gameState.activeGem && gemForCaste(def.type) === gameState.activeGem) {
-          currentReduction = Math.min(1.0, currentReduction + 0.5);
-        }
-
-        const rate = Math.floor(requirements[type]! * level * efficiency * (1 - currentReduction));
-        if (rate > 0) {
-          consumerAggregator[def.type] = (consumerAggregator[def.type] || 0) + rate;
-        }
+    const requirements = CONSUMPTION_RATES_PER_LVL[def.id as VesselId];
+    
+    // Check if this vessel consumes THIS type
+    if (level > 0 && requirements && requirements[type]) {
+      const isImprisoned = gameState.vesselToggles[def.id];
+      const efficiency = calculateVesselEfficiency(gameState, def.id as VesselId);
+      
+      let currentReduction = consumptionReduction;
+      if (gameState.activeGem && gemForCaste(def.type) === gameState.activeGem) {
+        currentReduction = Math.min(1.0, currentReduction + 0.5);
       }
+      
+      const rate = !isImprisoned ? Math.floor(requirements[type]! * level * efficiency * (1 - currentReduction)) : 0;
+      
+      if (!consumerAggregator[def.type]) {
+          consumerAggregator[def.type] = { rate: 0, vessels: [], hasActive: false };
+      }
+      
+      const agg = consumerAggregator[def.type]!;
+      agg.vessels.push(def.id);
+      if (rate > 0) agg.rate += rate;
+      if (!isImprisoned) agg.hasActive = true;
     }
   });
 
-  Object.entries(consumerAggregator).forEach(([cType, rate]) => {
-    consumers.push({ type: cType as WorshipperType, rate: rate! });
+  Object.entries(consumerAggregator).forEach(([cType, data]) => {
+    consumers.push({ type: cType as WorshipperType, rate: data!.rate, vessels: data!.vessels, hasActive: data!.hasActive });
   });
 
   // Find production sources for THIS type
@@ -145,7 +152,7 @@ export const WorshipperModal: React.FC<WorshipperModalProps> = ({ type, count, o
           )}
 
           {/* Consumption Box */}
-          {consumptionRate > 0 && (
+          {hasAnyVessel && consumers.length > 0 && (
             <div className="mb-6 rounded-lg bg-red-950/20 p-4 border border-red-900/30">
                 <div className="flex items-center gap-2 mb-2 text-red-400">
                     <Utensils className="h-4 w-4" />
@@ -155,16 +162,24 @@ export const WorshipperModal: React.FC<WorshipperModalProps> = ({ type, count, o
                     <span className="text-sm text-gray-400">Total Lost:</span>
                     <span className="font-mono text-red-400 font-bold">-{formatNumber(consumptionRate)}/s</span>
                 </div>
-                <div className="space-y-1">
+                <div className="space-y-2">
                     <p className="text-[10px] text-gray-500 uppercase mb-1">Consumed By:</p>
-                    {consumers.length > 0 ? consumers.map(c => (
-                        <div key={c.type} className="flex justify-between text-xs">
-                            <span className="text-gray-300">{c.type}:</span>
-                            <span className="text-red-400/70 font-mono">-{formatNumber(c.rate)}/s</span>
+                    {consumers.map(c => (
+                        <div key={c.type} className="flex items-center justify-between text-xs bg-black/20 p-2 rounded">
+                            <div className="flex flex-col">
+                                <span className="text-gray-300 font-bold">{c.type} Caste</span>
+                                <span className="text-red-400/70 font-mono">-{formatNumber(c.rate)}/s</span>
+                            </div>
+                            {onToggleVessels && (
+                                <button 
+                                    onClick={() => onToggleVessels(c.type, c.hasActive)}
+                                    className={`px-2 py-1 rounded text-[10px] uppercase font-bold border transition-colors ${c.hasActive ? 'border-red-500 text-red-400 hover:bg-red-900/50' : 'border-green-500 text-green-400 hover:bg-green-900/50'}`}
+                                >
+                                    {c.hasActive ? <><Lock className="h-3 w-3 inline mr-1"/> Lock</> : <><Unlock className="h-3 w-3 inline mr-1"/> Unlock</>}
+                                </button>
+                            )}
                         </div>
-                    )) : (
-                        <p className="text-xs text-gray-600 italic">No higher castes feeding on these souls yet.</p>
-                    )}
+                    ))}
                 </div>
             </div>
           )}

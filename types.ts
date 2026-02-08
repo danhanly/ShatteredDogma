@@ -45,14 +45,6 @@ export interface RelicDefinition {
   baseCost: number;
 }
 
-export interface RelicDefinition {
-  id: RelicId;
-  name: string;
-  description: string;
-  maxLevel: number;
-  baseCost: number;
-}
-
 export interface VesselDefinition {
   id: VesselId;
   name: string;
@@ -94,6 +86,7 @@ export interface GameState {
   hasSeenWorldlyModal: boolean;
   hasSeenZealousModal: boolean;
   hasSeenPausedModal: boolean;
+  hasSeenNetNegative: boolean; // New flag for net negative tutorial
   hasAcknowledgedPausedModal: boolean;
   hasSeenAssistantIntro: boolean;
 
