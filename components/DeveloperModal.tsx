@@ -187,12 +187,11 @@ export const DeveloperModal: React.FC<DeveloperModalProps> = ({
 
                 <section>
                   <h2 className="text-lg font-serif text-white border-b border-white/10 pb-1 mb-2 uppercase">IV. Ascension (Prestige)</h2>
-                  {/* Fix: Clarified label to avoid confusing parser issues with $...$ notation in TSX strings and removed the unreferenced 'eye' variable */}
-                  <p className="mb-2">Harvesting <strong>Souls</strong> based on Zealous worshippers and Eye of the Abyss bonus (L_harvest):</p>
+                  <p className="mb-2">Harvesting <strong>Souls</strong> based on Zealous Production rate and Eye of the Abyss bonus (L_harvest):</p>
                   <div className="bg-black/40 p-3 rounded border border-indigo-500/20">
-                    {/* Fix: Changed L_{eye} to L_{\text{harvest}} as 'eye' was causing an undefined variable error in some build contexts */}
-                    <MathDisplay block tex="Souls = \lfloor \sqrt{\text{CurrentZealous}} \times (1 + L_{\text{harvest}} \times 0.05) \rfloor" />
+                    <MathDisplay block tex="Souls = \lfloor \text{Zealous}/s \times (1 + L_{\text{harvest}} \times 0.05) \rfloor" />
                   </div>
+                  <p className="mt-2 text-xs text-green-400">First Ascension grants a bonus of +9 Souls.</p>
                 </section>
 
                 <section className="bg-indigo-950/20 p-4 rounded-lg border border-indigo-500/30">

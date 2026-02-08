@@ -1,3 +1,4 @@
+
 import { COST_MULTIPLIER, INITIAL_UPGRADE_COST, VESSEL_DEFINITIONS } from "../constants";
 import { GameState, WorshipperType, RelicId, GemType, IncrementType, VesselId, FateId, WORSHIPPER_ORDER } from "../types";
 
@@ -400,8 +401,20 @@ export const calculateNetIncomeByType = (state: GameState): Record<WorshipperTyp
 };
 
 export const calculateSoulsEarned = (state: GameState): number => {
-  const currentZealous = state.worshippers[WorshipperType.ZEALOUS] || 0;
-  const baseSouls = Math.sqrt(currentZealous);
+  // New Formula: Based on Zealous Production Rate (1 Zealous/s = 1 Soul)
+  const production = calculateProductionByType(state);
+  const zealousProd = production[WorshipperType.ZEALOUS] || 0;
+  
+  let baseSouls = Math.floor(zealousProd);
+
+  // Bonus for First Prestige (Unlock)
+  // We check if the player has ever prestiged by looking for existing Souls, Relics, or Fates.
+  const hasPrestiged = state.souls > 0 || Object.values(state.relics).some(lvl => lvl > 0) || state.fatePurchases > 0;
+  
+  if (!hasPrestiged) {
+    baseSouls += 9;
+  }
+
   const eyeLvl = state.relics[RelicId.SOUL_HARVESTER] || 0;
   const bonus = 1 + (eyeLvl * 0.05);
   return Math.floor(baseSouls * bonus);
