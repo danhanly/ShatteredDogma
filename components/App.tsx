@@ -1,5 +1,4 @@
 
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useGame } from './hooks/useGame';
 import { Header } from './components/Header';
@@ -12,7 +11,7 @@ import { VesselUnlockModal } from './components/VesselUnlockModal';
 import { EodUnlockModal } from './components/EodUnlockModal';
 import { MiracleIntroModal } from './components/MiracleIntroModal';
 import { IntroduceAssistantModal } from './components/IntroduceAssistantModal';
-import { LowlyModal, WorldlyModal, ZealousModal, ProductionPausedModal } from './components/IntroductionModals';
+import { LowlyModal, WorldlyModal, ZealousModal, ProductionStarvedModal } from './components/IntroductionModals';
 import { WorshipperType, GemType } from './types';
 import { VESSEL_DEFINITIONS, PRESTIGE_UNLOCK_THRESHOLD, GEM_DEFINITIONS } from './constants';
 
@@ -27,6 +26,11 @@ const App: React.FC = () => {
     purchaseUpgrade, 
     purchaseVessel,
     purchaseAssistant,
+    toggleAssistant,
+    purchaseRelic,
+    toggleVessel,
+    setMiracleIncrement,
+    setVesselIncrement,
     toggleSound,
     toggleMusic,
     setMusicVolume,
@@ -42,6 +46,7 @@ const App: React.FC = () => {
 
   const [activeTab, setActiveTab] = useState<'MIRACLES' | 'VESSELS' | 'CULT' | 'END_TIMES'>('MIRACLES');
   const [highlightVessels, setHighlightVessels] = useState(false);
+  const [highlightAssistant, setHighlightAssistant] = useState(false);
   const [worshipperImages, setWorshipperImages] = useState<Record<WorshipperType, string>>({
     [WorshipperType.INDOLENT]: "",
     [WorshipperType.LOWLY]: "",
@@ -193,10 +198,12 @@ const App: React.FC = () => {
 
   const showMiracleIntro = gameState.hasSeenStartSplash && gameState.totalAccruedWorshippers > 0 && !gameState.hasSeenMiracleIntro;
   const showVesselIntro = gameState.maxWorshippersByType[WorshipperType.INDOLENT] >= 100 && !gameState.hasSeenVesselIntro;
-  const showEodIntro = gameState.maxTotalWorshippers >= PRESTIGE_UNLOCK_THRESHOLD && !gameState.hasSeenEodIntro;
+  
+  // Technical Fix: Trigger End Times Modal specifically based on 1 Zealous Worshipper
+  const showEodIntro = gameState.maxWorshippersByType[WorshipperType.ZEALOUS] >= PRESTIGE_UNLOCK_THRESHOLD && !gameState.hasSeenEodIntro;
 
-  // Assistant Trigger Logic
-  const assistantUnlocked = gameState.totalClicks >= 100 && (gameState.vesselLevels['WORLDLY_1'] || 0) > 0;
+  // Revised Assistant Trigger Logic: 1000 Indolent Worshippers
+  const assistantUnlocked = gameState.maxWorshippersByType[WorshipperType.INDOLENT] >= 1000;
   const showAssistantIntro = assistantUnlocked && !gameState.hasSeenAssistantIntro;
 
   const hasLowlyVessel = (gameState.vesselLevels['LOWLY_1'] || 0) > 0;
@@ -207,7 +214,7 @@ const App: React.FC = () => {
   const showWorldlyModal = hasWorldlyVessel && !gameState.hasSeenWorldlyModal;
   const showZealousModal = hasZealousVessel && !gameState.hasSeenZealousModal;
 
-  const canShowPausedModal = gameState.hasSeenPausedModal && !gameState.hasAcknowledgedPausedModal && !gameState.hasSeenStartSplash;
+  const canShowStarvedModal = gameState.hasSeenPausedModal && !gameState.hasAcknowledgedPausedModal && gameState.hasSeenStartSplash;
 
   return (
     <div className="flex h-[100dvh] w-screen flex-col overflow-hidden bg-black text-gray-200">
@@ -234,7 +241,12 @@ const App: React.FC = () => {
       {showAssistantIntro && (
         <IntroduceAssistantModal 
           imageUrl={assistantUrl} 
-          onClose={() => setFlag('hasSeenAssistantIntro', true)} 
+          onClose={() => {
+            setFlag('hasSeenAssistantIntro', true);
+            setActiveTab('MIRACLES');
+            setHighlightAssistant(true);
+            setTimeout(() => setHighlightAssistant(false), 3000);
+          }} 
         />
       )}
 
@@ -247,8 +259,8 @@ const App: React.FC = () => {
       {showWorldlyModal && <WorldlyModal imageUrl={vesselImages['WORLDLY_1']} onClose={() => setFlag('hasSeenWorldlyModal', true)} />}
       {showZealousModal && <ZealousModal imageUrl={vesselImages['ZEALOUS_1']} onClose={() => setFlag('hasSeenZealousModal', true)} />}
       
-      {canShowPausedModal && (
-          <ProductionPausedModal onClose={() => {
+      {canShowStarvedModal && (
+          <ProductionStarvedModal onClose={() => {
               setFlag('hasAcknowledgedPausedModal', true); 
           }} />
       )}
@@ -290,12 +302,18 @@ const App: React.FC = () => {
           onUpgrade={purchaseUpgrade}
           onPurchaseVessel={purchaseVessel}
           onPurchaseAssistant={purchaseAssistant}
+          onToggleAssistant={toggleAssistant}
           onActivateGem={activateGem}
+          setMiracleIncrement={setMiracleIncrement}
+          setVesselIncrement={setVesselIncrement}
           vesselImages={vesselImages}
           assistantUrl={assistantUrl}
           onPrestige={triggerPrestige}
+          onPurchaseRelic={purchaseRelic}
+          onToggleVessel={toggleVessel}
           endOfDaysUrl={endOfDaysUrl}
           highlightVessels={highlightVessels}
+          highlightAssistant={highlightAssistant}
         />
       </main>
 

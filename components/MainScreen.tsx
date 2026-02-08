@@ -25,11 +25,25 @@ export const MainScreen: React.FC<MainScreenProps> = ({ gameState, onTap, autoCl
   const orbRef = useRef<HTMLDivElement>(null);
   const statBoxRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
+  const getTypeColorClass = (type: WorshipperType) => {
+    switch(type) {
+      case WorshipperType.INDOLENT: return 'text-blue-400';
+      case WorshipperType.LOWLY: return 'text-gray-400';
+      case WorshipperType.WORLDLY: return 'text-green-500';
+      case WorshipperType.ZEALOUS: return 'text-red-500';
+      default: return 'text-eldritch-gold';
+    }
+  };
+
   const triggerVisuals = (x: number, y: number, power: number, type: WorshipperType) => {
     if (!containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
     
-    setClickEffects(prev => [...prev, { id: Date.now() + Math.random(), x, y, value: power }]);
+    const effectId = performance.now() + Math.random();
+    setClickEffects(prev => [...prev, { id: effectId, x, y, value: power, type }]);
+    setTimeout(() => {
+      setClickEffects(prev => prev.filter(e => e.id !== effectId));
+    }, 1000);
     
     const targetBox = statBoxRefs.current[type];
     if (targetBox) {
@@ -45,13 +59,13 @@ export const MainScreen: React.FC<MainScreenProps> = ({ gameState, onTap, autoCl
         setGlowingStats(prev => ({ ...prev, [type]: true }));
         setTimeout(() => setGlowingStats(prev => ({ ...prev, [type]: false })), 200);
 
-        const newParticle: ZipParticle = { id: Date.now() + Math.random(), startX: x, startY: y, endX, endY, color: particleColor };
+        const newParticle: ZipParticle = { id: effectId, startX: x, startY: y, endX, endY, color: particleColor };
         setZipParticles(prev => [...prev, newParticle]);
         setTimeout(() => setZipParticles(prev => prev.filter(p => p.id !== newParticle.id)), 800);
     }
 
     if (orbRef.current) {
-        orbRef.current.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.1)' }, { transform: 'scale(1)' }], { duration: 150, easing: 'ease-out' });
+        orbRef.current.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.15)' }, { transform: 'scale(1)' }], { duration: 150, easing: 'ease-out' });
     }
   };
 
@@ -70,11 +84,15 @@ export const MainScreen: React.FC<MainScreenProps> = ({ gameState, onTap, autoCl
         const rect = containerRef.current.getBoundingClientRect();
         const orbRect = orbRef.current.getBoundingClientRect();
         
-        // Random point within the orb area
-        const x = (orbRect.left - rect.left) + Math.random() * orbRect.width;
-        const y = (orbRect.top - rect.top) + Math.random() * orbRect.height;
+        // Find exact center of orb relative to container
+        const centerX = (orbRect.left - rect.left) + orbRect.width / 2;
+        const centerY = (orbRect.top - rect.top) + orbRect.height / 2;
         
-        triggerVisuals(x, y, autoClickTrigger.power, autoClickTrigger.type);
+        // Add slight jitter for more organic feel
+        const offsetX = (Math.random() - 0.5) * 60;
+        const offsetY = (Math.random() - 0.5) * 60;
+        
+        triggerVisuals(centerX + offsetX, centerY + offsetY, autoClickTrigger.power, autoClickTrigger.type);
     }
   }, [autoClickTrigger]);
 
@@ -114,8 +132,8 @@ export const MainScreen: React.FC<MainScreenProps> = ({ gameState, onTap, autoCl
         </div>
       </div>
       <div className="pointer-events-none relative z-10 text-center opacity-40"><p className="font-serif text-xs italic text-white sm:text-sm">Tap empty space to perform Miracles</p></div>
-      {clickEffects.map(effect => (
-        <div key={effect.id} className="pointer-events-none absolute z-20 animate-fade-out-up font-serif text-2xl font-bold text-red-500" style={{ left: effect.x, top: effect.y, textShadow: '0 0 10px rgba(255,0,0,0.8)' }}>
+      {clickEffects.map((effect) => (
+        <div key={effect.id} className={`pointer-events-none absolute z-20 animate-fade-out-up font-serif text-2xl font-bold ${getTypeColorClass(effect.type)}`} style={{ left: effect.x, top: effect.y, textShadow: '0 0 10px rgba(0,0,0,0.8)' }}>
           +{formatNumber(effect.value)}
         </div>
       ))}

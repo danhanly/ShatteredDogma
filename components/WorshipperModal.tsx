@@ -1,10 +1,12 @@
 
 import React from 'react';
-import { GameState, WorshipperType } from '../types';
-import { WORSHIPPER_DETAILS, CONSUMPTION_RATES, VESSEL_DEFINITIONS } from '../constants';
+import { GameState, WorshipperType, RelicId, GemType, VesselId } from '../types';
+// Fixed: Removed missing CONSUMPTION_RATES and added CONSUMPTION_RATES_PER_LVL
+import { WORSHIPPER_DETAILS, VESSEL_DEFINITIONS, CONSUMPTION_RATES_PER_LVL } from '../constants';
 import { Activity, Utensils, ZapOff, Factory, TrendingUp, TrendingDown } from 'lucide-react';
 import { formatNumber } from '../utils/format';
-import { calculateProductionByType, calculateConsumptionByType, calculateVesselOutput } from '../services/gameService';
+// Fixed: Added calculateVesselEfficiency to imports
+import { calculateProductionByType, calculateConsumptionByType, calculateVesselOutput, calculateVesselEfficiency } from '../services/gameService';
 import { BaseModal } from './BaseModal';
 
 interface WorshipperModalProps {
@@ -20,25 +22,48 @@ export const WorshipperModal: React.FC<WorshipperModalProps> = ({ type, count, o
   const details = WORSHIPPER_DETAILS[type];
   const typeColor = type === WorshipperType.WORLDLY ? 'text-green-400 border-green-900' : type === WorshipperType.ZEALOUS ? 'text-red-500 border-red-900' : type === WorshipperType.INDOLENT ? 'text-blue-400 border-blue-900' : 'text-gray-400 border-gray-700';
   
-  const productionRate = calculateProductionByType(gameState.vesselLevels, gameState.isPaused)[type];
-  const consumptionRate = calculateConsumptionByType(gameState.vesselLevels, gameState.isPaused)[type];
+  const productionRate = calculateProductionByType(gameState)[type];
+  const consumptionRate = calculateConsumptionByType(gameState)[type];
   const netRate = productionRate - consumptionRate;
   
   const hasAnyVessel = Object.values(gameState.vesselLevels).some(lvl => (lvl as number) > 0);
   const isPaused = gameState.isPaused[type] && hasAnyVessel;
 
-  const hasRecruitedType = (vType: WorshipperType) => 
-    VESSEL_DEFINITIONS.some(vd => vd.type === vType && (gameState.vesselLevels[vd.id] || 0) > 0);
-
-  // Find who consumes THIS type
+  // Fixed: Replaced incorrect CONSUMPTION_RATES logic with an aggregation of consumption by vessel type
   const consumers: { type: WorshipperType, rate: number }[] = [];
-  const prodByType = calculateProductionByType(gameState.vesselLevels, gameState.isPaused);
-  (Object.keys(CONSUMPTION_RATES) as WorshipperType[]).forEach(consumerType => {
-      const rates = CONSUMPTION_RATES[consumerType];
-      if (rates[type] && hasRecruitedType(consumerType)) {
-          const productionOfCaste = prodByType[consumerType];
-          consumers.push({ type: consumerType, rate: (rates[type] || 0) * productionOfCaste });
+  const consumptionReduction = (gameState.relics[RelicId.GLUTTONY] || 0) * 0.05;
+  const consumerAggregator: Partial<Record<WorshipperType, number>> = {};
+
+  const gemForCaste = (c: WorshipperType) => {
+    if (c === WorshipperType.INDOLENT) return GemType.LAPIS;
+    if (c === WorshipperType.LOWLY) return GemType.QUARTZ;
+    if (c === WorshipperType.WORLDLY) return GemType.EMERALD;
+    if (c === WorshipperType.ZEALOUS) return GemType.RUBY;
+    return null;
+  };
+
+  VESSEL_DEFINITIONS.forEach(def => {
+    const level = gameState.vesselLevels[def.id] || 0;
+    if (level > 0 && !gameState.vesselToggles[def.id]) {
+      const requirements = CONSUMPTION_RATES_PER_LVL[def.id as VesselId];
+      if (requirements && requirements[type]) {
+        const efficiency = calculateVesselEfficiency(gameState, def.id as VesselId);
+        
+        let currentReduction = consumptionReduction;
+        if (gameState.activeGem && gemForCaste(def.type) === gameState.activeGem) {
+          currentReduction = Math.min(1.0, currentReduction + 0.5);
+        }
+
+        const rate = Math.floor(requirements[type]! * level * efficiency * (1 - currentReduction));
+        if (rate > 0) {
+          consumerAggregator[def.type] = (consumerAggregator[def.type] || 0) + rate;
+        }
       }
+    }
+  });
+
+  Object.entries(consumerAggregator).forEach(([cType, rate]) => {
+    consumers.push({ type: cType as WorshipperType, rate: rate! });
   });
 
   // Find production sources for THIS type
@@ -46,10 +71,11 @@ export const WorshipperModal: React.FC<WorshipperModalProps> = ({ type, count, o
   VESSEL_DEFINITIONS.forEach(vessel => {
     if (vessel.type === type) {
       const level = gameState.vesselLevels[vessel.id] || 0;
-      if (level > 0 && !gameState.isPaused[type]) {
+      if (level > 0 && !gameState.vesselToggles[vessel.id]) {
+        const efficiency = calculateVesselEfficiency(gameState, vessel.id as VesselId);
         productionSources.push({
           name: vessel.name,
-          rate: calculateVesselOutput(vessel.id, level)
+          rate: Math.floor(calculateVesselOutput(vessel.id, level) * efficiency)
         });
       }
     }

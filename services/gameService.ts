@@ -1,163 +1,252 @@
 
-import { COST_MULTIPLIER, INITIAL_UPGRADE_COST, VESSEL_DEFINITIONS, PRESTIGE_UNLOCK_THRESHOLD, CONSUMPTION_RATES } from "../constants";
-import { GameState, WorshipperType, WORSHIPPER_ORDER } from "../types";
+import { COST_MULTIPLIER, INITIAL_UPGRADE_COST, VESSEL_DEFINITIONS, CONSUMPTION_RATES_PER_LVL } from "../constants";
+import { GameState, WorshipperType, RelicId, GemType, IncrementType, VesselId } from "../types";
 
-/**
- * Calculates the cost of the next miracle upgrade.
- * Doubled every 10th level.
- */
 export const calculateUpgradeCost = (currentLevel: number): number => {
-  let cost = Math.floor(INITIAL_UPGRADE_COST * Math.pow(COST_MULTIPLIER, currentLevel - 1));
-  // Every 10 levels, the cost of that level's upgrade is doubled
-  if (currentLevel % 10 === 0) {
-    cost *= 2;
+  return Math.floor(INITIAL_UPGRADE_COST * Math.pow(COST_MULTIPLIER, currentLevel));
+};
+
+export const calculateBulkUpgrade = (currentLevel: number, increment: IncrementType, state: GameState) => {
+  let count = 0;
+  let totalCost = 0;
+  let tempLevel = currentLevel;
+  
+  if (increment === 'MAX') {
+    while (true) {
+      const cost = calculateUpgradeCost(tempLevel);
+      if (state.worshippers[WorshipperType.INDOLENT] < totalCost + cost) break;
+      totalCost += cost;
+      tempLevel++;
+      count++;
+      if (count >= 1000) break;
+    }
+  } else {
+    const inc = increment as number;
+    let targetCount = inc - (currentLevel % inc);
+    if (currentLevel % inc === 0) targetCount = inc;
+
+    for (let i = 0; i < targetCount; i++) {
+      totalCost += calculateUpgradeCost(tempLevel + i);
+    }
+    count = targetCount;
   }
-  return cost;
+
+  return { count, cost: totalCost };
 };
 
-/**
- * Calculates the production power (worshippers per click).
- * WPC = (CurrentLevel * 2^(floor(L/10)))
- * Removed Soul multiplier.
- * Guardrail ensures minimum return of 1.
- */
 export const calculateClickPower = (currentLevel: number): number => {
-  // Ensure valid level input, defaulting to 1 if missing or invalid
-  const level = (typeof currentLevel === 'number' && !isNaN(currentLevel)) ? Math.max(1, currentLevel) : 1;
-  const bonusMultiplier = Math.pow(2, Math.floor(level / 10));
-  const power = Math.floor(level * bonusMultiplier);
-  return Math.max(1, power);
+  return 10 + (currentLevel * 5);
 };
 
-/**
- * Determines which worshipper type is attracted.
- * Spec update: Dark Miracles only attract Indolent.
- */
 export const rollWorshipperType = (): WorshipperType => {
   return WorshipperType.INDOLENT; 
 };
 
-export const canAffordUpgrade = (state: GameState): boolean => {
-  const cost = calculateUpgradeCost(state.miracleLevel);
-  const availableTotal = WORSHIPPER_ORDER.reduce((sum, t) => sum + state.worshippers[t], 0);
-  return availableTotal >= cost;
+export const calculateVesselEfficiency = (state: GameState, vesselId: VesselId): number => {
+  const requirements = CONSUMPTION_RATES_PER_LVL[vesselId];
+  if (!requirements || Object.keys(requirements).length === 0) return 1.0;
+
+  const lvl = state.vesselLevels[vesselId] || 0;
+  if (lvl === 0 || state.vesselToggles[vesselId]) return 0;
+
+  const relicGluttonyLvl = state.relics[RelicId.GLUTTONY] || 0;
+  const consumptionReduction = relicGluttonyLvl * 0.05;
+
+  let minEfficiency = 1.0;
+
+  Object.entries(requirements).forEach(([resType, baseRate]) => {
+    const type = resType as WorshipperType;
+    let required = Math.floor(baseRate! * lvl * (1 - consumptionReduction));
+    
+    if (state.activeGem && getGemForCaste(state.vesselLevels[vesselId] ? VESSEL_DEFINITIONS.find(v => v.id === vesselId)!.type : null) === state.activeGem) {
+        required = Math.floor(required * 0.5);
+    }
+
+    if (required === 0) return;
+
+    const available = state.worshippers[type] || 0;
+    const eff = Math.floor(Math.min(1.0, available / required) * 100) / 100;
+    if (eff < minEfficiency) minEfficiency = eff;
+  });
+
+  return minEfficiency;
 };
 
-export const deductWorshippers = (state: GameState, amount: number): Record<WorshipperType, number> => {
-  const newWorshippers = { ...state.worshippers };
-  let remainingCost = amount;
+const getGemForCaste = (caste: WorshipperType | null): GemType | null => {
+  if (caste === WorshipperType.INDOLENT) return GemType.LAPIS;
+  if (caste === WorshipperType.LOWLY) return GemType.QUARTZ;
+  if (caste === WorshipperType.WORLDLY) return GemType.EMERALD;
+  if (caste === WorshipperType.ZEALOUS) return GemType.RUBY;
+  return null;
+};
+
+const getVesselMultiplier = (vesselId: string): number => {
+  const multipliers: Record<string, number> = {
+    [VesselId.INDOLENT_1]: 1.15, [VesselId.LOWLY_1]: 1.20, [VesselId.WORLDLY_1]: 1.22, [VesselId.ZEALOUS_1]: 1.25,
+    [VesselId.INDOLENT_2]: 1.18, [VesselId.LOWLY_2]: 1.22, [VesselId.WORLDLY_2]: 1.24, [VesselId.ZEALOUS_2]: 1.28,
+    [VesselId.INDOLENT_3]: 1.18, [VesselId.LOWLY_3]: 1.22, [VesselId.WORLDLY_3]: 1.25, [VesselId.ZEALOUS_3]: 1.30,
+    [VesselId.INDOLENT_4]: 1.15, [VesselId.LOWLY_4]: 1.20, [VesselId.WORLDLY_4]: 1.22, [VesselId.ZEALOUS_4]: 1.25,
+  };
+  return multipliers[vesselId] || 1.2;
+};
+
+export const getVesselCostInfo = (vesselId: string, level: number): { amount: number, type: WorshipperType } => {
+  const def = VESSEL_DEFINITIONS.find(v => v.id === vesselId);
+  if (!def) return { amount: 0, type: WorshipperType.INDOLENT };
+
+  if (level === 0) {
+    if (vesselId === VesselId.LOWLY_1) return { amount: 1000, type: WorshipperType.INDOLENT };
+    if (vesselId === VesselId.WORLDLY_1) return { amount: 1000, type: WorshipperType.LOWLY };
+    if (vesselId === VesselId.ZEALOUS_1) return { amount: 1000, type: WorshipperType.WORLDLY };
+  }
+
+  const multiplier = getVesselMultiplier(vesselId);
+  return { 
+    amount: Math.floor(def.baseCost * Math.pow(multiplier, level)), 
+    type: def.type 
+  };
+};
+
+export const calculateVesselCost = (vesselId: string, currentLevel: number): number => {
+  return getVesselCostInfo(vesselId, currentLevel).amount;
+};
+
+export const calculateBulkVesselBuy = (vesselId: string, currentLevel: number, increment: IncrementType, state: GameState) => {
+  let count = 0;
+  let totalCost = 0;
+  let tempLevel = currentLevel;
   
-  for (const type of WORSHIPPER_ORDER) {
-    if (remainingCost <= 0) break;
-    const count = newWorshippers[type];
-    if (count > 0) {
-      const amountToTake = Math.min(count, remainingCost);
-      newWorshippers[type] -= amountToTake;
-      remainingCost -= amountToTake;
+  const { type: initialCostType } = getVesselCostInfo(vesselId, tempLevel);
+
+  if (increment === 'MAX') {
+    while (true) {
+      const { amount, type } = getVesselCostInfo(vesselId, tempLevel);
+      if (type !== initialCostType) break;
+
+      if (state.worshippers[type] < totalCost + amount) break;
+      totalCost += amount;
+      tempLevel++;
+      count++;
+      if (count >= 1000) break;
+    }
+  } else {
+    const inc = increment as number;
+    let targetCount = inc - (currentLevel % inc);
+    if (currentLevel % inc === 0) targetCount = inc;
+    
+    for (let i = 0; i < targetCount; i++) {
+      const { amount, type } = getVesselCostInfo(vesselId, tempLevel + i);
+      if (type !== initialCostType && count > 0) break;
+      
+      totalCost += amount;
+      count++;
+      if (type !== initialCostType) break; 
     }
   }
-  return newWorshippers;
+
+  return { count, cost: totalCost, costType: initialCostType };
 };
 
-export const sacrificeWorshippers = (state: GameState): Record<WorshipperType, number> => {
-  const cost = calculateUpgradeCost(state.miracleLevel);
-  return deductWorshippers(state, cost);
+export const calculateRelicCost = (relicId: RelicId, currentLevel: number): number => {
+  const baseCosts: Record<RelicId, number> = {
+    [RelicId.GLUTTONY]: 10, [RelicId.BETRAYAL]: 25, [RelicId.FALSE_IDOL]: 500, [RelicId.CONTRACT]: 50,
+  };
+  const base = baseCosts[relicId] || 10;
+  const multiplier = 2;
+  return Math.floor(base * Math.pow(multiplier, currentLevel));
 };
 
-/**
- * Calculates the cost to buy/upgrade a specific vessel.
- */
-export const calculateVesselCost = (vesselId: string, currentLevel: number): number => {
-  const def = VESSEL_DEFINITIONS.find(v => v.id === vesselId);
-  if (!def) return 0;
-  
-  let multiplier = 1.25; 
-  if (def.tier === 1) multiplier = 1.15;
-  else if (def.tier === 2) multiplier = 1.1675;
-  else if (def.tier === 3) multiplier = 1.175;
-  else if (def.tier === 4) multiplier = 1.2;
-
-  return Math.floor(def.baseCost * Math.pow(multiplier, currentLevel));
-};
-
-/**
- * Assistant cost calculation. Specific sequence based on user request.
- * Recruit: 1 Worldly
- * Up 1: 1 Zealous
- * Up 2: 100,000 Zealous
- * Up 3: 100,000,000 Zealous
- * Up 4: 100,000,000,000 Zealous
- */
 export const calculateAssistantCost = (currentLevel: number): { amount: number, type: WorshipperType } => {
-  if (currentLevel === 0) return { amount: 1, type: WorshipperType.WORLDLY };
-  if (currentLevel === 1) return { amount: 1, type: WorshipperType.ZEALOUS };
-  if (currentLevel === 2) return { amount: 100000, type: WorshipperType.ZEALOUS };
-  if (currentLevel === 3) return { amount: 100000000, type: WorshipperType.ZEALOUS };
-  if (currentLevel === 4) return { amount: 100000000000, type: WorshipperType.ZEALOUS };
-  
-  return { amount: Infinity, type: WorshipperType.ZEALOUS };
+  const cost = Math.floor(100 * Math.pow(1.4, currentLevel));
+  const type = currentLevel === 0 ? WorshipperType.WORLDLY : WorshipperType.ZEALOUS;
+  return { amount: cost, type };
 };
 
-/**
- * Assistant click interval (ms).
- * Intervals: 1000, 750, 500, 250, 125
- */
+export const calculateAssistantBulkVesselBuy = (currentLevel: number, increment: IncrementType, state: GameState) => {
+  let count = 0;
+  let totalCost = 0;
+  let tempLevel = currentLevel;
+  let costType = WorshipperType.WORLDLY;
+
+  if (increment === 'MAX') {
+    while (tempLevel < 10) {
+      const { amount, type } = calculateAssistantCost(tempLevel);
+      costType = type;
+      if (state.worshippers[costType] < totalCost + amount) break;
+      totalCost += amount;
+      tempLevel++;
+      count++;
+    }
+  } else {
+    const inc = increment as number;
+    let targetCount = inc - (currentLevel % inc);
+    if (currentLevel % inc === 0) targetCount = inc;
+    
+    for (let i = 0; i < targetCount; i++) {
+      const { amount, type } = calculateAssistantCost(currentLevel + i);
+      costType = type;
+      totalCost += amount;
+    }
+    count = Math.max(0, targetCount);
+  }
+
+  return { count, cost: totalCost, costType };
+};
+
 export const calculateAssistantInterval = (level: number): number => {
-  const intervals = [Infinity, 1000, 750, 500, 250, 125];
-  return intervals[level] || 125;
+  if (level === 0) return Infinity;
+  // Adjusted: Formula: 1 click / (2.1 - (Level * 0.1)) seconds
+  // At Level 1: 1 / (2.1 - 0.1) = 1 / 2.0 = 0.5 clicks/sec = 2.0 seconds
+  const rate = 1 / Math.max(0.1, 2.1 - (level * 0.1)); 
+  return 1000 / rate;
 };
 
-/**
- * Calculates the output (worshippers per second) of a specific vessel.
- * Updated Formula: Base * 1.07^Level (rounded down)
- * Removed Soul multiplier.
- */
 export const calculateVesselOutput = (vesselId: string, currentLevel: number): number => {
   const def = VESSEL_DEFINITIONS.find(v => v.id === vesselId);
-  if (!def || !currentLevel || currentLevel === 0) return 0;
-  
-  return Math.floor(def.baseOutput * Math.pow(1.07, currentLevel));
+  if (!def || currentLevel === 0) return 0;
+  return def.baseOutput * currentLevel;
 };
 
-export const calculateProductionByType = (vesselLevels: Record<string, number>, isPaused: Record<WorshipperType, boolean>): Record<WorshipperType, number> => {
+export const calculateProductionByType = (state: GameState): Record<WorshipperType, number> => {
   const production: Record<WorshipperType, number> = {
-    [WorshipperType.INDOLENT]: 0,
-    [WorshipperType.LOWLY]: 0,
-    [WorshipperType.WORLDLY]: 0,
-    [WorshipperType.ZEALOUS]: 0,
+    [WorshipperType.INDOLENT]: 0, [WorshipperType.LOWLY]: 0, [WorshipperType.WORLDLY]: 0, [WorshipperType.ZEALOUS]: 0,
   };
 
   VESSEL_DEFINITIONS.forEach(def => {
-    const level = vesselLevels[def.id] || 0;
-    if (level > 0 && !isPaused[def.type]) {
-      const output = calculateVesselOutput(def.id, level);
-      production[def.type] += output;
+    const level = state.vesselLevels[def.id] || 0;
+    if (level > 0 && !state.vesselToggles[def.id]) {
+      const efficiency = calculateVesselEfficiency(state, def.id as VesselId);
+      const baseOutput = calculateVesselOutput(def.id, level);
+      production[def.type] += Math.floor(baseOutput * efficiency);
     }
   });
 
   return production;
 };
 
-/**
- * Consumption is tied to Vessel production capacity.
- */
-export const calculateConsumptionByType = (vesselLevels: Record<string, number>, isPaused: Record<WorshipperType, boolean>): Record<WorshipperType, number> => {
+export const calculateConsumptionByType = (state: GameState): Record<WorshipperType, number> => {
   const totalConsumption: Record<WorshipperType, number> = {
-    [WorshipperType.INDOLENT]: 0,
-    [WorshipperType.LOWLY]: 0,
-    [WorshipperType.WORLDLY]: 0,
-    [WorshipperType.ZEALOUS]: 0,
+    [WorshipperType.INDOLENT]: 0, [WorshipperType.LOWLY]: 0, [WorshipperType.WORLDLY]: 0, [WorshipperType.ZEALOUS]: 0,
   };
 
+  const relicGluttonyLvl = state.relics[RelicId.GLUTTONY] || 0;
+  const consumptionReduction = relicGluttonyLvl * 0.05;
+
   VESSEL_DEFINITIONS.forEach(def => {
-    const level = vesselLevels[def.id] || 0;
-    if (level > 0 && !isPaused[def.type]) {
-      const output = calculateVesselOutput(def.id, level);
-      const rates = CONSUMPTION_RATES[def.type];
+    const level = state.vesselLevels[def.id] || 0;
+    if (level > 0 && !state.vesselToggles[def.id]) {
+      const efficiency = calculateVesselEfficiency(state, def.id as VesselId);
+      const requirements = CONSUMPTION_RATES_PER_LVL[def.id as VesselId];
       
-      (Object.keys(rates) as WorshipperType[]).forEach(resourceType => {
-        const rate = rates[resourceType] || 0;
-        totalConsumption[resourceType] += output * rate;
+      let baseReduction = consumptionReduction;
+      if (state.activeGem && getGemForCaste(def.type) === state.activeGem) {
+          baseReduction = Math.min(1.0, baseReduction + 0.5);
+      }
+
+      Object.entries(requirements).forEach(([resType, rate]) => {
+        const type = resType as WorshipperType;
+        const amount = Math.floor(rate! * level * efficiency * (1 - baseReduction));
+        totalConsumption[type] += amount;
       });
     }
   });
@@ -165,231 +254,19 @@ export const calculateConsumptionByType = (vesselLevels: Record<string, number>,
   return totalConsumption;
 };
 
-export const calculateNetIncomeByType = (gameState: GameState): Record<WorshipperType, number> => {
-  const production = calculateProductionByType(gameState.vesselLevels, gameState.isPaused);
-  const consumption = calculateConsumptionByType(gameState.vesselLevels, gameState.isPaused);
+export const calculateNetIncomeByType = (state: GameState): Record<WorshipperType, number> => {
+  const production = calculateProductionByType(state);
+  const consumption = calculateConsumptionByType(state);
   
-  const net: Record<WorshipperType, number> = {
-    [WorshipperType.INDOLENT]: 0,
-    [WorshipperType.LOWLY]: 0,
-    [WorshipperType.WORLDLY]: 0,
-    [WorshipperType.ZEALOUS]: 0,
-  };
-
-  WORSHIPPER_ORDER.forEach(type => {
-    net[type] = production[type] - consumption[type];
-  });
-
-  return net;
-};
-
-export const calculateTotalPassiveIncome = (vesselLevels: Record<string, number>, isPaused: Record<WorshipperType, boolean>): number => {
-  const prodByType = calculateProductionByType(vesselLevels, isPaused);
-  return Object.values(prodByType).reduce((total: number, val: number) => total + val, 0);
-};
-
-export const calculateBulkUpgrade = (
-  currentLevel: number, 
-  increment: number | 'MAX', 
-  state: GameState
-): { cost: number, count: number, targetLevel: number } => {
-  
-  const availableFunds = WORSHIPPER_ORDER.reduce((sum, t) => sum + state.worshippers[t], 0);
-  
-  if (increment === 'MAX') {
-    let costSoFar = 0;
-    let lvl = currentLevel;
-    
-    while (true) {
-      const nextCost = calculateUpgradeCost(lvl);
-      if (availableFunds >= costSoFar + nextCost) {
-        costSoFar += nextCost;
-        lvl++;
-      } else {
-        break;
-      }
-    }
-    
-    if (lvl === currentLevel) {
-       return { cost: calculateUpgradeCost(currentLevel), count: 0, targetLevel: currentLevel + 1 };
-    }
-    
-    return { cost: costSoFar, count: lvl - currentLevel, targetLevel: lvl };
-  } else {
-    const inc = increment as number;
-    // Calculate how many to get to the next multiple
-    let count = inc - (currentLevel % inc);
-    if (currentLevel % inc === 0) count = inc;
-
-    const target = currentLevel + count;
-    
-    let totalCost = 0;
-    for (let l = currentLevel; l < target; l++) {
-      totalCost += calculateUpgradeCost(l);
-    }
-    
-    return { 
-        cost: totalCost, 
-        count: count, 
-        targetLevel: target
-    };
-  }
-};
-
-export interface BulkVesselResult {
-  cost: number;
-  count: number;
-  targetLevel: number;
-  isCappedBySustainability?: boolean;
-  costType?: WorshipperType;
-}
-
-export const calculateBulkVesselBuy = (
-  vesselId: string,
-  currentLevel: number,
-  increment: number | 'MAX',
-  state: GameState,
-  vesselType: WorshipperType
-): BulkVesselResult => {
-  let initialCount = 0;
-  let initialCost = 0;
-  const available = state.worshippers[vesselType];
-
-  if (increment === 'MAX') {
-    let costSoFar = 0;
-    let lvl = currentLevel;
-    for (let i = 0; i < 1000; i++) {
-       const nextCost = calculateVesselCost(vesselId, lvl);
-       if (available >= costSoFar + nextCost) {
-         costSoFar += nextCost;
-         lvl++;
-       } else {
-         break;
-       }
-    }
-    initialCount = lvl - currentLevel;
-    initialCost = costSoFar;
-  } else {
-    const inc = increment as number;
-    // Round to nearest multiple
-    let countToBuy = inc - (currentLevel % inc);
-    if (currentLevel % inc === 0) countToBuy = inc;
-    
-    initialCount = countToBuy;
-    let totalCost = 0;
-    for (let l = currentLevel; l < currentLevel + countToBuy; l++) {
-        totalCost += calculateVesselCost(vesselId, l);
-    }
-    initialCost = totalCost;
-  }
-
-  let finalCount = initialCount;
-  let isCappedBySustainability = false;
-
-  if (vesselType === WorshipperType.LOWLY) {
-    const prod = calculateProductionByType(state.vesselLevels, state.isPaused);
-    const potentialCons = calculateConsumptionByType(state.vesselLevels, {
-        [WorshipperType.INDOLENT]: false,
-        [WorshipperType.LOWLY]: false,
-        [WorshipperType.WORLDLY]: false,
-        [WorshipperType.ZEALOUS]: false,
-    });
-    
-    const indolentProd = prod[WorshipperType.INDOLENT];
-    const indolentCons = potentialCons[WorshipperType.INDOLENT];
-    const availableCapacity = Math.max(0, indolentProd - indolentCons);
-
-    const def = VESSEL_DEFINITIONS.find(v => v.id === vesselId);
-    const consumptionPerLevel = (def?.baseOutput || 0) * (CONSUMPTION_RATES[WorshipperType.LOWLY][WorshipperType.INDOLENT] || 0);
-    
-    const sustainableExtraLevels = consumptionPerLevel > 0 ? Math.floor(availableCapacity / consumptionPerLevel) : 999999;
-    
-    if (finalCount > sustainableExtraLevels) {
-      finalCount = Math.max(0, sustainableExtraLevels);
-      isCappedBySustainability = true;
-    }
-  }
-
-  let finalCost = initialCost;
-  if (finalCount !== initialCount) {
-    finalCost = 0;
-    for (let l = currentLevel; l < currentLevel + finalCount; l++) {
-      finalCost += calculateVesselCost(vesselId, l);
-    }
-  }
-
-  if (increment !== 'MAX' && available < calculateVesselCost(vesselId, currentLevel)) {
-    return {
-      cost: calculateVesselCost(vesselId, currentLevel),
-      count: 0,
-      targetLevel: currentLevel + 1,
-      isCappedBySustainability
-    };
-  }
-
   return {
-    cost: finalCost,
-    count: finalCount,
-    targetLevel: currentLevel + finalCount,
-    isCappedBySustainability
-  };
-};
-
-export const calculateAssistantBulkVesselBuy = (
-  currentLevel: number,
-  increment: number | 'MAX',
-  state: GameState
-): BulkVesselResult => {
-  let count = 0;
-  let totalCost = 0;
-  let currentLvl = currentLevel;
-  let maxLevels = 5; 
-
-  if (increment === 'MAX') {
-    while (currentLvl < maxLevels) {
-      const { amount, type } = calculateAssistantCost(currentLvl);
-      if (state.worshippers[type] >= totalCost + amount) {
-        if (count > 0) {
-            const next = calculateAssistantCost(currentLvl);
-            const prev = calculateAssistantCost(currentLvl - 1);
-            if (next.type !== prev.type) break; 
-        }
-        totalCost += amount;
-        currentLvl++;
-        count++;
-      } else {
-        break;
-      }
-    }
-  } else {
-    const requested = increment as number;
-    // Calculate rounding logic for assistant as well? Probably not strictly needed as it only goes to level 5,
-    // but for consistency with the prompt's "This applies to all the increments":
-    let countToBuy = requested - (currentLevel % requested);
-    if (currentLevel % requested === 0) countToBuy = requested;
-
-    for (let i = 0; i < countToBuy; i++) {
-        if (currentLvl >= maxLevels) break;
-        const { amount } = calculateAssistantCost(currentLvl);
-        totalCost += amount;
-        currentLvl++;
-        count++;
-    }
-  }
-
-  const { type: nextType } = calculateAssistantCost(currentLevel);
-
-  return {
-    cost: totalCost || calculateAssistantCost(currentLevel).amount,
-    count: count,
-    targetLevel: currentLevel + count,
-    costType: nextType
+    [WorshipperType.INDOLENT]: production[WorshipperType.INDOLENT] - consumption[WorshipperType.INDOLENT],
+    [WorshipperType.LOWLY]: production[WorshipperType.LOWLY] - consumption[WorshipperType.LOWLY],
+    [WorshipperType.WORLDLY]: production[WorshipperType.WORLDLY] - consumption[WorshipperType.WORLDLY],
+    [WorshipperType.ZEALOUS]: production[WorshipperType.ZEALOUS] - consumption[WorshipperType.ZEALOUS],
   };
 };
 
 export const calculateSoulsEarned = (state: GameState): number => {
-  const totalZealous = state.maxWorshippersByType[WorshipperType.ZEALOUS];
-  if (totalZealous < PRESTIGE_UNLOCK_THRESHOLD) return 0;
-  const surplus = totalZealous - PRESTIGE_UNLOCK_THRESHOLD;
-  return Math.floor(10 + 0.01 * Math.pow(surplus, 1/3));
+  const maxZealous = state.maxWorshippersByType[WorshipperType.ZEALOUS];
+  return Math.floor(Math.sqrt(maxZealous));
 };

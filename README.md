@@ -1,94 +1,93 @@
+# Shattered Dogma: The Liturgy of Ascension
 
-# Shattered Dogma: The Liturgy of Numbers
-
-*A definitive guide to the mechanics governing the ascension.*
-
-## I. Game Overview
-
-**Shattered Dogma** is a dark fantasy idle/clicker game where you embody an emerging Eldritch God. Your goal is to amass a cult of worshippers to fuel your eventual ascension through the End of Days.
+## Introduction
+In the silent spaces between stars, an ancient hunger stirs. You are that hunger—an emerging Eldritch God reaching through the veil into a world of fragile mortals. They are aimless, drifting, and desperate for a master. Through the performance of **Dark Miracles**, you will gather your flock, bind their souls into automated **Vessels**, and weave a cult that spans the castes of society. From the lethargic **Indolent** to the fanatical **Zealous**, every soul is fuel. When the world is saturated with your dogma, you shall herald the **End of Days**, consuming the reality you built to forge a permanent throne in the Abyss.
 
 ---
 
-## II. The Flock (Resources)
+## Gameplay Mechanics
 
-Your power is measured by **Worshippers**. There are four distinct castes:
+### Dark Miracles
+The primary manifestation of your will. By tapping into the mortal realm, you create ripples that resonate with the lost. Initially, this draws only the most passive souls, but as your power grows, so does the scale of your influence.
 
-1.  **Indolent (Blue):** The passive biomass. The most common type, required for initial momentum.
-2.  **Lowly (Grey):** The broken and destitute. Hardworking foundation of the cult.
-3.  **Worldly (Green):** The wealthy and ambitious. Used for mid-tier influence.
-4.  **Zealous (Red):** The fanatical vanguard. Required for the most potent rituals and the End Times.
+### Focus Gems
+Crystallized essence of the void. These gems allow you to focus your miracles toward specific castes. While active, they grant unique conversion properties and alleviate the hunger of your higher-tier vessels, acting as a temporary catalyst for rapid growth.
 
----
+### Vessels & Consumption
+Vessels are the pillars of your cult—mortals or artifacts bound to your service. 
+* **Generators:** Some vessels simply draw power from the void (producing Indolent souls).
+* **Parasites:** Most vessels are predatory; they consume the souls of a lower caste to sustain the creation of a higher one. This hierarchy forms the core of your "Liturgy of Numbers."
 
-## III. Core Mechanics
+### Mattelock Verbinsk (The Assistant)
+A marionette of the Abyss, Mattelock appears once your influence is undeniable. He performs miracles in your stead, clicking with rhythmic, eldritch precision that accelerates as you invest more of your worldly power into his contract.
 
-### 1. Dark Miracles (Active Clicking)
-Manifesting miracles attracts Indolent worshippers.
-*   **Base Power:** `1 + MiracleLevel` (modified by multipliers).
-*   **Milestones:** Every 10 levels (10, 20, 30...), the connection to the void strengthens. At these milestones, the Click Power doubles, though the cost to purchase that specific level also doubles.
-*   **Rounding Up:** When purchasing bulk upgrades (x5, x10, etc.), the first purchase rounds your level up to the next multiple of that increment.
-*   **Soul Bonus:** Souls currently provide no click power bonus.
-
-### 2. The Liturgy of Vessels (Passive Income)
-Vessels are permanent anchors in reality that generate Worshippers automatically every second.
-*   **Consumption:** Higher castes consume the souls of lower castes to sustain themselves.
-    *   **Lowly** consume **Indolent** (2/s per output).
-    *   **Worldly** consume **Lowly** (4/s per output).
-    *   **Zealous** consume **Worldly** (6/s per output).
-*   **Starvation:** If a resource is exhausted, the caste consuming it will "Halt" production until a surplus is restored.
-*   **Safety Block:** You cannot upgrade Lowly vessels if doing so would cause your consumption of Indolent to exceed your production. This safeguard prevents the collapse of your cult's foundation.
-*   **Rounding Up:** Vessel upgrades also round to the next increment multiple on the first purchase.
-
-### 3. Focus Gems
-Focus Gems allow your Dark Miracles to resonate with higher castes.
-*   **Unlock:** Milestones in Miracle Level or Vessel Level unlock specific gems.
-*   **Effect:** Activating a gem targets a specific caste (e.g. Ruby for Zealous) for 30 seconds, followed by a cooldown.
-
-### 4. The Assistant
-Mattelock Verbinsk acts as your assistant, performing miracles automatically.
-*   **Level 0:** Recruit (Costs 1 Worldly).
-*   **Level 1:** 1 click/s (Costs 1 Zealous).
-*   **Level 2:** 1.33 clicks/s (Costs 100k Zealous).
-*   **Level 3:** 2 clicks/s (Costs 100m Zealous).
-*   **Level 4:** 4 clicks/s (Costs 100b Zealous).
-*   **Level 5:** 8 clicks/s (Costs 100t Zealous).
+### The End of Days
+When your Zealous followers reach a critical mass, you may trigger the Apocalypse. This resets your current influence in exchange for **Souls**—the only currency that survives the death of a world. These souls grant you permanent **Relics** that persist through every cycle.
 
 ---
 
-## IV. The End of Days (Prestige)
+## Technical Spec
 
-**Unlock Threshold:** 100,000 Zealous Worshippers.
+### 1. Dark Miracles & The Assistant
+Manifesting miracles generates worshippers. The output depends on your Miracle Level and active Focus Gems.
 
-Triggering the Apocalypse resets the world to forge a stronger one.
-*   **RESET:** Worshippers, Miracle Levels, Vessel Levels, Unlocked Gems.
-*   **KEPT:** Souls, Historical Stats (Max Worshippers).
+* **Upgrade Cost:** The cost to enhance your miracle follows an exponential curve:
+  $$C_n = \lfloor 50 \times 1.5^n \rfloor$$
+  *Where $n$ is the current Miracle Level.*
 
-### Souls
-Souls are the prestige currency representing your permanent divine presence.
-**Formula:**
-$$Souls = \lfloor 10 + 0.01 \times \sqrt[3]{MaxZealous - 100,000} \rfloor$$
+* **Miracle Output ($P$):**
+  $$P = (10 + 5n) \times M_{relic}$$
+  *Base output is 10. $M_{relic}$ is the multiplier from Mattelock’s Contract.*
 
-**Current State:** Souls are a resource in active development. They temporarily provide no gameplay benefit. The next update will introduce Relics purchasable with Souls.
+* **Assistant (Mattelock) Rate:**
+  Mattelock performs miracles at a frequency ($F$) determined by his level ($L$):
+  $$F = \frac{1}{\max(0.1, 2.1 - 0.1L)} \text{ miracles/sec}$$
+  *At Level 1, the interval is exactly $2.0$ seconds ($0.5$ miracles/sec).*
+
+* **Focus Gems:**
+  * **Lapis (Indolent):** Multiplies Click/Assistant power by $2\times$.
+  * **Quartz (Lowly):** Converts miracles to Lowly souls ($1:1$ ratio).
+  * **Emerald (Worldly):** Converts miracles to Worldly souls ($4:1$ ratio).
+  * **Ruby (Zealous):** Converts miracles to Zealous souls ($10:1$ ratio).
+  * **Global Buff:** While active, consumption costs for the corresponding caste are reduced by $50\%$.
+
+### 2. The Liturgy of Vessels
+Vessels produce resources based on their Level ($L$) and Efficiency ($\phi$).
+
+* **Vessel Purchase Cost:**
+  $$Cost = \lfloor \text{BaseCost} \times \text{Multiplier}^L \rfloor$$
+  *Multipliers range from $1.15$ to $1.30$ depending on the tier and type.*
+
+* **Vessel Output ($O$):**
+  $$O = \lfloor \text{BaseOutput} \times L \times \phi \rfloor$$
+
+* **Efficiency ($\phi$):**
+  If a vessel's consumption requirements are not met, its efficiency scales linearly:
+  $$\phi = \min\left(1.0, \frac{\text{StoredWorshippers}}{\text{RequiredConsumption}}\right)$$
+
+#### Vessel Unlock Table
+| Vessel | Requirement (Un-Modified) | Cost Type |
+| :--- | :--- | :--- |
+| **Indolent 1** (Mudge) | Starting Vessel | Indolent |
+| **Lowly 1** (Little Pip) | 10 Indolent 1 Levels | Indolent |
+| **Indolent 2** (Haman) | 10 Lowly 1 Levels | Indolent |
+| **Worldly 1** (Caspian) | 10 Indolent 2 Levels | Lowly |
+| **Lowly 2** (Kaelen) | 10 Worldly 1 Levels | Lowly |
+| **Zealous 1** (Kaleb) | 10 Lowly 2 Levels | Worldly |
+
+### 3. Soul Acquisition & Relics
+Ascension harvests the essence of your Zealous followers.
+
+* **Soul Formula:**
+  $$S = \lfloor \sqrt{\text{MaxZealousReached}} \rfloor$$
+
+#### Permanent Relics
+| Relic | Effect | Cost Formula |
+| :--- | :--- | :--- |
+| **Chalice of Gluttony** | $-5\%$ Consumption per Level | $10 \times 2^L$ |
+| **Dagger of Betrayal** | $-10\text{s}$ Gem Cooldown per Level | $25 \times 2^L$ |
+| **The False Idol** | Permanent Vessel Visibility | $500$ (Single Level) |
+| **Mattelock’s Contract**| $+25\%$ Click Power per Level | $50 \times 2^L$ |
 
 ---
-
-## V. The Mathematics of Ascension
-
-### 1. Miracle Upgrade Cost
-$$Cost = \lfloor 25 \times 1.15^{CurrentLevel-1} \rfloor$$
-*Note: At every 10th level (10, 20, 30...), the calculated cost is multiplied by 2.*
-
-### 2. Vessel Costs
-Vessel costs scale based on Tier:
-$$Cost = Base \times Multiplier^{Level}$$
-*Multipliers range from 1.15 (Tier 1) to 1.2 (Tier 4).*
-
-### 3. Output Calculation
-$$Output = \lfloor Base \times 1.07^{Level} \rfloor$$
-
-### 4. Click Power Calculation
-$$Power = CurrentLevel \times 2^{\lfloor Level/10 \rfloor}$$
-*The term $2^{\lfloor Level/10 \rfloor}$ represents the doubling effect that occurs every 10 levels.*
-
----
-*Documented by the Disgraced Scholars of the First Rift.*
+*Transcribed by the Disgraced Scholars of the First Rift.*

@@ -116,96 +116,82 @@ export const DeveloperModal: React.FC<DeveloperModalProps> = ({
               >
                 ← Back to Controls
               </button>
-              <div className="prose prose-invert max-w-none text-xs sm:text-sm font-sans text-gray-300 space-y-6">
+              <div className="prose prose-invert max-w-none text-xs sm:text-sm font-sans text-gray-300 space-y-6 pb-8">
                 <section>
-                  <h1 className="text-xl font-serif text-eldritch-gold border-b border-eldritch-gold/30 pb-2">Shattered Dogma: The Liturgy of Numbers</h1>
-                  <p className="italic mt-2">A definitive guide to the mechanics governing the ascension.</p>
+                  <h1 className="text-xl font-serif text-eldritch-gold border-b border-eldritch-gold/30 pb-2 uppercase tracking-widest">The Liturgy of Ascension</h1>
+                  <p className="italic mt-4 text-gray-400">"In the silent spaces between stars, an ancient hunger stirs. You are that hunger..."</p>
                 </section>
 
                 <section>
-                  <h2 className="text-lg font-serif text-white border-b border-white/10 pb-1 mb-2">I. Game Overview</h2>
-                  <p><strong>Shattered Dogma</strong> is a dark fantasy idle/clicker game where you embody an emerging Eldritch God. Your goal is to amass a cult of worshippers to fuel your eventual ascension through the End of Days.</p>
-                </section>
-
-                <section>
-                  <h2 className="text-lg font-serif text-white border-b border-white/10 pb-1 mb-2">II. The Flock (Resources)</h2>
-                  <ul className="list-disc pl-5 space-y-2">
-                    <li><strong className="text-blue-400">Indolent:</strong> The passive biomass. Required for initial momentum.</li>
-                    <li><strong className="text-gray-400">Lowly:</strong> The broken and destitute. Hardworking foundation.</li>
-                    <li><strong className="text-green-400">Worldly:</strong> The wealthy and ambitious. Mid-tier influence.</li>
-                    <li><strong className="text-red-500">Zealous:</strong> The fanatical vanguard. Potent rituals.</li>
+                  <h2 className="text-lg font-serif text-white border-b border-white/10 pb-1 mb-2 uppercase">I. Core Concepts</h2>
+                  <p><strong>Shattered Dogma</strong> is a Liturgy of Numbers. You grow your influence by attracting four distinct castes:</p>
+                  <ul className="list-disc pl-5 space-y-1">
+                    <li><strong className="text-blue-400">Indolent:</strong> The biomass and starting fuel.</li>
+                    <li><strong className="text-gray-400">Lowly:</strong> The hardworking foundation.</li>
+                    <li><strong className="text-green-400">Worldly:</strong> The ambitious merchants of greed.</li>
+                    <li><strong className="text-red-500">Zealous:</strong> The fanatical vanguard of the End.</li>
                   </ul>
                 </section>
 
                 <section>
-                  <h2 className="text-lg font-serif text-white border-b border-white/10 pb-1 mb-2">III. Core Mechanics</h2>
+                  <h2 className="text-lg font-serif text-white border-b border-white/10 pb-1 mb-2 uppercase">II. Active Miracles</h2>
                   <div className="space-y-4">
                     <div>
-                      <h3 className="font-bold text-eldritch-gold">1. Dark Miracles</h3>
-                      <p>Manifesting miracles attracts Indolent worshippers.</p>
-                      <ul className="list-disc pl-5">
-                        <li>Base Power: <code className="bg-black/50 px-1 rounded">1 + MiracleLevel</code> (modified by multipliers).</li>
-                        <li>Rounding: First bulk purchase rounds level up to next multiple of increment.</li>
-                        <li>Soul Bonus: Souls currently provide no click power bonus.</li>
-                      </ul>
+                      <p className="font-bold text-eldritch-gold mb-1 underline">Upgrade Cost</p>
+                      <div className="bg-black/40 p-3 rounded border border-white/5">
+                        <MathDisplay block tex="C_n = \lfloor 50 \times 1.5^n \rfloor" />
+                      </div>
                     </div>
                     <div>
-                      <h3 className="font-bold text-eldritch-gold">2. The Liturgy of Vessels</h3>
-                      <p>Vessels generate Worshippers automatically per second.</p>
-                      <ul className="list-disc pl-5">
-                        <li>Lowly consume Indolent (2/s per output).</li>
-                        <li>Worldly consume Lowly (4/s per output).</li>
-                        <li>Zealous consume Worldly (6/s per output).</li>
-                        <li>Starvation: Production halts if resources are exhausted.</li>
-                        <li><strong>Safety Block:</strong> You cannot upgrade Lowly vessels if doing so would cause your consumption of Indolent to exceed your production. This safeguard prevents the collapse of your cult's foundation.</li>
-                      </ul>
+                      <p className="font-bold text-eldritch-gold mb-1 underline">Miracle Power</p>
+                      <div className="bg-black/40 p-3 rounded border border-white/5">
+                        <MathDisplay block tex="P = (10 + 5n) \times M_{relic}" />
+                      </div>
                     </div>
                     <div>
-                      <h3 className="font-bold text-eldritch-gold">3. The Assistant</h3>
-                      <p>Mattelock Verbinsk acts as your assistant, performing miracles automatically.</p>
-                      <ul className="list-disc pl-5">
-                         <li>Level 0: Recruit (Costs 1 Worldly).</li>
-                         <li>Level 1: 1 click/s (Costs 1 Zealous).</li>
-                         <li>Level 2: 1.33 clicks/s (Costs 100k Zealous).</li>
-                         <li>Level 3: 2 clicks/s (Costs 100m Zealous).</li>
-                         <li>Level 4: 4 clicks/s (Costs 100b Zealous).</li>
-                         <li>Level 5: 8 clicks/s (Costs 100t Zealous).</li>
-                      </ul>
+                      <p className="font-bold text-eldritch-gold mb-1 underline">Mattelock (Assistant) Rate</p>
+                      <p className="mb-2 text-xs">Mattelock triggers miracles with frequency $F$:</p>
+                      <div className="bg-black/40 p-3 rounded border border-white/5">
+                        <MathDisplay block tex="F = \frac{1}{\max(0.1, 2.1 - 0.1L)} \text{ mir/s}" />
+                      </div>
                     </div>
                   </div>
                 </section>
 
                 <section>
-                  <h2 className="text-lg font-serif text-white border-b border-white/10 pb-1 mb-2">IV. The End of Days (Prestige)</h2>
-                  <p>Unlock Threshold: 100,000 Zealous Worshippers.</p>
-                  <p>Triggering reset preserves Souls and Max Worshipper stats.</p>
-                  <div className="bg-black/40 p-3 rounded font-mono text-center my-4 border border-indigo-500/20">
-                    <MathDisplay block tex="Souls = \lfloor 10 + 0.01 \times \sqrt[3]{MaxZealous - 100,000} \rfloor" />
+                  <h2 className="text-lg font-serif text-white border-b border-white/10 pb-1 mb-2 uppercase">III. The Liturgy of Vessels</h2>
+                  <p className="mb-4">Vessels are divided into <strong>Generators</strong> and <strong>Parasites</strong>. Parasites consume lower castes to produce higher ones.</p>
+                  <div className="space-y-4">
+                    <div>
+                      <p className="font-bold text-eldritch-gold mb-1 underline">Vessel Output</p>
+                      <div className="bg-black/40 p-3 rounded border border-white/5">
+                        <MathDisplay block tex="O = \lfloor \text{BaseOutput} \times L \times \phi \rfloor" />
+                      </div>
+                    </div>
+                    <div>
+                      <p className="font-bold text-eldritch-gold mb-1 underline">Efficiency Modifier ($\phi$)</p>
+                      <p className="mb-2 text-xs">Scales linearly based on available resource supply:</p>
+                      <div className="bg-black/40 p-3 rounded border border-white/5">
+                        <MathDisplay block tex="\phi = \min(1.0, \frac{\text{Stored}}{\text{Required}})" />
+                      </div>
+                    </div>
                   </div>
                 </section>
 
                 <section>
-                  <h2 className="text-lg font-serif text-white border-b border-white/10 pb-1 mb-2">V. Mathematics of Ascension</h2>
-                  <ul className="space-y-4">
-                    <li>
-                      <p className="font-bold">Upgrade Cost:</p>
-                      <div className="bg-black/40 p-3 rounded font-mono text-center my-2 border border-white/5">
-                        <MathDisplay block tex="Cost = \lfloor 25 \times 1.15^{CurrentLevel-1} \rfloor" />
-                      </div>
-                      <p className="text-[10px] text-gray-500 mt-1">*Note: Costs double every 10th level.*</p>
-                    </li>
-                    <li>
-                      <p className="font-bold">Output Calculation:</p>
-                      <div className="bg-black/40 p-3 rounded font-mono text-center my-2 border border-white/5">
-                        <MathDisplay block tex="Output = \lfloor Base \times 1.07^{Level} \rfloor" />
-                      </div>
-                    </li>
-                    <li>
-                      <p className="font-bold">Click Power:</p>
-                      <div className="bg-black/40 p-3 rounded font-mono text-center my-2 border border-white/5">
-                        <MathDisplay block tex="Power = CurrentLevel \times 2^{\lfloor Level/10 \rfloor}" />
-                      </div>
-                    </li>
+                  <h2 className="text-lg font-serif text-white border-b border-white/10 pb-1 mb-2 uppercase">IV. Ascension (Prestige)</h2>
+                  <p className="mb-2">Triggering the Apocalypse harvests <strong>Souls</strong> based on the height of your fanatical fever:</p>
+                  <div className="bg-black/40 p-3 rounded border border-indigo-500/20">
+                    <MathDisplay block tex="Souls = \lfloor \sqrt{\text{MaxZealous}} \rfloor" />
+                  </div>
+                </section>
+
+                <section>
+                  <h2 className="text-lg font-serif text-white border-b border-white/10 pb-1 mb-2 uppercase">V. Focus Gems</h2>
+                  <p>When a Focus Gem is active:</p>
+                  <ul className="list-disc pl-5 space-y-1">
+                    <li>Miracles convert to the Gem's Caste (Lowly $1:1$, Worldly $1:4$, Zealous $1:10$).</li>
+                    <li><strong>Global Consumption</strong> for that caste is reduced by $50\%$.</li>
                   </ul>
                 </section>
               </div>

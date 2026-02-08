@@ -1,6 +1,4 @@
 
-
-
 import React from 'react';
 import { AlertCircle, ArrowRight } from 'lucide-react';
 import { BaseModal } from './BaseModal';
@@ -13,7 +11,7 @@ interface IntroModalProps {
 export const LowlyModal: React.FC<IntroModalProps> = ({ onClose, imageUrl }) => (
   <BaseModal onClose={onClose} zIndex={120} containerClassName="max-w-lg w-full border-gray-600" backdropClassName="bg-black/95 backdrop-blur-xl">
     <div className="h-64 w-full bg-black overflow-hidden relative">
-      <img src={imageUrl || "public/vessels/lowly/1.jpeg"} className="h-full w-full object-cover opacity-60" alt="Lowly" />
+      <img src={imageUrl || "vessels/lowly/1.jpeg"} className="h-full w-full object-cover opacity-60" alt="Lowly" />
       <div className="absolute inset-0 bg-gradient-to-t from-eldritch-dark via-transparent to-transparent" />
     </div>
     <div className="p-8 text-center">
@@ -34,7 +32,7 @@ export const LowlyModal: React.FC<IntroModalProps> = ({ onClose, imageUrl }) => 
 export const WorldlyModal: React.FC<IntroModalProps> = ({ onClose, imageUrl }) => (
   <BaseModal onClose={onClose} zIndex={120} containerClassName="max-w-lg w-full border-green-900" backdropClassName="bg-black/95 backdrop-blur-xl">
     <div className="h-64 w-full bg-black overflow-hidden relative">
-      <img src={imageUrl || "public/vessels/worldly/1.jpeg"} className="h-full w-full object-cover opacity-60" alt="Worldly" />
+      <img src={imageUrl || "vessels/worldly/1.jpeg"} className="h-full w-full object-cover opacity-60" alt="Worldly" />
       <div className="absolute inset-0 bg-gradient-to-t from-eldritch-dark via-transparent to-transparent" />
     </div>
     <div className="p-8 text-center">
@@ -55,7 +53,7 @@ export const WorldlyModal: React.FC<IntroModalProps> = ({ onClose, imageUrl }) =
 export const ZealousModal: React.FC<IntroModalProps> = ({ onClose, imageUrl }) => (
   <BaseModal onClose={onClose} zIndex={120} containerClassName="max-w-lg w-full border-red-900" backdropClassName="bg-black/95 backdrop-blur-xl">
     <div className="h-64 w-full bg-black overflow-hidden relative">
-      <img src={imageUrl || "public/vessels/zealous/1.jpeg"} className="h-full w-full object-cover opacity-60" alt="Zealous" />
+      <img src={imageUrl || "vessels/zealous/1.jpeg"} className="h-full w-full object-cover opacity-60" alt="Zealous" />
       <div className="absolute inset-0 bg-gradient-to-t from-eldritch-dark via-transparent to-transparent" />
     </div>
     <div className="p-8 text-center">
@@ -73,11 +71,11 @@ export const ZealousModal: React.FC<IntroModalProps> = ({ onClose, imageUrl }) =
   </BaseModal>
 );
 
-export const ProductionPausedModal: React.FC<IntroModalProps> = ({ onClose, imageUrl }) => (
+export const ProductionStarvedModal: React.FC<IntroModalProps> = ({ onClose, imageUrl }) => (
   <BaseModal onClose={onClose} zIndex={130} containerClassName="max-w-lg w-full border-eldritch-crimson shadow-[0_0_50px_rgba(255,0,0,0.3)]" backdropClassName="bg-black/95 backdrop-blur-xl">
     <div className="h-64 w-full bg-black overflow-hidden relative flex items-center justify-center">
       {imageUrl ? (
-        <img src={imageUrl} className="h-full w-full object-cover opacity-60" alt="Paused" />
+        <img src={imageUrl} className="h-full w-full object-cover opacity-60" alt="Starved" />
       ) : (
         <div className="h-full w-full bg-gradient-to-b from-red-950 to-black flex items-center justify-center">
           <AlertCircle className="h-24 w-24 text-red-500 animate-pulse" />
@@ -90,8 +88,8 @@ export const ProductionPausedModal: React.FC<IntroModalProps> = ({ onClose, imag
       <h3 className="mb-6 font-serif text-eldritch-crimson italic">"With the loss of the population it needs, there is no essence to grant the Abyss."</h3>
       <p className="mb-4 text-gray-300 text-sm leading-relaxed">The Abyss demands more, yet supplies have run dry. Look to the populace to correct this heinous mistake…</p>
       <div className="rounded-lg bg-red-950/40 p-4 border border-red-800/30 mb-8">
-          <p className="text-red-500 text-xs font-bold uppercase mb-1">Production Halted</p>
-          <p className="text-gray-400 text-xs">A Vessel has paused production, as there aren't enough souls to sustain it. Manage your supply of your worshippers if you wish to grow the cult.</p>
+          <p className="text-red-500 text-xs font-bold uppercase mb-1">Production Starved</p>
+          <p className="text-gray-400 text-xs">A Vessel has been starved of souls, as there aren't enough of its input caste to sustain it. Manage your supply of worshippers if you wish to grow the cult.</p>
       </div>
       <button onClick={onClose} className="w-full flex items-center justify-center gap-2 rounded-lg bg-red-900/20 border border-red-700 py-4 font-serif font-bold uppercase tracking-widest text-red-500 hover:bg-red-900/30 transition-colors">
         The Abyss Demands Contrition

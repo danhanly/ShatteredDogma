@@ -6,6 +6,8 @@ export enum WorshipperType {
   INDOLENT = 'Indolent',
 }
 
+export type IncrementType = 1 | 5 | 10 | 25 | 100 | 'MAX';
+
 export enum VesselId {
   INDOLENT_1 = 'INDOLENT_1',
   LOWLY_1 = 'LOWLY_1',
@@ -28,6 +30,29 @@ export enum VesselId {
   ZEALOUS_4 = 'ZEALOUS_4',
 }
 
+export enum RelicId {
+  GLUTTONY = 'Relic_Consumption_Reduct',
+  BETRAYAL = 'Relic_Cooldown_Reduct',
+  FALSE_IDOL = 'Relic_Unlock_Bypass',
+  CONTRACT = 'Relic_Auto_Buff',
+}
+
+export interface RelicDefinition {
+  id: RelicId;
+  name: string;
+  description: string;
+  maxLevel: number;
+  baseCost: number;
+}
+
+export interface RelicDefinition {
+  id: RelicId;
+  name: string;
+  description: string;
+  maxLevel: number;
+  baseCost: number;
+}
+
 export interface VesselDefinition {
   id: VesselId;
   name: string;
@@ -35,8 +60,9 @@ export interface VesselDefinition {
   lore: string;
   type: WorshipperType;
   baseCost: number;
-  baseOutput: number; // Worshippers per second
+  baseOutput: number;
   tier: number;
+  isGenerator?: boolean; // T-A vessels are generators, others are parasites
 }
 
 export enum GemType {
@@ -46,29 +72,19 @@ export enum GemType {
   RUBY = 'RUBY'
 }
 
-export interface Bulletin {
-  id: string;
-  volume: number;
-  date: string;
-  title: string;
-  body: string;
-  rewardType: string;
-  rewardAmount: number;
-}
-
 export interface GameState {
   worshippers: Record<WorshipperType, number>;
   totalWorshippers: number;
   totalAccruedWorshippers: number;
   miracleLevel: number;
-  vesselLevels: Record<string, number>; // Map VesselId to level
+  vesselLevels: Record<string, number>;
+  vesselToggles: Record<string, boolean>; // Imprisonment/Toggles
   souls: number;
+  relics: Record<RelicId, number>;
   
-  // Historical stats
   maxTotalWorshippers: number;
   maxWorshippersByType: Record<WorshipperType, number>;
   
-  // Flags
   hasSeenEodIntro: boolean;
   hasSeenStartSplash: boolean;
   hasSeenVesselIntro: boolean;
@@ -81,28 +97,24 @@ export interface GameState {
   hasAcknowledgedPausedModal: boolean;
   hasSeenAssistantIntro: boolean;
 
-  // New features
   lockedWorshippers: WorshipperType[];
   lastInfluenceTime: Record<WorshipperType, number>;
 
-  // Starvation state
   isPaused: Record<WorshipperType, boolean>;
   pausedStartTime: number;
-  ignoredHaltVessels: string[]; // Track which vessels have had their starvation warning dismissed
+  ignoredHaltVessels: string[];
 
-  // Assistant features
   assistantLevel: number;
+  assistantActive: boolean;
   totalClicks: number;
 
-  // Gem features
   unlockedGems: GemType[];
   activeGem: GemType | null;
-  activeGemTimeRemaining: number; // seconds
-  gemCooldowns: Record<GemType, number>; // seconds
+  activeGemTimeRemaining: number;
+  gemCooldowns: Record<GemType, number>;
   showGemDiscovery: GemType | null;
 
-  // Bulletin features
-  activeBulletin: Bulletin | null;
+  activeBulletin: any | null;
 
   settings: {
     soundEnabled: boolean;
@@ -110,13 +122,21 @@ export interface GameState {
     musicVolume: number;
   };
   lastSaveTime: number; 
+
+  // Increment memory
+  miracleIncrement: IncrementType;
+  vesselIncrement: IncrementType;
+
+  // Starvation tracking
+  vesselStarvationTimers: Record<string, number>;
 }
 
 export interface ClickEffect {
   id: number;
   x: number;
   y: number;
-  value: number; 
+  value: number;
+  type: WorshipperType;
 }
 
 export const WORSHIPPER_ORDER = [

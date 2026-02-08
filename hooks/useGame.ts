@@ -1,28 +1,20 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { GameState, WorshipperType, VesselId, WORSHIPPER_ORDER, GemType } from '../types';
+import { GameState, WorshipperType, VesselId, WORSHIPPER_ORDER, GemType, RelicId, IncrementType } from '../types';
+import { PRESTIGE_UNLOCK_THRESHOLD } from '../constants';
 import { 
   calculateClickPower, 
-  calculateUpgradeCost, 
-  rollWorshipperType, 
-  sacrificeWorshippers,
-  deductWorshippers,
-  canAffordUpgrade,
-  calculateVesselCost,
-  calculateTotalPassiveIncome,
   calculateProductionByType,
   calculateConsumptionByType,
+  calculateSoulsEarned,
+  calculateAssistantInterval,
+  calculateRelicCost,
   calculateBulkUpgrade,
   calculateBulkVesselBuy,
-  calculateSoulsEarned,
-  calculateVesselOutput,
-  calculateAssistantCost,
-  calculateAssistantInterval,
-  calculateAssistantBulkVesselBuy
+  calculateAssistantBulkVesselBuy,
 } from '../services/gameService';
-import { VESSEL_DEFINITIONS, CONSUMPTION_RATES, PRESTIGE_UNLOCK_THRESHOLD } from '../constants';
 
-const STORAGE_KEY = 'shattered_dogma_simple_save_v1'; 
+const STORAGE_KEY = 'shattered_dogma_relics_v2'; 
 
 const INITIAL_STATE: GameState = {
   worshippers: {
@@ -33,9 +25,16 @@ const INITIAL_STATE: GameState = {
   },
   totalWorshippers: 0,
   totalAccruedWorshippers: 0,
-  miracleLevel: 1, 
+  miracleLevel: 0, 
   vesselLevels: {}, 
+  vesselToggles: {},
   souls: 0,
+  relics: {
+    [RelicId.GLUTTONY]: 0,
+    [RelicId.BETRAYAL]: 0,
+    [RelicId.FALSE_IDOL]: 0,
+    [RelicId.CONTRACT]: 0,
+  },
   maxTotalWorshippers: 0,
   maxWorshippersByType: {
     [WorshipperType.WORLDLY]: 0,
@@ -70,6 +69,7 @@ const INITIAL_STATE: GameState = {
   pausedStartTime: 0,
   ignoredHaltVessels: [],
   assistantLevel: 0,
+  assistantActive: false,
   totalClicks: 0,
   unlockedGems: [],
   activeGem: null,
@@ -88,6 +88,9 @@ const INITIAL_STATE: GameState = {
     musicVolume: 0.3,
   },
   lastSaveTime: Date.now(),
+  miracleIncrement: 1,
+  vesselIncrement: 1,
+  vesselStarvationTimers: {},
 };
 
 export const useGame = () => {
@@ -102,11 +105,13 @@ export const useGame = () => {
         return {
           ...INITIAL_STATE,
           ...parsed,
-          miracleLevel: parsed.miracleLevel ? Math.max(1, parsed.miracleLevel) : 1,
+          miracleLevel: parsed.miracleLevel !== undefined ? parsed.miracleLevel : 0,
           worshippers: { ...INITIAL_STATE.worshippers, ...(parsed.worshippers || {}) },
+          relics: { ...INITIAL_STATE.relics, ...(parsed.relics || {}) },
+          vesselToggles: { ...INITIAL_STATE.vesselToggles, ...(parsed.vesselToggles || {}) },
           maxWorshippersByType: { ...INITIAL_STATE.maxWorshippersByType, ...(parsed.maxWorshippersByType || {}) },
           settings: { ...INITIAL_STATE.settings, ...(parsed.settings || {}) },
-          lastSaveTime: parsed.lastSaveTime || Date.now() 
+          vesselStarvationTimers: parsed.vesselStarvationTimers || {},
         };
       }
     } catch (e) {
@@ -116,57 +121,35 @@ export const useGame = () => {
   });
 
   const lastPassiveTick = useRef(Date.now());
-
-  const processOfflineProgress = useCallback((lastTime: number) => {
-    const now = Date.now();
-    const timeDiffSeconds = (now - lastTime) / 1000;
-
-    if (timeDiffSeconds > 10) {
-      setGameState(prev => {
-        const maxTime = 30 * 60; // 30 mins cap
-        const effectiveTime = Math.min(timeDiffSeconds, maxTime);
-        const incomeByType = calculateProductionByType(prev.vesselLevels, prev.isPaused);
-        const totalIncome = Object.values(incomeByType).reduce((a: number, b: number) => a + b, 0);
-
-        if (totalIncome > 0) {
-          const gains: Record<WorshipperType, number> = {
-            [WorshipperType.INDOLENT]: incomeByType[WorshipperType.INDOLENT] * effectiveTime,
-            [WorshipperType.LOWLY]: incomeByType[WorshipperType.LOWLY] * effectiveTime,
-            [WorshipperType.WORLDLY]: incomeByType[WorshipperType.WORLDLY] * effectiveTime,
-            [WorshipperType.ZEALOUS]: incomeByType[WorshipperType.ZEALOUS] * effectiveTime,
-          };
-
-          const totalGained = Object.values(gains).reduce((a: number, b: number) => a + b, 0);
-          const newWorshippers = { ...prev.worshippers };
-          const newMaxByType = { ...prev.maxWorshippersByType };
-
-          (Object.keys(gains) as WorshipperType[]).forEach(type => {
-            newWorshippers[type] += gains[type];
-            newMaxByType[type] = Math.max(newMaxByType[type], newWorshippers[type]);
-          });
-
-          setOfflineGains({ gains, time: effectiveTime });
-
-          return {
-            ...prev,
-            worshippers: newWorshippers,
-            totalWorshippers: prev.totalWorshippers + totalGained,
-            totalAccruedWorshippers: prev.totalAccruedWorshippers + totalGained,
-            maxTotalWorshippers: Math.max(prev.maxTotalWorshippers, prev.totalWorshippers + totalGained),
-            maxWorshippersByType: newMaxByType,
-            lastSaveTime: now 
-          };
-        }
-        return { ...prev, lastSaveTime: now };
-      });
-      lastPassiveTick.current = now;
-    }
-  }, []);
+  const assistantTimer = useRef(0);
+  const stateRef = useRef(gameState);
 
   useEffect(() => {
-    if (gameState.lastSaveTime) {
-      processOfflineProgress(gameState.lastSaveTime);
+    stateRef.current = gameState;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(gameState));
+  }, [gameState]);
+
+  const performMiracleInternal = useCallback((state: GameState) => {
+    const powerBase = calculateClickPower(state.miracleLevel);
+    let power = powerBase;
+    let type = WorshipperType.INDOLENT; 
+
+    if (state.activeGem === GemType.LAPIS) {
+        power = powerBase * 2;
+    } else if (state.activeGem === GemType.QUARTZ) {
+        power = powerBase;
+        type = WorshipperType.LOWLY;
+    } else if (state.activeGem === GemType.EMERALD) {
+        power = Math.floor(powerBase / 4);
+        type = WorshipperType.WORLDLY;
+    } else if (state.activeGem === GemType.RUBY) {
+        power = Math.floor(powerBase / 10);
+        type = WorshipperType.ZEALOUS;
     }
+
+    const contractLvl = state.relics[RelicId.CONTRACT] || 0;
+    power = Math.floor(power * (1 + contractLvl * 0.25));
+    return { power, type };
   }, []);
 
   useEffect(() => {
@@ -174,101 +157,35 @@ export const useGame = () => {
       const now = Date.now();
       const delta = (now - lastPassiveTick.current) / 1000; 
       
-      if (delta >= 1 && document.visibilityState === 'visible') {
+      if (delta > 0 && document.visibilityState === 'visible') {
         lastPassiveTick.current = now;
+        const current = stateRef.current;
+        let autoMiracle: { power: number, type: WorshipperType } | null = null;
+
+        // Process assistant click timing
+        if (current.assistantLevel > 0 && current.assistantActive) {
+            const interval = calculateAssistantInterval(current.assistantLevel) / 1000;
+            assistantTimer.current += delta;
+            if (assistantTimer.current >= interval) {
+                autoMiracle = performMiracleInternal(current);
+                assistantTimer.current = 0;
+            }
+        }
 
         setGameState(prev => {
-          const production = calculateProductionByType(prev.vesselLevels, prev.isPaused);
-          const consumption = calculateConsumptionByType(prev.vesselLevels, prev.isPaused);
+          const production = calculateProductionByType(prev);
+          const consumption = calculateConsumptionByType(prev);
           
           const newWorshippers = { ...prev.worshippers };
-          const newPaused = { ...prev.isPaused };
-          let anyStarvingNow = false;
-
+          
+          // Apply passive income
           WORSHIPPER_ORDER.forEach(type => {
-            newWorshippers[type] = Math.max(0, newWorshippers[type] - (consumption[type] * delta));
+            newWorshippers[type] = Math.max(0, newWorshippers[type] + (production[type] - consumption[type]) * delta);
           });
 
-          const newIgnoredHaltVessels = [...prev.ignoredHaltVessels];
-
-          const ownedTypes = new Set<WorshipperType>();
-          Object.entries(prev.vesselLevels).forEach(([id, level]) => {
-            if (level > 0) {
-              const def = VESSEL_DEFINITIONS.find(v => v.id === id);
-              if (def) ownedTypes.add(def.type);
-            }
-          });
-
-          (Object.keys(CONSUMPTION_RATES) as WorshipperType[]).forEach(consumerType => {
-            const requirements = CONSUMPTION_RATES[consumerType];
-            const isCurrentlyPaused = prev.isPaused[consumerType];
-            
-            let isStarving = false;
-            (Object.keys(requirements) as WorshipperType[]).forEach(resourceType => {
-              if (newWorshippers[resourceType] <= 0 && (requirements[resourceType] || 0) > 0) {
-                isStarving = true;
-              }
-            });
-
-            if (!isCurrentlyPaused) {
-              if (isStarving) {
-                newPaused[consumerType] = true;
-                if (ownedTypes.has(consumerType)) {
-                  anyStarvingNow = true;
-                }
-              }
-            } else {
-              let canResume = !isStarving; 
-              if (canResume) {
-                const potentialNeeds: Partial<Record<WorshipperType, number>> = {};
-                VESSEL_DEFINITIONS.forEach(def => {
-                  if (def.type === consumerType) {
-                    const level = prev.vesselLevels[def.id] || 0;
-                    const output = calculateVesselOutput(def.id, level);
-                    (Object.keys(requirements) as WorshipperType[]).forEach(res => {
-                      potentialNeeds[res] = (potentialNeeds[res] || 0) + output * (requirements[res] || 0);
-                    });
-                  }
-                });
-
-                (Object.keys(requirements) as WorshipperType[]).forEach(resourceType => {
-                  const currentSurplusOfRes = production[resourceType] - consumption[resourceType];
-                  const needOfThisCaste = potentialNeeds[resourceType] || 0;
-                  if (currentSurplusOfRes <= needOfThisCaste) {
-                    canResume = false;
-                  }
-                });
-              }
-
-              if (canResume) {
-                newPaused[consumerType] = false;
-                for (let i = newIgnoredHaltVessels.length - 1; i >= 0; i--) {
-                  const vId = newIgnoredHaltVessels[i];
-                  const def = VESSEL_DEFINITIONS.find(v => v.id === vId);
-                  if (def && def.type === consumerType) {
-                    newIgnoredHaltVessels.splice(i, 1);
-                  }
-                }
-              } else {
-                if (ownedTypes.has(consumerType)) {
-                  anyStarvingNow = true;
-                }
-              }
-            }
-          });
-
-          let newPausedStartTime = prev.pausedStartTime;
-          if (anyStarvingNow) {
-            if (newPausedStartTime === 0) newPausedStartTime = now;
-          } else {
-            newPausedStartTime = 0;
-          }
-
-          let newHasSeenPausedModal = prev.hasSeenPausedModal;
-          if (!newHasSeenPausedModal && newPausedStartTime !== 0 && (now - newPausedStartTime) >= 5000) {
-            if (ownedTypes.size > 1) {
-              newHasSeenPausedModal = true;
-            }
+          // Apply auto-miracle if triggered
+          if (autoMiracle) {
+            newWorshippers[autoMiracle.type] += autoMiracle.power;
           }
 
           let newActiveGem = prev.activeGem;
@@ -280,292 +197,212 @@ export const useGame = () => {
           });
 
           if (newActiveGem && newActiveGemTimeRemaining <= 0) {
-            newGemCooldowns[newActiveGem] = 300; 
+            const betrayalLvl = prev.relics[RelicId.BETRAYAL] || 0;
+            newGemCooldowns[newActiveGem] = Math.max(60, 120 - betrayalLvl * 10); 
             newActiveGem = null;
           }
 
-          WORSHIPPER_ORDER.forEach(type => {
-            if (!newPaused[type]) {
-              newWorshippers[type] += production[type] * delta;
-            }
-          });
-
-          const totalProd = Object.values(production).reduce((a: number, b: number) => a + b, 0);
           const newMaxByType = { ...prev.maxWorshippersByType };
           WORSHIPPER_ORDER.forEach(type => {
             newMaxByType[type] = Math.max(newMaxByType[type], newWorshippers[type]);
           });
 
+          // Assistant Auto-Unlock Logic
+          let newAssistantLevel = prev.assistantLevel;
+          let newAssistantActive = prev.assistantActive;
+          if (newMaxByType[WorshipperType.INDOLENT] >= 1000 && newAssistantLevel === 0) {
+            newAssistantLevel = 1;
+            newAssistantActive = true;
+          }
+
+          // Gem Unlocks logic
           const newUnlockedGems = [...prev.unlockedGems];
           let gemDiscovered: GemType | null = null;
-
-          const checkUnlock = (gem: GemType, condition: boolean, previousGem?: GemType) => {
-            const alreadyUnlocked = newUnlockedGems.includes(gem);
-            const prevUnlocked = !previousGem || newUnlockedGems.includes(previousGem);
-            if (!alreadyUnlocked && condition && prevUnlocked) {
+          const checkUnlock = (gem: GemType, condition: boolean) => {
+            if (!newUnlockedGems.includes(gem) && condition) {
               newUnlockedGems.push(gem);
               gemDiscovered = gem;
             }
           };
-
-          const indolentVesselLvl = prev.vesselLevels[VesselId.INDOLENT_1] || 0;
-          const lowlyVesselLvl = prev.vesselLevels[VesselId.LOWLY_1] || 0;
-          const worldlyVesselLvl = prev.vesselLevels[VesselId.WORLDLY_1] || 0;
-
-          checkUnlock(GemType.LAPIS, indolentVesselLvl >= 5);
-          checkUnlock(GemType.QUARTZ, ((indolentVesselLvl >= 10 || prev.miracleLevel >= 20) && production[WorshipperType.INDOLENT] >= 45), GemType.LAPIS);
-          checkUnlock(GemType.EMERALD, ((lowlyVesselLvl >= 10 || prev.miracleLevel >= 50) && production[WorshipperType.LOWLY] >= 75), GemType.QUARTZ);
-          checkUnlock(GemType.RUBY, ((worldlyVesselLvl >= 30 || prev.miracleLevel >= 100) && 
-            production[WorshipperType.INDOLENT] >= 45 && production[WorshipperType.LOWLY] >= 45 && production[WorshipperType.WORLDLY] >= 45), GemType.EMERALD);
+          checkUnlock(GemType.LAPIS, prev.maxWorshippersByType[WorshipperType.INDOLENT] >= 500);
+          checkUnlock(GemType.QUARTZ, prev.maxWorshippersByType[WorshipperType.LOWLY] >= 50);
+          checkUnlock(GemType.EMERALD, prev.maxWorshippersByType[WorshipperType.WORLDLY] >= 50);
+          checkUnlock(GemType.RUBY, prev.maxWorshippersByType[WorshipperType.ZEALOUS] >= 50);
 
           return {
              ...prev,
-             totalWorshippers: Object.values(newWorshippers).reduce((a: number, b: number) => a + b, 0),
-             totalAccruedWorshippers: prev.totalAccruedWorshippers + (totalProd * delta),
-             maxTotalWorshippers: Math.max(prev.maxTotalWorshippers, Object.values(newWorshippers).reduce((a: number, b: number) => a + b, 0)),
              worshippers: newWorshippers,
+             totalWorshippers: Object.values(newWorshippers).reduce((a, b) => a + b, 0),
+             totalAccruedWorshippers: prev.totalAccruedWorshippers + (autoMiracle?.power || 0),
+             maxTotalWorshippers: Math.max(prev.maxTotalWorshippers, Object.values(newWorshippers).reduce((a, b) => a + b, 0)),
              maxWorshippersByType: newMaxByType,
-             isPaused: newPaused,
-             pausedStartTime: newPausedStartTime,
-             hasSeenPausedModal: newHasSeenPausedModal,
-             ignoredHaltVessels: newIgnoredHaltVessels,
              activeGem: newActiveGem,
              activeGemTimeRemaining: newActiveGemTimeRemaining,
              gemCooldowns: newGemCooldowns,
              unlockedGems: newUnlockedGems,
+             assistantLevel: newAssistantLevel,
+             assistantActive: newAssistantActive,
              showGemDiscovery: prev.showGemDiscovery || gemDiscovered,
-             lastSaveTime: now 
+             lastSaveTime: now,
           };
         });
+
+        if (autoMiracle) {
+          setLastMiracleEvent({ 
+            ...autoMiracle, 
+            isAuto: true, 
+            timestamp: performance.now() + Math.random() 
+          });
+        }
       }
-    }, 1000);
+    }, 100); 
 
     return () => clearInterval(intervalId);
-  }, [gameState.souls]);
+  }, [performMiracleInternal]);
 
-  const performMiracle = useCallback((isAuto: boolean = false) => {
-    const powerBase = calculateClickPower(gameState.miracleLevel);
-    let power = powerBase;
-    let type = rollWorshipperType(); 
-
-    if (gameState.activeGem === GemType.LAPIS) {
-        power = powerBase * 2;
-        type = WorshipperType.INDOLENT;
-    } else if (gameState.activeGem === GemType.QUARTZ) {
-        type = WorshipperType.LOWLY;
-    } else if (gameState.activeGem === GemType.EMERALD) {
-        type = WorshipperType.WORLDLY;
-    } else if (gameState.activeGem === GemType.RUBY) {
-        type = WorshipperType.ZEALOUS;
-    }
-
-    setGameState(prev => {
-        const newWorshippers = {
-            ...prev.worshippers,
-            [type]: prev.worshippers[type] + power,
-        };
-        
-        return {
-            ...prev,
-            worshippers: newWorshippers,
-            totalWorshippers: Object.values(newWorshippers).reduce((a: number, b: number) => a + b, 0),
-            totalAccruedWorshippers: prev.totalAccruedWorshippers + power,
-            maxTotalWorshippers: Math.max(prev.maxTotalWorshippers, Object.values(newWorshippers).reduce((a: number, b: number) => a + b, 0)),
-            maxWorshippersByType: {
-                ...prev.maxWorshippersByType,
-                [type]: Math.max(prev.maxWorshippersByType[type], newWorshippers[type])
-            },
-            totalClicks: prev.totalClicks + 1,
-            lastSaveTime: Date.now()
-        };
-    });
-
-    if (isAuto) {
-        setLastMiracleEvent({ power, type, isAuto: true, timestamp: Date.now() });
-    }
-
+  const performMiracle = useCallback(() => {
+    const { power, type } = performMiracleInternal(gameState);
+    setGameState(prev => ({
+        ...prev,
+        worshippers: { ...prev.worshippers, [type]: prev.worshippers[type] + power },
+        totalAccruedWorshippers: prev.totalAccruedWorshippers + power,
+        totalClicks: prev.totalClicks + 1,
+    }));
     return { power, type };
-  }, [gameState.miracleLevel, gameState.activeGem, gameState.souls]);
-
-  useEffect(() => {
-    if (gameState.assistantLevel <= 0) return;
-    const intervalTime = calculateAssistantInterval(gameState.assistantLevel);
-    const interval = setInterval(() => {
-        performMiracle(true);
-    }, intervalTime);
-    return () => clearInterval(interval);
-  }, [gameState.assistantLevel, performMiracle]);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(gameState));
-  }, [gameState]);
+  }, [gameState.miracleLevel, gameState.activeGem, gameState.relics, performMiracleInternal]);
 
   const activateGem = useCallback((gem: GemType) => {
     setGameState(prev => {
       if (prev.activeGem || prev.gemCooldowns[gem] > 0 || !prev.unlockedGems.includes(gem)) return prev;
+      return { ...prev, activeGem: gem, activeGemTimeRemaining: 30 };
+    });
+  }, []);
+
+  const purchaseRelic = useCallback((relicId: RelicId) => {
+    setGameState(prev => {
+      const lvl = prev.relics[relicId] || 0;
+      const cost = calculateRelicCost(relicId, lvl);
+      if (prev.souls < cost) return prev;
       return {
         ...prev,
-        activeGem: gem,
-        activeGemTimeRemaining: 30, 
+        souls: prev.souls - cost,
+        relics: { ...prev.relics, [relicId]: lvl + 1 }
       };
     });
   }, []);
 
-  const closeDiscovery = useCallback(() => {
-    setGameState(prev => ({ ...prev, showGemDiscovery: null }));
-  }, []);
-
-  const purchaseUpgrade = useCallback((count: number = 1) => {
-    setGameState(prev => {
-      const bulk = calculateBulkUpgrade(prev.miracleLevel, count, prev);
-      const availableFunds = WORSHIPPER_ORDER.reduce((sum, t) => sum + prev.worshippers[t], 0);
-
-      if (availableFunds < bulk.cost) return prev;
-      
-      const newWorshippers = deductWorshippers(prev, bulk.cost);
-      return {
-        ...prev,
-        worshippers: newWorshippers,
-        totalWorshippers: Object.values(newWorshippers).reduce((a: number, b: number) => a + b, 0),
-        miracleLevel: prev.miracleLevel + bulk.count,
-        lastSaveTime: Date.now()
-      };
-    });
-  }, []);
-
-  const purchaseVessel = useCallback((vesselId: string, type: WorshipperType, count: number = 1) => {
-    setGameState(prev => {
-        const currentLevel = prev.vesselLevels[vesselId] || 0;
-        const bulk = calculateBulkVesselBuy(vesselId, currentLevel, count, prev, type);
-        if (prev.worshippers[type] < bulk.cost) return prev;
-
-        const newWorshippers = { ...prev.worshippers, [type]: prev.worshippers[type] - bulk.cost };
-        return {
-            ...prev,
-            worshippers: newWorshippers,
-            totalWorshippers: Object.values(newWorshippers).reduce((a: number, b: number) => a + b, 0),
-            vesselLevels: { ...prev.vesselLevels, [vesselId]: currentLevel + bulk.count },
-            lastSaveTime: Date.now()
-        };
-    });
-  }, []);
-
-  const purchaseAssistant = useCallback((count: number = 1) => {
-    setGameState(prev => {
-        const bulk = calculateAssistantBulkVesselBuy(prev.assistantLevel, count, prev);
-        if (bulk.count === 0) return prev;
-        
-        // Assistant costs are always one-by-one from the cost type
-        let newWorshippers = { ...prev.worshippers };
-        let currentLvl = prev.assistantLevel;
-        for (let i = 0; i < bulk.count; i++) {
-           const { amount, type } = calculateAssistantCost(currentLvl);
-           newWorshippers[type] -= amount;
-           currentLvl++;
-        }
-
-        return {
-            ...prev,
-            worshippers: newWorshippers,
-            totalWorshippers: Object.values(newWorshippers).reduce((a: number, b: number) => a + b, 0),
-            assistantLevel: currentLvl,
-            lastSaveTime: Date.now()
-        };
-    });
+  const toggleVessel = useCallback((vesselId: string) => {
+    setGameState(prev => ({
+      ...prev,
+      vesselToggles: { ...prev.vesselToggles, [vesselId]: !prev.vesselToggles[vesselId] }
+    }));
   }, []);
 
   const triggerPrestige = useCallback(() => {
     setGameState(prev => {
        const soulsEarned = calculateSoulsEarned(prev);
-       if (soulsEarned <= 0) return prev;
+       const contractActive = prev.relics[RelicId.CONTRACT] > 0;
        return {
           ...INITIAL_STATE,
           souls: prev.souls + soulsEarned,
+          relics: prev.relics,
           settings: prev.settings,
+          assistantLevel: contractActive ? prev.assistantLevel : 0,
+          assistantActive: contractActive ? prev.assistantActive : false,
           maxTotalWorshippers: prev.maxTotalWorshippers,
           maxWorshippersByType: prev.maxWorshippersByType,
           hasSeenStartSplash: true,
-          // Fixed syntax error: changed '=' to ':' in object literal
           hasSeenVesselIntro: true,
-          lastSaveTime: Date.now()
        };
     });
   }, []);
 
-  const resetSave = useCallback(() => {
-    localStorage.removeItem(STORAGE_KEY);
-    setGameState({ ...INITIAL_STATE, lastSaveTime: Date.now() });
-    setOfflineGains(null);
-  }, []);
-
-  const ignoreHaltWarning = useCallback((vesselId: string) => {
-    setGameState(prev => ({
-        ...prev,
-        ignoredHaltVessels: [...prev.ignoredHaltVessels, vesselId]
-    }));
-  }, []);
-
-  const debugAddWorshippers = useCallback((type: WorshipperType, amount: number) => {
+  const purchaseUpgrade = useCallback(() => {
     setGameState(prev => {
-      const newAmount = prev.worshippers[type] + amount;
-      return {
-        ...prev,
-        worshippers: { ...prev.worshippers, [type]: newAmount },
-        maxWorshippersByType: { ...prev.maxWorshippersByType, [type]: Math.max(prev.maxWorshippersByType[type], newAmount) }
+      const bulk = calculateBulkUpgrade(prev.miracleLevel, prev.miracleIncrement, prev);
+      if (prev.worshippers[WorshipperType.INDOLENT] < bulk.cost || bulk.count === 0) return prev;
+      return { 
+        ...prev, 
+        worshippers: { ...prev.worshippers, [WorshipperType.INDOLENT]: prev.worshippers[WorshipperType.INDOLENT] - bulk.cost }, 
+        miracleLevel: prev.miracleLevel + bulk.count 
       };
     });
   }, []);
 
-  const debugUnlockFeature = useCallback((feature: 'GEMS' | 'VESSELS' | 'END_TIMES' | 'ASSISTANT') => {
+  const purchaseVessel = useCallback((vesselId: string) => {
     setGameState(prev => {
-      const next = { ...prev };
-      if (feature === 'GEMS') {
-        next.unlockedGems = [GemType.LAPIS, GemType.QUARTZ, GemType.EMERALD, GemType.RUBY];
-        next.hasSeenMiracleIntro = true;
-      } else if (feature === 'VESSELS') {
-        next.hasSeenVesselIntro = true;
-        next.maxWorshippersByType[WorshipperType.INDOLENT] = Math.max(next.maxWorshippersByType[WorshipperType.INDOLENT], 100);
-        next.worshippers[WorshipperType.INDOLENT] = Math.max(next.worshippers[WorshipperType.INDOLENT], 1000);
-      } else if (feature === 'END_TIMES') {
-        next.hasSeenEodIntro = true;
-        next.maxWorshippersByType[WorshipperType.ZEALOUS] = Math.max(next.maxWorshippersByType[WorshipperType.ZEALOUS], PRESTIGE_UNLOCK_THRESHOLD);
-        next.worshippers[WorshipperType.ZEALOUS] = Math.max(next.worshippers[WorshipperType.ZEALOUS], PRESTIGE_UNLOCK_THRESHOLD);
-      } else if (feature === 'ASSISTANT') {
-        next.hasSeenAssistantIntro = true;
-        next.totalClicks = Math.max(next.totalClicks, 100);
-        next.vesselLevels[VesselId.WORLDLY_1] = Math.max(next.vesselLevels[VesselId.WORLDLY_1] || 0, 2);
-        next.worshippers[WorshipperType.WORLDLY] = Math.max(next.worshippers[WorshipperType.WORLDLY], 100);
-      }
-      return next;
+        const lvl = prev.vesselLevels[vesselId] || 0;
+        const bulk = calculateBulkVesselBuy(vesselId, lvl, prev.vesselIncrement, prev);
+        if (prev.worshippers[bulk.costType] < bulk.cost || bulk.count === 0) return prev;
+        return { 
+          ...prev, 
+          worshippers: { ...prev.worshippers, [bulk.costType]: prev.worshippers[bulk.costType] - bulk.cost }, 
+          vesselLevels: { ...prev.vesselLevels, [vesselId]: lvl + bulk.count } 
+        };
     });
   }, []);
 
-  const debugAddSouls = useCallback((amount: number) => {
-    setGameState(prev => ({ ...prev, souls: prev.souls + amount }));
+  const purchaseAssistant = useCallback(() => {
+    setGameState(prev => {
+        const bulk = calculateAssistantBulkVesselBuy(prev.assistantLevel, prev.miracleIncrement, prev);
+        if (prev.worshippers[bulk.costType] < bulk.cost || bulk.count === 0) return prev;
+        return { 
+          ...prev, 
+          worshippers: { ...prev.worshippers, [bulk.costType]: prev.worshippers[bulk.costType] - bulk.cost }, 
+          assistantLevel: prev.assistantLevel + bulk.count 
+        };
+    });
+  }, []);
+
+  const toggleAssistant = useCallback(() => {
+    setGameState(prev => ({ ...prev, assistantActive: !prev.assistantActive }));
+  }, []);
+
+  const setMiracleIncrement = useCallback((val: IncrementType) => {
+    setGameState(prev => ({ ...prev, miracleIncrement: val }));
+  }, []);
+
+  const setVesselIncrement = useCallback((val: IncrementType) => {
+    setGameState(prev => ({ ...prev, vesselIncrement: val }));
   }, []);
 
   return {
     gameState,
     clickPower: calculateClickPower(gameState.miracleLevel),
-    passiveIncome: calculateTotalPassiveIncome(gameState.vesselLevels, gameState.isPaused),
+    passiveIncome: Object.values(calculateProductionByType(gameState)).reduce((a, b) => a + b, 0),
     performMiracle,
     lastMiracleEvent,
     activateGem,
-    closeDiscovery,
-    purchaseUpgrade, 
+    closeDiscovery: () => setGameState(prev => ({ ...prev, showGemDiscovery: null })),
+    purchaseRelic,
+    toggleVessel,
+    toggleAssistant,
+    triggerPrestige,
+    purchaseUpgrade,
     purchaseVessel,
     purchaseAssistant,
-    offlineGains,
-    closeOfflineModal: () => setOfflineGains(null),
-    triggerPrestige,
-    setFlag: (flag: keyof GameState, value: any) => setGameState(prev => ({ ...prev, [flag]: value })),
-    resetSave,
+    setMiracleIncrement,
+    setVesselIncrement,
     toggleSound: () => setGameState(prev => ({ ...prev, settings: { ...prev.settings, soundEnabled: !prev.settings.soundEnabled } })),
     toggleMusic: () => setGameState(prev => ({ ...prev, settings: { ...prev.settings, musicEnabled: !prev.settings.musicEnabled } })),
-    setMusicVolume: (volume: number) => setGameState(prev => ({ ...prev, settings: { ...prev.settings, musicVolume: volume } })),
-    ignoreHaltWarning,
-    debugAddWorshippers,
-    debugUnlockFeature,
-    debugAddSouls
+    setMusicVolume: (v: number) => setGameState(prev => ({ ...prev, settings: { ...prev.settings, musicVolume: v } })),
+    offlineGains,
+    closeOfflineModal: () => setOfflineGains(null),
+    setFlag: (flag: keyof GameState, value: any) => setGameState(prev => ({ ...prev, [flag]: value })),
+    resetSave: () => { localStorage.removeItem(STORAGE_KEY); setGameState(INITIAL_STATE); },
+    debugAddWorshippers: (type: WorshipperType, amount: number) => setGameState(prev => ({ ...prev, worshippers: { ...prev.worshippers, [type]: prev.worshippers[type] + amount } })),
+    debugUnlockFeature: (feature: 'GEMS' | 'VESSELS' | 'END_TIMES' | 'ASSISTANT') => {
+        setGameState(prev => {
+            const next = { ...prev };
+            if (feature === 'GEMS') next.unlockedGems = [GemType.LAPIS, GemType.QUARTZ, GemType.EMERALD, GemType.RUBY];
+            if (feature === 'VESSELS') next.maxWorshippersByType[WorshipperType.INDOLENT] = 1000;
+            if (feature === 'END_TIMES') next.maxWorshippersByType[WorshipperType.ZEALOUS] = PRESTIGE_UNLOCK_THRESHOLD;
+            if (feature === 'ASSISTANT') {
+                next.maxWorshippersByType[WorshipperType.INDOLENT] = Math.max(next.maxWorshippersByType[WorshipperType.INDOLENT], 1000);
+            }
+            return next;
+        });
+    },
+    debugAddSouls: (amount: number) => setGameState(prev => ({ ...prev, souls: prev.souls + amount }))
   };
 };

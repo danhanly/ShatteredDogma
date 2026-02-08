@@ -22,7 +22,7 @@ export const AbyssAssistantModal: React.FC<AbyssAssistantModalProps> = ({ onClos
           <div className="absolute inset-0 bg-gradient-to-t from-eldritch-dark via-eldritch-dark/20 to-transparent" />
            <div className="absolute bottom-4 left-6 z-10">
                <h2 className="font-serif text-3xl font-bold uppercase tracking-widest drop-shadow-md text-white">Mattelock Verbinsk</h2>
-               <p className="text-sm text-eldritch-gold italic">Assistant from the Abyss</p>
+               <p className="text-sm text-eldritch-gold italic uppercase tracking-tight">Assistant from the Abyss</p>
           </div>
       </div>
       <div className="p-6">

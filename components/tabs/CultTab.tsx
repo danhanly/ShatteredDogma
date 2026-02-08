@@ -1,4 +1,5 @@
 
+
 import React from 'react';
 import { GameState, WorshipperType } from '../../types';
 import { calculateProductionByType } from '../../services/gameService';
@@ -18,7 +19,7 @@ interface CultTabProps {
 }
 
 export const CultTab: React.FC<CultTabProps> = ({ gameState, vesselsUnlocked }) => {
-  const currentTypeRates = calculateProductionByType(gameState.vesselLevels, gameState.isPaused);
+  const currentTypeRates = calculateProductionByType(gameState);
   const totalRate = Object.values(currentTypeRates).reduce((a: number, b: number) => a + b, 0);
 
   return (

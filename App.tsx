@@ -11,8 +11,7 @@ import { VesselUnlockModal } from './components/VesselUnlockModal';
 import { EodUnlockModal } from './components/EodUnlockModal';
 import { MiracleIntroModal } from './components/MiracleIntroModal';
 import { IntroduceAssistantModal } from './components/IntroduceAssistantModal';
-import { LowlyModal, WorldlyModal, ZealousModal, ProductionPausedModal } from './components/IntroductionModals';
-import { HaltedUpgradeWarningModal } from './components/HaltedUpgradeWarningModal';
+import { LowlyModal, WorldlyModal, ZealousModal, ProductionStarvedModal } from './components/IntroductionModals';
 import { WorshipperType, GemType } from './types';
 import { VESSEL_DEFINITIONS, PRESTIGE_UNLOCK_THRESHOLD, GEM_DEFINITIONS } from './constants';
 
@@ -28,6 +27,12 @@ const App: React.FC = () => {
     purchaseUpgrade, 
     purchaseVessel,
     purchaseAssistant,
+    // Fix: Destructure toggleAssistant from useGame hook
+    toggleAssistant,
+    purchaseRelic,
+    toggleVessel,
+    setMiracleIncrement,
+    setVesselIncrement,
     toggleSound,
     toggleMusic,
     setMusicVolume,
@@ -35,18 +40,15 @@ const App: React.FC = () => {
     closeOfflineModal,
     triggerPrestige,
     setFlag,
-    resetSave,
-    ignoreHaltWarning,
     debugAddWorshippers,
     debugUnlockFeature,
-    debugAddSouls
+    debugAddSouls,
+    resetSave
   } = useGame();
 
   const [activeTab, setActiveTab] = useState<'MIRACLES' | 'VESSELS' | 'CULT' | 'END_TIMES'>('MIRACLES');
   const [highlightVessels, setHighlightVessels] = useState(false);
   const [highlightAssistant, setHighlightAssistant] = useState(false);
-  const [highlightGem, setHighlightGem] = useState<GemType | null>(null);
-
   const [worshipperImages, setWorshipperImages] = useState<Record<WorshipperType, string>>({
     [WorshipperType.INDOLENT]: "",
     [WorshipperType.LOWLY]: "",
@@ -58,14 +60,9 @@ const App: React.FC = () => {
   const [endOfDaysUrl, setEndOfDaysUrl] = useState<string>("");
   const [assistantUrl, setAssistantUrl] = useState<string>("");
   const [musicUrl, setMusicUrl] = useState<string>("");
-  const [pausedUrl, setPausedUrl] = useState<string>("");
   const [vesselImages, setVesselImages] = useState<Record<string, string>>({});
   const [gemImages, setGemImages] = useState<Record<string, string>>({});
   
-  const [haltWarningVessel, setHaltWarningVessel] = useState<{ id: string, name: string, type: WorshipperType, count: number } | null>(null);
-
-  const [sessionAcknowledgedPaused, setSessionAcknowledgedPaused] = useState(false);
-
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const getAssetPrefix = () => {
@@ -76,29 +73,6 @@ const App: React.FC = () => {
       return base.endsWith('/') ? base : `${base}/`;
     }
     return 'public/';
-  };
-
-  const createPlaceholderBlob = (color1: string, color2: string): string => {
-    const canvas = document.createElement('canvas');
-    canvas.width = 640;
-    canvas.height = 480;
-    const ctx = canvas.getContext('2d');
-    if (ctx) {
-      const grad = ctx.createLinearGradient(0, 0, 0, 480);
-      grad.addColorStop(0, color1);
-      grad.addColorStop(1, color2);
-      ctx.fillStyle = grad;
-      ctx.fillRect(0, 0, 640, 480);
-      
-      ctx.strokeStyle = 'rgba(255,255,255,0.05)';
-      for(let i=0; i<100; i++) {
-        ctx.beginPath();
-        ctx.moveTo(Math.random()*640, Math.random()*480);
-        ctx.lineTo(Math.random()*640, Math.random()*480);
-        ctx.stroke();
-      }
-    }
-    return canvas.toDataURL('image/jpeg');
   };
 
   useEffect(() => {
@@ -112,7 +86,6 @@ const App: React.FC = () => {
     const BG_PATH = `${prefix}bg.jpeg`;
     const END_OF_DAYS_PATH = `${prefix}endofdays.jpeg`;
     const ASSISTANT_PATH = `${prefix}assistant.jpg`;
-    const PAUSED_PATH = `${prefix}paused.jpg`;
     const MUSIC_PATH = `${prefix}audio/music.ogg`;
     
     setMusicUrl(MUSIC_PATH);
@@ -158,19 +131,6 @@ const App: React.FC = () => {
         }
       } catch (e) {}
 
-      try {
-        const response = await fetch(PAUSED_PATH);
-        if (response.ok) {
-          const blob = await response.blob();
-          const url = URL.createObjectURL(blob);
-          setPausedUrl(url);
-        } else {
-          setPausedUrl(createPlaceholderBlob('#200', '#000'));
-        }
-      } catch (e) {
-        setPausedUrl(createPlaceholderBlob('#200', '#000'));
-      }
-
       const newVesselImages: Record<string, string> = {};
       for (const def of VESSEL_DEFINITIONS) {
          const parts = def.id.split('_');
@@ -193,6 +153,7 @@ const App: React.FC = () => {
       const newGemImages: Record<string, string> = {};
       for (const [gemKey, def] of Object.entries(GEM_DEFINITIONS)) {
         try {
+          // Fix: cast as any to bypass TS unknown property access issue when Object.entries loses type info
           const normalizedPath = (def as any).image.replace(/^\.\//, '');
           const path = `${prefix}${normalizedPath.replace(/^public\//, '')}`;
           const response = await fetch(path);
@@ -211,12 +172,15 @@ const App: React.FC = () => {
 
   useEffect(() => {
     if (!musicUrl) return;
+
     if (!audioRef.current) {
         audioRef.current = new Audio(musicUrl);
         audioRef.current.loop = true;
     }
+
     const audio = audioRef.current;
     audio.volume = gameState.settings.musicVolume ?? 0.3;
+    
     if (gameState.settings.musicEnabled && gameState.hasSeenStartSplash) {
         const playPromise = audio.play();
         if (playPromise !== undefined) {
@@ -237,14 +201,11 @@ const App: React.FC = () => {
   const showMiracleIntro = gameState.hasSeenStartSplash && gameState.totalAccruedWorshippers > 0 && !gameState.hasSeenMiracleIntro;
   const showVesselIntro = gameState.maxWorshippersByType[WorshipperType.INDOLENT] >= 100 && !gameState.hasSeenVesselIntro;
   
-  const eodUnlocked = gameState.maxWorshippersByType[WorshipperType.ZEALOUS] >= PRESTIGE_UNLOCK_THRESHOLD;
-  const showEodIntro = eodUnlocked && !gameState.hasSeenEodIntro;
+  // Technical Fix: Trigger End Times Modal specifically based on 1 Zealous Worshipper
+  const showEodIntro = gameState.maxWorshippersByType[WorshipperType.ZEALOUS] >= PRESTIGE_UNLOCK_THRESHOLD && !gameState.hasSeenEodIntro;
 
-  const worldlyLevels = Object.entries(gameState.vesselLevels)
-    .filter(([id]) => id.startsWith('WORLDLY'))
-    .reduce((sum, [_, lvl]) => sum + (lvl as number), 0);
-
-  const assistantUnlocked = gameState.totalClicks >= 100 && worldlyLevels >= 2;
+  // Revised Assistant Trigger Logic: 1000 Indolent Worshippers
+  const assistantUnlocked = gameState.maxWorshippersByType[WorshipperType.INDOLENT] >= 1000;
   const showAssistantIntro = assistantUnlocked && !gameState.hasSeenAssistantIntro;
 
   const hasLowlyVessel = (gameState.vesselLevels['LOWLY_1'] || 0) > 0;
@@ -255,24 +216,7 @@ const App: React.FC = () => {
   const showWorldlyModal = hasWorldlyVessel && !gameState.hasSeenWorldlyModal;
   const showZealousModal = hasZealousVessel && !gameState.hasSeenZealousModal;
 
-  const canShowPausedModal = gameState.hasSeenPausedModal && !sessionAcknowledgedPaused && gameState.hasSeenStartSplash;
-
-  const onHandlePurchaseVessel = (id: string, type: WorshipperType, count: number) => {
-    const vessel = VESSEL_DEFINITIONS.find(v => v.id === id);
-    if (gameState.isPaused[type] && !gameState.ignoredHaltVessels.includes(id) && vessel) {
-        setHaltWarningVessel({ id, name: vessel.name, type, count });
-    } else {
-        purchaseVessel(id, type, count);
-    }
-  };
-
-  const confirmHaltPurchase = () => {
-      if (haltWarningVessel) {
-          ignoreHaltWarning(haltWarningVessel.id);
-          purchaseVessel(haltWarningVessel.id, haltWarningVessel.type, haltWarningVessel.count);
-          setHaltWarningVessel(null);
-      }
-  };
+  const canShowStarvedModal = gameState.hasSeenPausedModal && !gameState.hasAcknowledgedPausedModal && gameState.hasSeenStartSplash;
 
   return (
     <div className="flex h-[100dvh] w-screen flex-col overflow-hidden bg-black text-gray-200">
@@ -300,10 +244,10 @@ const App: React.FC = () => {
         <IntroduceAssistantModal 
           imageUrl={assistantUrl} 
           onClose={() => {
-              setFlag('hasSeenAssistantIntro', true);
-              setActiveTab('MIRACLES');
-              setHighlightAssistant(true);
-              setTimeout(() => setHighlightAssistant(false), 5000);
+            setFlag('hasSeenAssistantIntro', true);
+            setActiveTab('MIRACLES');
+            setHighlightAssistant(true);
+            setTimeout(() => setHighlightAssistant(false), 3000);
           }} 
         />
       )}
@@ -317,33 +261,16 @@ const App: React.FC = () => {
       {showWorldlyModal && <WorldlyModal imageUrl={vesselImages['WORLDLY_1']} onClose={() => setFlag('hasSeenWorldlyModal', true)} />}
       {showZealousModal && <ZealousModal imageUrl={vesselImages['ZEALOUS_1']} onClose={() => setFlag('hasSeenZealousModal', true)} />}
       
-      {canShowPausedModal && (
-          <ProductionPausedModal 
-            imageUrl={pausedUrl}
-            onClose={() => {
-              setSessionAcknowledgedPaused(true); 
-            }} 
-          />
-      )}
-
-      {haltWarningVessel && (
-        <HaltedUpgradeWarningModal 
-          vesselName={haltWarningVessel.name}
-          onConfirm={confirmHaltPurchase}
-          onCancel={() => setHaltWarningVessel(null)}
-        />
+      {canShowStarvedModal && (
+          <ProductionStarvedModal onClose={() => {
+              setFlag('hasAcknowledgedPausedModal', true); 
+          }} />
       )}
 
       {gameState.showGemDiscovery && (
         <GemDiscoveryModal 
           gem={gameState.showGemDiscovery} 
-          onClose={() => {
-              const discoveredGem = gameState.showGemDiscovery;
-              closeDiscovery();
-              setActiveTab('MIRACLES');
-              setHighlightGem(discoveredGem);
-              setTimeout(() => setHighlightGem(null), 5000);
-          }} 
+          onClose={closeDiscovery} 
           imageUrl={gemImages[gameState.showGemDiscovery]}
         />
       )}
@@ -376,16 +303,21 @@ const App: React.FC = () => {
           activeTab={activeTab}
           setActiveTab={setActiveTab}
           onUpgrade={purchaseUpgrade}
-          onPurchaseVessel={onHandlePurchaseVessel}
+          onPurchaseVessel={purchaseVessel}
           onPurchaseAssistant={purchaseAssistant}
+          // Fix: Pass onToggleAssistant prop to Menu component
+          onToggleAssistant={toggleAssistant}
           onActivateGem={activateGem}
+          setMiracleIncrement={setMiracleIncrement}
+          setVesselIncrement={setVesselIncrement}
           vesselImages={vesselImages}
           assistantUrl={assistantUrl}
           onPrestige={triggerPrestige}
+          onPurchaseRelic={purchaseRelic}
+          onToggleVessel={toggleVessel}
           endOfDaysUrl={endOfDaysUrl}
           highlightVessels={highlightVessels}
           highlightAssistant={highlightAssistant}
-          highlightGem={highlightGem}
         />
       </main>
 

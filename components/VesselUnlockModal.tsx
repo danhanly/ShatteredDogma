@@ -33,10 +33,10 @@ export const VesselUnlockModal: React.FC<VesselUnlockModalProps> = ({ zealotVess
           {step === 1 ? (
               <>
                   <div className="flex justify-center mb-4"><Sparkles className="h-8 w-8 text-eldritch-gold animate-pulse" /></div>
-                  <h2 className="mb-4 font-serif text-3xl font-bold text-white tracking-widest uppercase">The Liturgy of Vessels</h2>
-                  <p className="mb-6 font-serif text-gray-400 italic">"Your influence crystallizes. No longer are you merely a passive observer. You have gathered enough hollow spirits to begin inhabiting permanent vessels."</p>
-                  <p className="mb-8 font-serif text-eldritch-gold/70 text-sm">
-                      These vessels proselytise to the masses with a voice that is not theirs, attracting worshippers across the city without the need for your direct miracle manifestations.
+                  <h2 className="mb-4 font-serif text-3xl font-bold text-white tracking-widest uppercase">Welcome to the Flock</h2>
+                  <p className="mb-6 font-serif text-gray-400 italic text-sm">"Your influence has crystallised. Now, others join the fray, eager to please the yearning Abyss."</p>
+                  <p className="mb-8 font-serif text-eldritch-gold/70">
+                      These vessels preach to their caste, attracting new worshippers across the city without the need for your direct miracle manifestations.
                   </p>
                   <button 
                       onClick={() => setStep(2)}

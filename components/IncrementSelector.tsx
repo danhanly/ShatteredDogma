@@ -1,6 +1,7 @@
-import React from 'react';
 
-export type IncrementType = 1 | 5 | 10 | 25 | 100 | 'MAX';
+
+import React from 'react';
+import { IncrementType } from '../types';
 
 interface IncrementSelectorProps {
   current: IncrementType;
