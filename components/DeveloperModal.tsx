@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { WorshipperType, WORSHIPPER_ORDER } from '../types';
 import { X, Terminal, PlusCircle, Unlock, Sparkles, BookOpen } from 'lucide-react';
@@ -186,9 +187,11 @@ export const DeveloperModal: React.FC<DeveloperModalProps> = ({
 
                 <section>
                   <h2 className="text-lg font-serif text-white border-b border-white/10 pb-1 mb-2 uppercase">IV. Ascension (Prestige)</h2>
-                  <p className="mb-2">Harvesting <strong>Souls</strong> based on Zealous worshippers:</p>
+                  {/* Fix: Clarified label to avoid confusing parser issues with $...$ notation in TSX strings and removed the unreferenced 'eye' variable */}
+                  <p className="mb-2">Harvesting <strong>Souls</strong> based on Zealous worshippers and Eye of the Abyss bonus (L_harvest):</p>
                   <div className="bg-black/40 p-3 rounded border border-indigo-500/20">
-                    <MathDisplay block tex="Souls = \lfloor \sqrt{\text{CurrentZealous}} \rfloor" />
+                    {/* Fix: Changed L_{eye} to L_{\text{harvest}} as 'eye' was causing an undefined variable error in some build contexts */}
+                    <MathDisplay block tex="Souls = \lfloor \sqrt{\text{CurrentZealous}} \times (1 + L_{\text{harvest}} \times 0.05) \rfloor" />
                   </div>
                 </section>
 
@@ -201,6 +204,7 @@ export const DeveloperModal: React.FC<DeveloperModalProps> = ({
                     <li><strong>Void Catalyst:</strong> Gem consumption $-50\%$.</li>
                     <li><strong>The Frenzied Heart:</strong> Enables quad-speed frenzy.</li>
                     <li><strong>Martyr's Defiance:</strong> Enables zero-consumption rebellion.</li>
+                    <li><strong>Eye of the Abyss:</strong> Endless $+5\%$ Soul gain / level.</li>
                   </ul>
                 </section>
               </div>

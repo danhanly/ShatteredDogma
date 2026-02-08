@@ -38,6 +38,7 @@ export enum RelicId {
   ABYSSAL_REFLEX = 'Relic_Gem_Refresh',
   FRENZY = 'Relic_Frenzy_Mode',
   REBELLION = 'Relic_Caste_Rebellion',
+  SOUL_HARVESTER = 'Relic_Soul_Acquisition',
 }
 
 export type FateId = 

@@ -61,6 +61,13 @@ export const RELIC_DEFINITIONS: RelicDefinition[] = [
     description: "A random caste occasionally rebels for 30s, refusing to be consumed by the caste above them. (Once every 5 mins of play time)",
     maxLevel: 1,
     baseCost: 1000
+  },
+  {
+    id: RelicId.SOUL_HARVESTER,
+    name: "Eye of the Abyss",
+    description: "Permanent +5% Soul acquisition per level. Endlessly upgradeable.",
+    maxLevel: 999,
+    baseCost: 500
   }
 ];
 

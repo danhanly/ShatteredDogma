@@ -238,12 +238,19 @@ export const calculateBulkVesselBuy = (vesselId: string, currentLevel: number, i
 
 export const calculateRelicCost = (relicId: RelicId, currentLevel: number): number => {
   const baseCosts: Record<RelicId, number> = {
-    [RelicId.GLUTTONY]: 10, [RelicId.BETRAYAL]: 25, [RelicId.FALSE_IDOL]: 500, [RelicId.CONTRACT]: 50,
-    [RelicId.VOID_CATALYST]: 500, [RelicId.ABYSSAL_REFLEX]: 100, [RelicId.FRENZY]: 1000, [RelicId.REBELLION]: 1000
+    [RelicId.GLUTTONY]: 10, 
+    [RelicId.BETRAYAL]: 25, 
+    [RelicId.FALSE_IDOL]: 500, 
+    [RelicId.CONTRACT]: 50,
+    [RelicId.VOID_CATALYST]: 500, 
+    [RelicId.ABYSSAL_REFLEX]: 100, 
+    [RelicId.FRENZY]: 1000, 
+    [RelicId.REBELLION]: 1000,
+    [RelicId.SOUL_HARVESTER]: 500
   };
   const base = baseCosts[relicId] || 10;
-  const multiplier = 2;
-  // Level caps are 1 for unique relics, cost stays base.
+  const multiplier = (relicId === RelicId.SOUL_HARVESTER) ? 4 : 2;
+  // Level caps are 1 for specific relics
   if (relicId === RelicId.FRENZY || relicId === RelicId.REBELLION || relicId === RelicId.FALSE_IDOL || relicId === RelicId.VOID_CATALYST) return base;
   return Math.floor(base * Math.pow(multiplier, currentLevel));
 };
@@ -394,5 +401,8 @@ export const calculateNetIncomeByType = (state: GameState): Record<WorshipperTyp
 
 export const calculateSoulsEarned = (state: GameState): number => {
   const currentZealous = state.worshippers[WorshipperType.ZEALOUS] || 0;
-  return Math.floor(Math.sqrt(currentZealous));
+  const baseSouls = Math.sqrt(currentZealous);
+  const eyeLvl = state.relics[RelicId.SOUL_HARVESTER] || 0;
+  const bonus = 1 + (eyeLvl * 0.05);
+  return Math.floor(baseSouls * bonus);
 };

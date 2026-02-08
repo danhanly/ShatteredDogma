@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { GameState, WorshipperType, VesselId, WORSHIPPER_ORDER, GemType, RelicId, IncrementType, FateId } from '../types';
 import { PRESTIGE_UNLOCK_THRESHOLD, VESSEL_DEFINITIONS, FATE_DEFINITIONS } from '../constants';
@@ -38,6 +39,8 @@ const INITIAL_STATE: GameState = {
     [RelicId.ABYSSAL_REFLEX]: 0,
     [RelicId.FRENZY]: 0,
     [RelicId.REBELLION]: 0,
+    // Fix: Added missing SOUL_HARVESTER to initial state relics to satisfy Record<RelicId, number> type
+    [RelicId.SOUL_HARVESTER]: 0,
   },
   fates: {} as any,
   fatePurchases: 0,
