@@ -1,10 +1,9 @@
+import { WorshipperType, VesselId, VesselDefinition, GemType, RelicId, RelicDefinition, FateId, FateDefinition } from "./types";
 
-import { WorshipperType, VesselId, VesselDefinition, GemType, RelicId, RelicDefinition } from "./types";
-
-export const INITIAL_UPGRADE_COST = 50; // Technical Report: 50 * (1.5 ^ Level)
+export const INITIAL_UPGRADE_COST = 50; 
 export const COST_MULTIPLIER = 1.5;
 
-export const PRESTIGE_UNLOCK_THRESHOLD = 1; // Trigger: 1 Zealous
+export const PRESTIGE_UNLOCK_THRESHOLD = 1; 
 
 export const RELIC_DEFINITIONS: RelicDefinition[] = [
   {
@@ -34,8 +33,55 @@ export const RELIC_DEFINITIONS: RelicDefinition[] = [
     description: "Mattelock gains +25% efficiency per level.",
     maxLevel: 10,
     baseCost: 50
+  },
+  {
+    id: RelicId.VOID_CATALYST,
+    name: "Void Catalyst",
+    description: "Unlocks the 50% consumption reduction bonus for Focus Gems.",
+    maxLevel: 1,
+    baseCost: 500
+  },
+  {
+    id: RelicId.ABYSSAL_REFLEX,
+    name: "Abyssal Reflex",
+    description: "10% chance per level (max 50%) for Focus Gem cooldown to reset immediately after use.",
+    maxLevel: 5,
+    baseCost: 100
+  },
+  {
+    id: RelicId.FRENZY,
+    name: "The Frenzied Heart",
+    description: "Mattelock occasionally enters a 15s frenzy, quadrupling his click rate. (Once every 5 mins of play time)",
+    maxLevel: 1,
+    baseCost: 1000
+  },
+  {
+    id: RelicId.REBELLION,
+    name: "Martyr's Defiance",
+    description: "A random caste occasionally rebels for 30s, refusing to be consumed by the caste above them. (Once every 5 mins of play time)",
+    maxLevel: 1,
+    baseCost: 1000
   }
 ];
+
+export const FATE_DEFINITIONS: Record<FateId, FateDefinition> = {
+  click_power: { id: 'click_power', label: 'Manual Click Power', bonus: 0.01, suffix: '%' },
+  indolent_output: { id: 'indolent_output', label: 'Indolent Vessel Output', bonus: 0.01, suffix: '%' },
+  lowly_output: { id: 'lowly_output', label: 'Lowly Vessel Output', bonus: 0.01, suffix: '%' },
+  worldly_output: { id: 'worldly_output', label: 'Worldly Vessel Output', bonus: 0.01, suffix: '%' },
+  zealous_output: { id: 'zealous_output', label: 'Zealous Vessel Output', bonus: 0.01, suffix: '%' },
+  lowly_cons: { id: 'lowly_cons', label: 'Lowly Vessel Consumption', bonus: -0.01, suffix: '%' },
+  worldly_cons: { id: 'worldly_cons', label: 'Worldly Vessel Consumption', bonus: -0.01, suffix: '%' },
+  zealous_cons: { id: 'zealous_cons', label: 'Zealous Vessel Consumption', bonus: -0.01, suffix: '%' },
+  gem_cooldown: { id: 'gem_cooldown', label: 'Focus Gem Cooldown', bonus: -0.01, suffix: '%' },
+  gem_power: { id: 'gem_power', label: 'Focus Gem Click Power', bonus: 0.05, suffix: '%' },
+  mattelock_power: { id: 'mattelock_power', label: 'Mattelock Click Power', bonus: 0.02, suffix: '%' },
+  miracle_cost: { id: 'miracle_cost', label: 'Dark Miracle Costs', bonus: -0.01, suffix: '%' },
+  indolent_cost: { id: 'indolent_cost', label: 'Indolent Vessel Costs', bonus: -0.01, suffix: '%' },
+  lowly_cost: { id: 'lowly_cost', label: 'Lowly Vessel Costs', bonus: -0.01, suffix: '%' },
+  worldly_cost: { id: 'worldly_cost', label: 'Worldly Vessel Costs', bonus: -0.01, suffix: '%' },
+  zealous_cost: { id: 'zealous_cost', label: 'Zealous Vessel Costs', bonus: -0.01, suffix: '%' },
+};
 
 export const VESSEL_DEFINITIONS: VesselDefinition[] = [
   // TIER 1 - Foundation
@@ -48,6 +94,7 @@ export const VESSEL_DEFINITIONS: VesselDefinition[] = [
     baseCost: 15,
     baseOutput: 5,
     tier: 1,
+    costMultiplier: 1.15,
     isGenerator: true
   },
   {
@@ -57,8 +104,10 @@ export const VESSEL_DEFINITIONS: VesselDefinition[] = [
     lore: "Pip consumes the lazy energy of the Indolent to fuel his tireless work.",
     type: WorshipperType.LOWLY,
     baseCost: 150,
-    baseOutput: 2,
-    tier: 1
+    baseOutput: 5,
+    tier: 1,
+    costMultiplier: 1.15,
+    baseConsumption: { [WorshipperType.INDOLENT]: 25 }
   },
   {
     id: VesselId.WORLDLY_1,
@@ -67,8 +116,10 @@ export const VESSEL_DEFINITIONS: VesselDefinition[] = [
     lore: "Caspian trades the labor of the Lowly for influence.",
     type: WorshipperType.WORLDLY,
     baseCost: 5000,
-    baseOutput: 2,
-    tier: 1
+    baseOutput: 5,
+    tier: 1,
+    costMultiplier: 1.15,
+    baseConsumption: { [WorshipperType.LOWLY]: 50 }
   },
   {
     id: VesselId.ZEALOUS_1,
@@ -78,7 +129,9 @@ export const VESSEL_DEFINITIONS: VesselDefinition[] = [
     type: WorshipperType.ZEALOUS,
     baseCost: 100000,
     baseOutput: 1,
-    tier: 1
+    tier: 1,
+    costMultiplier: 1.15,
+    baseConsumption: { [WorshipperType.WORLDLY]: 100 }
   },
 
   // TIER 2 - Correction (Saviors)
@@ -91,6 +144,7 @@ export const VESSEL_DEFINITIONS: VesselDefinition[] = [
     baseCost: 2500,
     baseOutput: 100,
     tier: 2,
+    costMultiplier: 1.18,
     isGenerator: true
   },
   {
@@ -101,7 +155,9 @@ export const VESSEL_DEFINITIONS: VesselDefinition[] = [
     type: WorshipperType.LOWLY,
     baseCost: 25000,
     baseOutput: 25,
-    tier: 2
+    tier: 2,
+    costMultiplier: 1.22,
+    baseConsumption: { [WorshipperType.INDOLENT]: 250 }
   },
   {
     id: VesselId.WORLDLY_2,
@@ -111,7 +167,9 @@ export const VESSEL_DEFINITIONS: VesselDefinition[] = [
     type: WorshipperType.WORLDLY,
     baseCost: 500000,
     baseOutput: 25,
-    tier: 2
+    tier: 2,
+    costMultiplier: 1.24,
+    baseConsumption: { [WorshipperType.LOWLY]: 500 }
   },
   {
     id: VesselId.ZEALOUS_2,
@@ -121,7 +179,9 @@ export const VESSEL_DEFINITIONS: VesselDefinition[] = [
     type: WorshipperType.ZEALOUS,
     baseCost: 5000000,
     baseOutput: 5,
-    tier: 2
+    tier: 2,
+    costMultiplier: 1.28,
+    baseConsumption: { [WorshipperType.WORLDLY]: 500 }
   },
 
   // TIER 3 - Escalation
@@ -134,6 +194,7 @@ export const VESSEL_DEFINITIONS: VesselDefinition[] = [
     baseCost: 50000,
     baseOutput: 1500,
     tier: 3,
+    costMultiplier: 1.18,
     isGenerator: true
   },
   {
@@ -144,7 +205,9 @@ export const VESSEL_DEFINITIONS: VesselDefinition[] = [
     type: WorshipperType.LOWLY,
     baseCost: 250000,
     baseOutput: 150,
-    tier: 3
+    tier: 3,
+    costMultiplier: 1.22,
+    baseConsumption: { [WorshipperType.INDOLENT]: 1000 }
   },
   {
     id: VesselId.WORLDLY_3,
@@ -154,7 +217,9 @@ export const VESSEL_DEFINITIONS: VesselDefinition[] = [
     type: WorshipperType.WORLDLY,
     baseCost: 2500000,
     baseOutput: 50,
-    tier: 3
+    tier: 3,
+    costMultiplier: 1.25,
+    baseConsumption: { [WorshipperType.LOWLY]: 1000 }
   },
   {
     id: VesselId.ZEALOUS_3,
@@ -164,7 +229,9 @@ export const VESSEL_DEFINITIONS: VesselDefinition[] = [
     type: WorshipperType.ZEALOUS,
     baseCost: 50000000,
     baseOutput: 10,
-    tier: 3
+    tier: 3,
+    costMultiplier: 1.30,
+    baseConsumption: { [WorshipperType.WORLDLY]: 2500 }
   },
 
   // TIER 4 - Apex
@@ -177,6 +244,7 @@ export const VESSEL_DEFINITIONS: VesselDefinition[] = [
     baseCost: 5000000,
     baseOutput: 10000,
     tier: 4,
+    costMultiplier: 1.15,
     isGenerator: true
   },
   {
@@ -187,7 +255,9 @@ export const VESSEL_DEFINITIONS: VesselDefinition[] = [
     type: WorshipperType.LOWLY,
     baseCost: 25000000,
     baseOutput: 1000,
-    tier: 4
+    tier: 4,
+    costMultiplier: 1.20,
+    baseConsumption: { [WorshipperType.INDOLENT]: 10000 }
   },
   {
     id: VesselId.WORLDLY_4,
@@ -197,7 +267,9 @@ export const VESSEL_DEFINITIONS: VesselDefinition[] = [
     type: WorshipperType.WORLDLY,
     baseCost: 250000000,
     baseOutput: 250,
-    tier: 4
+    tier: 4,
+    costMultiplier: 1.22,
+    baseConsumption: { [WorshipperType.LOWLY]: 5000 }
   },
   {
     id: VesselId.ZEALOUS_4,
@@ -207,32 +279,11 @@ export const VESSEL_DEFINITIONS: VesselDefinition[] = [
     type: WorshipperType.ZEALOUS,
     baseCost: 500000000,
     baseOutput: 50,
-    tier: 4
+    tier: 4,
+    costMultiplier: 1.25,
+    baseConsumption: { [WorshipperType.WORLDLY]: 10000 }
   }
 ];
-
-// Technical Report: Integer Consumption Rates
-export const CONSUMPTION_RATES_PER_LVL: Record<VesselId, Partial<Record<WorshipperType, number>>> = {
-  [VesselId.INDOLENT_1]: {},
-  [VesselId.LOWLY_1]: { [WorshipperType.INDOLENT]: 10 },
-  [VesselId.WORLDLY_1]: { [WorshipperType.LOWLY]: 25 },
-  [VesselId.ZEALOUS_1]: { [WorshipperType.WORLDLY]: 50 },
-  
-  [VesselId.INDOLENT_2]: {},
-  [VesselId.LOWLY_2]: { [WorshipperType.INDOLENT]: 250 },
-  [VesselId.WORLDLY_2]: { [WorshipperType.LOWLY]: 500 },
-  [VesselId.ZEALOUS_2]: { [WorshipperType.WORLDLY]: 500 },
-
-  [VesselId.INDOLENT_3]: {},
-  [VesselId.LOWLY_3]: { [WorshipperType.INDOLENT]: 1000 },
-  [VesselId.WORLDLY_3]: { [WorshipperType.LOWLY]: 1000 },
-  [VesselId.ZEALOUS_3]: { [WorshipperType.WORLDLY]: 2500 },
-
-  [VesselId.INDOLENT_4]: {},
-  [VesselId.LOWLY_4]: { [WorshipperType.INDOLENT]: 10000 },
-  [VesselId.WORLDLY_4]: { [WorshipperType.LOWLY]: 5000 },
-  [VesselId.ZEALOUS_4]: { [WorshipperType.WORLDLY]: 10000 },
-};
 
 export const GEM_DEFINITIONS: Record<GemType, {
   name: string;
@@ -257,14 +308,14 @@ export const GEM_DEFINITIONS: Record<GemType, {
   },
   [GemType.EMERALD]: {
     name: "Emerald of the Greedy",
-    description: "Convert miracles to attract the Worldly (4:1 Ratio).",
+    description: "Convert miracles to attract the Worldly (2:1 Ratio).",
     color: "#4ade80",
     type: WorshipperType.WORLDLY,
     image: './public/gems/3.jpg'
   },
   [GemType.RUBY]: {
     name: "Ruby of the Fervent",
-    description: "Convert miracles to attract the Zealous (10:1 Ratio).",
+    description: "Convert miracles to attract the Zealous (5:1 Ratio).",
     color: "#ef4444",
     type: WorshipperType.ZEALOUS,
     image: './public/gems/4.jpg'
@@ -273,7 +324,7 @@ export const GEM_DEFINITIONS: Record<GemType, {
 
 export const GEM_DISCOVERY_FLAVOR = {
   title: "The Abyss Grants a Gift",
-  description: "As your shadow stretches across the mortal realm, focus gems crystallize from the void. They reduce consumption of their caste while active."
+  description: "As your shadow stretches across the mortal realm, focus gems crystallize from the void. They can be focused to enhance manual soul collection."
 };
 
 export const WORSHIPPER_DETAILS: Record<WorshipperType, { description: string; lore: string }> = {

@@ -1,9 +1,9 @@
-
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { GameState, WorshipperType, VesselId, WORSHIPPER_ORDER, GemType, RelicId, IncrementType } from '../types';
-import { PRESTIGE_UNLOCK_THRESHOLD, VESSEL_DEFINITIONS } from '../constants';
+import { GameState, WorshipperType, VesselId, WORSHIPPER_ORDER, GemType, RelicId, IncrementType, FateId } from '../types';
+import { PRESTIGE_UNLOCK_THRESHOLD, VESSEL_DEFINITIONS, FATE_DEFINITIONS } from '../constants';
 import { 
-  calculateClickPower, 
+  calculateManualClickPower, 
+  calculateMattelockClickPower,
   calculateProductionByType,
   calculateConsumptionByType,
   calculateSoulsEarned,
@@ -34,7 +34,17 @@ const INITIAL_STATE: GameState = {
     [RelicId.BETRAYAL]: 0,
     [RelicId.FALSE_IDOL]: 0,
     [RelicId.CONTRACT]: 0,
+    [RelicId.VOID_CATALYST]: 0,
+    [RelicId.ABYSSAL_REFLEX]: 0,
+    [RelicId.FRENZY]: 0,
+    [RelicId.REBELLION]: 0,
   },
+  fates: {} as any,
+  fatePurchases: 0,
+  lastPurchasedFateId: null,
+  lastPurchasedFateTime: 0,
+  lastPurchasedRelicId: null,
+  lastPurchasedRelicTime: 0,
   maxTotalWorshippers: 0,
   maxWorshippersByType: {
     [WorshipperType.WORLDLY]: 0,
@@ -72,6 +82,8 @@ const INITIAL_STATE: GameState = {
   assistantLevel: 0,
   assistantActive: false,
   totalClicks: 0,
+  manualClicks: 0,
+  mattelockClicks: 0,
   unlockedGems: [],
   activeGem: null,
   activeGemTimeRemaining: 0,
@@ -82,6 +94,9 @@ const INITIAL_STATE: GameState = {
     [GemType.RUBY]: 0,
   },
   showGemDiscovery: null,
+  frenzyTimeRemaining: 0,
+  rebellionTimeRemaining: 0,
+  rebelCaste: null,
   activeBulletin: null,
   settings: {
     soundEnabled: true,
@@ -97,6 +112,7 @@ const INITIAL_STATE: GameState = {
 export const useGame = () => {
   const [offlineGains, setOfflineGains] = useState<{ gains: Record<WorshipperType, number>, time: number } | null>(null);
   const [lastMiracleEvent, setLastMiracleEvent] = useState<{ power: number, type: WorshipperType, isAuto: boolean, timestamp: number } | null>(null);
+  const [lastGemRefresh, setLastGemRefresh] = useState<{ gem: GemType, timestamp: number } | null>(null);
 
   const [gameState, setGameState] = useState<GameState>(() => {
     try {
@@ -106,18 +122,11 @@ export const useGame = () => {
         return {
           ...INITIAL_STATE,
           ...parsed,
-          miracleLevel: parsed.miracleLevel !== undefined ? parsed.miracleLevel : 0,
-          worshippers: { ...INITIAL_STATE.worshippers, ...(parsed.worshippers || {}) },
           relics: { ...INITIAL_STATE.relics, ...(parsed.relics || {}) },
-          vesselToggles: { ...INITIAL_STATE.vesselToggles, ...(parsed.vesselToggles || {}) },
-          maxWorshippersByType: { ...INITIAL_STATE.maxWorshippersByType, ...(parsed.maxWorshippersByType || {}) },
-          settings: { ...INITIAL_STATE.settings, ...(parsed.settings || {}) },
-          vesselStarvationTimers: parsed.vesselStarvationTimers || {},
+          fates: parsed.fates || {},
         };
       }
-    } catch (e) {
-      console.warn('Failed to load save data:', e);
-    }
+    } catch (e) {}
     return INITIAL_STATE;
   });
 
@@ -130,8 +139,11 @@ export const useGame = () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(gameState));
   }, [gameState]);
 
-  const performMiracleInternal = useCallback((state: GameState) => {
-    const powerBase = calculateClickPower(state.miracleLevel);
+  const calculateInternalPower = useCallback((state: GameState, isAuto: boolean) => {
+    const powerBase = isAuto 
+        ? calculateMattelockClickPower(state.miracleLevel, state)
+        : calculateManualClickPower(state.miracleLevel, state);
+    
     let power = powerBase;
     let type = WorshipperType.INDOLENT; 
 
@@ -141,15 +153,18 @@ export const useGame = () => {
         power = powerBase;
         type = WorshipperType.LOWLY;
     } else if (state.activeGem === GemType.EMERALD) {
-        power = Math.floor(powerBase / 4);
+        power = Math.floor(powerBase / 2);
         type = WorshipperType.WORLDLY;
     } else if (state.activeGem === GemType.RUBY) {
-        power = Math.floor(powerBase / 10);
+        power = Math.floor(powerBase / 5);
         type = WorshipperType.ZEALOUS;
     }
 
-    const contractLvl = state.relics[RelicId.CONTRACT] || 0;
-    power = Math.floor(power * (1 + contractLvl * 0.25));
+    const gemPowerFateMod = 1 + (state.fates['gem_power'] || 0);
+    if (state.activeGem) {
+      power = Math.floor(power * gemPowerFateMod);
+    }
+
     return { power, type };
   }, []);
 
@@ -163,12 +178,15 @@ export const useGame = () => {
         const current = stateRef.current;
         let autoMiracle: { power: number, type: WorshipperType } | null = null;
 
-        // Process assistant click timing
-        if (current.assistantLevel > 0 && current.assistantActive) {
-            const interval = calculateAssistantInterval(current.assistantLevel) / 1000;
+        const effectiveLevel = current.assistantLevel === 0 && current.maxWorshippersByType[WorshipperType.INDOLENT] >= 1000 
+          ? 1 
+          : current.assistantLevel;
+
+        if (effectiveLevel > 0 && current.assistantActive) {
+            const interval = calculateAssistantInterval(effectiveLevel, current) / 1000;
             assistantTimer.current += delta;
             if (assistantTimer.current >= interval) {
-                autoMiracle = performMiracleInternal(current);
+                autoMiracle = calculateInternalPower(current, true);
                 assistantTimer.current = 0;
             }
         }
@@ -180,7 +198,6 @@ export const useGame = () => {
           const newWorshippers = { ...prev.worshippers };
           let detectedNetNegative = false;
 
-          // Apply passive income
           WORSHIPPER_ORDER.forEach(type => {
             const net = production[type] - consumption[type];
             if (net < 0 && !prev.hasSeenNetNegative && !detectedNetNegative) {
@@ -189,7 +206,6 @@ export const useGame = () => {
             newWorshippers[type] = Math.max(0, newWorshippers[type] + net * delta);
           });
 
-          // Apply auto-miracle if triggered
           if (autoMiracle) {
             newWorshippers[autoMiracle.type] += autoMiracle.power;
           }
@@ -199,58 +215,73 @@ export const useGame = () => {
           const newGemCooldowns = { ...prev.gemCooldowns };
 
           (Object.keys(newGemCooldowns) as GemType[]).forEach(gem => {
-            newGemCooldowns[gem] = Math.max(0, newGemCooldowns[gem] - delta);
+            const gemCooldownFateMod = 1 + (prev.fates['gem_cooldown'] || 0);
+            newGemCooldowns[gem] = Math.max(0, newGemCooldowns[gem] - (delta * gemCooldownFateMod));
           });
 
           if (newActiveGem && newActiveGemTimeRemaining <= 0) {
+            const refreshLvl = prev.relics[RelicId.ABYSSAL_REFLEX] || 0;
+            const refreshChance = refreshLvl * 0.1;
+            const triggered = Math.random() < refreshChance;
+            
             const betrayalLvl = prev.relics[RelicId.BETRAYAL] || 0;
-            newGemCooldowns[newActiveGem] = Math.max(60, 120 - betrayalLvl * 10); 
+            const cooldownBase = Math.max(60, 120 - betrayalLvl * 10);
+            
+            if (triggered) {
+                newGemCooldowns[newActiveGem] = 0;
+                setLastGemRefresh({ gem: newActiveGem, timestamp: Date.now() });
+            } else {
+                newGemCooldowns[newActiveGem] = cooldownBase;
+            }
             newActiveGem = null;
           }
+
+          // Random Frenzy Trigger (1 in 300 chance per second = once every 5 mins on average)
+          let newFrenzyTime = Math.max(0, prev.frenzyTimeRemaining - delta);
+          if (prev.relics[RelicId.FRENZY] > 0 && newFrenzyTime <= 0) {
+            if (Math.random() < (delta / 300)) {
+              newFrenzyTime = 15;
+            }
+          }
+
+          // Random Rebellion Trigger
+          let newRebellionTime = Math.max(0, prev.rebellionTimeRemaining - delta);
+          let newRebelCaste = prev.rebelCaste;
+          if (prev.relics[RelicId.REBELLION] > 0 && newRebellionTime <= 0) {
+            if (Math.random() < (delta / 300)) {
+              newRebellionTime = 30;
+              const rebelPool = [WorshipperType.INDOLENT, WorshipperType.LOWLY, WorshipperType.WORLDLY];
+              newRebelCaste = rebelPool[Math.floor(Math.random() * rebelPool.length)];
+            }
+          }
+          if (newRebellionTime <= 0) newRebelCaste = null;
 
           const newMaxByType = { ...prev.maxWorshippersByType };
           WORSHIPPER_ORDER.forEach(type => {
             newMaxByType[type] = Math.max(newMaxByType[type], newWorshippers[type]);
           });
 
-          // Assistant Auto-Unlock Logic
-          let newAssistantLevel = prev.assistantLevel;
-          let newAssistantActive = prev.assistantActive;
-          if (newMaxByType[WorshipperType.INDOLENT] >= 1000 && newAssistantLevel === 0) {
-            newAssistantLevel = 1;
-            newAssistantActive = true;
+          let finalAssistantLevel = prev.assistantLevel;
+          if (finalAssistantLevel === 0 && newMaxByType[WorshipperType.INDOLENT] >= 1000) {
+            finalAssistantLevel = 1;
           }
-
-          // Gem Unlocks logic
-          const newUnlockedGems = [...prev.unlockedGems];
-          let gemDiscovered: GemType | null = null;
-          const checkUnlock = (gem: GemType, condition: boolean) => {
-            if (!newUnlockedGems.includes(gem) && condition) {
-              newUnlockedGems.push(gem);
-              gemDiscovered = gem;
-            }
-          };
-          checkUnlock(GemType.LAPIS, prev.maxWorshippersByType[WorshipperType.INDOLENT] >= 500);
-          checkUnlock(GemType.QUARTZ, prev.maxWorshippersByType[WorshipperType.LOWLY] >= 50);
-          checkUnlock(GemType.EMERALD, prev.maxWorshippersByType[WorshipperType.WORLDLY] >= 50);
-          checkUnlock(GemType.RUBY, prev.maxWorshippersByType[WorshipperType.ZEALOUS] >= 50);
 
           return {
              ...prev,
              worshippers: newWorshippers,
              totalWorshippers: Object.values(newWorshippers).reduce((a: number, b: number) => a + b, 0),
              totalAccruedWorshippers: prev.totalAccruedWorshippers + (autoMiracle?.power || 0),
-             maxTotalWorshippers: Math.max(prev.maxTotalWorshippers, Object.values(newWorshippers).reduce((a: number, b: number) => a + b, 0)),
              maxWorshippersByType: newMaxByType,
              activeGem: newActiveGem,
              activeGemTimeRemaining: newActiveGemTimeRemaining,
              gemCooldowns: newGemCooldowns,
-             unlockedGems: newUnlockedGems,
-             assistantLevel: newAssistantLevel,
-             assistantActive: newAssistantActive,
-             showGemDiscovery: prev.showGemDiscovery || gemDiscovered,
              lastSaveTime: now,
              hasSeenNetNegative: prev.hasSeenNetNegative || detectedNetNegative,
+             mattelockClicks: prev.mattelockClicks + (autoMiracle ? 1 : 0),
+             assistantLevel: finalAssistantLevel,
+             frenzyTimeRemaining: newFrenzyTime,
+             rebellionTimeRemaining: newRebellionTime,
+             rebelCaste: newRebelCaste
           };
         });
 
@@ -265,164 +296,183 @@ export const useGame = () => {
     }, 100); 
 
     return () => clearInterval(intervalId);
-  }, [performMiracleInternal]);
+  }, [calculateInternalPower]);
 
   const performMiracle = useCallback(() => {
-    const { power, type } = performMiracleInternal(gameState);
+    const { power, type } = calculateInternalPower(gameState, false);
     setGameState(prev => ({
         ...prev,
         worshippers: { ...prev.worshippers, [type]: prev.worshippers[type] + power },
         totalAccruedWorshippers: prev.totalAccruedWorshippers + power,
         totalClicks: prev.totalClicks + 1,
+        manualClicks: prev.manualClicks + 1,
     }));
     return { power, type };
-  }, [gameState.miracleLevel, gameState.activeGem, gameState.relics, performMiracleInternal]);
-
-  const activateGem = useCallback((gem: GemType) => {
-    setGameState(prev => {
-      if (prev.activeGem || prev.gemCooldowns[gem] > 0 || !prev.unlockedGems.includes(gem)) return prev;
-      return { ...prev, activeGem: gem, activeGemTimeRemaining: 30 };
-    });
-  }, []);
-
-  const purchaseRelic = useCallback((relicId: RelicId) => {
-    setGameState(prev => {
-      const lvl = prev.relics[relicId] || 0;
-      const cost = calculateRelicCost(relicId, lvl);
-      if (prev.souls < cost) return prev;
-      return {
-        ...prev,
-        souls: prev.souls - cost,
-        relics: { ...prev.relics, [relicId]: lvl + 1 }
-      };
-    });
-  }, []);
-
-  const toggleVessel = useCallback((vesselId: string) => {
-    setGameState(prev => ({
-      ...prev,
-      vesselToggles: { ...prev.vesselToggles, [vesselId]: !prev.vesselToggles[vesselId] }
-    }));
-  }, []);
-
-  const toggleAllVessels = useCallback((caste: WorshipperType, imprison: boolean) => {
-    setGameState((prev: GameState) => {
-        const nextToggles = { ...prev.vesselToggles };
-        VESSEL_DEFINITIONS.filter(v => v.type === caste).forEach(v => {
-            if (prev.vesselLevels[v.id] > 0) {
-                nextToggles[v.id] = imprison;
-            }
-        });
-        return { ...prev, vesselToggles: nextToggles };
-    });
-  }, []);
+  }, [gameState.miracleLevel, gameState.activeGem, gameState.relics, calculateInternalPower]);
 
   const triggerPrestige = useCallback(() => {
     setGameState((prev: GameState) => {
        const soulsEarned = calculateSoulsEarned(prev);
-       const contractActive = prev.relics[RelicId.CONTRACT] > 0;
        return {
           ...INITIAL_STATE,
           souls: prev.souls + soulsEarned,
           relics: prev.relics,
+          fates: prev.fates,
+          fatePurchases: prev.fatePurchases,
           settings: prev.settings,
-          assistantLevel: contractActive ? prev.assistantLevel : 0,
-          assistantActive: contractActive ? prev.assistantActive : false,
-          maxTotalWorshippers: prev.maxTotalWorshippers,
-          maxWorshippersByType: prev.maxWorshippersByType,
-          hasSeenStartSplash: true,
-          hasSeenVesselIntro: true,
+          hasSeenStartSplash: prev.hasSeenStartSplash,
+          hasSeenVesselIntro: prev.hasSeenVesselIntro,
+          hasSeenEodIntro: prev.hasSeenEodIntro,
+          hasSeenMiracleIntro: prev.hasSeenMiracleIntro,
+          hasSeenAbyssIntro: prev.hasSeenAbyssIntro,
+          hasSeenLowlyModal: prev.hasSeenLowlyModal,
+          hasSeenWorldlyModal: prev.hasSeenWorldlyModal,
+          hasSeenZealousModal: prev.hasSeenZealousModal,
+          hasSeenAssistantIntro: prev.hasSeenAssistantIntro,
+          hasSeenNetNegative: prev.hasSeenNetNegative,
+          hasAcknowledgedPausedModal: prev.hasAcknowledgedPausedModal,
+          totalClicks: prev.totalClicks,
+          manualClicks: prev.manualClicks,
+          mattelockClicks: prev.mattelockClicks,
        };
     });
   }, []);
 
-  const purchaseUpgrade = useCallback(() => {
-    setGameState((prev: GameState) => {
-      const bulk = calculateBulkUpgrade(prev.miracleLevel, prev.miracleIncrement, prev);
-      if (prev.worshippers[WorshipperType.INDOLENT] < bulk.cost || bulk.count === 0) return prev;
-      return { 
-        ...prev, 
-        worshippers: { ...prev.worshippers, [WorshipperType.INDOLENT]: prev.worshippers[WorshipperType.INDOLENT] - bulk.cost }, 
-        miracleLevel: prev.miracleLevel + bulk.count 
-      };
-    });
-  }, []);
-
-  const purchaseVessel = useCallback((vesselId: string) => {
-    setGameState((prev: GameState) => {
-        const lvl = prev.vesselLevels[vesselId] || 0;
-        const bulk = calculateBulkVesselBuy(vesselId, lvl, prev.vesselIncrement, prev);
-        if (prev.worshippers[bulk.costType] < bulk.cost || bulk.count === 0) return prev;
+  const purchaseRelic = useCallback((id: RelicId) => {
+    setGameState(prev => {
+        const lvl = prev.relics[id] || 0;
+        const cost = calculateRelicCost(id, lvl);
+        if (prev.souls < cost) return prev;
         return { 
-          ...prev, 
-          worshippers: { ...prev.worshippers, [bulk.costType]: prev.worshippers[bulk.costType] - bulk.cost }, 
-          vesselLevels: { ...prev.vesselLevels, [vesselId]: lvl + bulk.count } 
+            ...prev, 
+            souls: prev.souls - cost, 
+            relics: { ...prev.relics, [id]: lvl + 1 },
+            lastPurchasedRelicId: id,
+            lastPurchasedRelicTime: Date.now()
         };
     });
   }, []);
 
-  const purchaseAssistant = useCallback(() => {
-    setGameState((prev: GameState) => {
-        const bulk = calculateAssistantBulkVesselBuy(prev.assistantLevel, prev.miracleIncrement, prev);
-        if (prev.worshippers[bulk.costType] < bulk.cost || bulk.count === 0) return prev;
-        return { 
-          ...prev, 
-          worshippers: { ...prev.worshippers, [bulk.costType]: prev.worshippers[bulk.costType] - bulk.cost }, 
-          assistantLevel: prev.assistantLevel + bulk.count 
+  const purchaseFateRelic = useCallback(() => {
+    setGameState(prev => {
+        const cost = Math.floor(10 * Math.pow(1.2, prev.fatePurchases));
+        if (prev.souls < cost) return prev;
+        
+        const fateIds = Object.keys(FATE_DEFINITIONS) as FateId[];
+        const randomFateId = fateIds[Math.floor(Math.random() * fateIds.length)];
+        const definition = FATE_DEFINITIONS[randomFateId];
+        
+        const newFates = { ...prev.fates };
+        newFates[randomFateId] = (newFates[randomFateId] || 0) + definition.bonus;
+        
+        return {
+            ...prev,
+            souls: prev.souls - cost,
+            fatePurchases: prev.fatePurchases + 1,
+            lastPurchasedFateId: randomFateId,
+            lastPurchasedFateTime: Date.now(),
+            fates: newFates
         };
     });
   }, []);
 
-  const toggleAssistant = useCallback(() => {
-    setGameState(prev => ({ ...prev, assistantActive: !prev.assistantActive }));
+  const setFlag = useCallback((key: keyof GameState, value: any) => {
+    setGameState(prev => ({ ...prev, [key]: value }));
   }, []);
 
-  const setMiracleIncrement = useCallback((val: IncrementType) => {
-    setGameState(prev => ({ ...prev, miracleIncrement: val }));
+  const closeDiscovery = useCallback(() => {
+    setGameState(prev => ({ ...prev, showGemDiscovery: null }));
   }, []);
 
-  const setVesselIncrement = useCallback((val: IncrementType) => {
-    setGameState(prev => ({ ...prev, vesselIncrement: val }));
+  const closeOfflineModal = useCallback(() => {
+    setOfflineGains(null);
+  }, []);
+
+  const toggleSound = useCallback(() => {
+    setGameState(prev => ({ ...prev, settings: { ...prev.settings, soundEnabled: !prev.settings.soundEnabled } }));
+  }, []);
+
+  const toggleMusic = useCallback(() => {
+    setGameState(prev => ({ ...prev, settings: { ...prev.settings, musicEnabled: !prev.settings.musicEnabled } }));
+  }, []);
+
+  const setMusicVolume = useCallback((volume: number) => {
+    setGameState(prev => ({ ...prev, settings: { ...prev.settings, musicVolume: volume } }));
+  }, []);
+
+  const debugAddWorshippers = useCallback((type: WorshipperType, amount: number) => {
+    setGameState(prev => ({
+      ...prev,
+      worshippers: { ...prev.worshippers, [type]: (prev.worshippers[type] || 0) + amount }
+    }));
+  }, []);
+
+  const debugUnlockFeature = useCallback((feature: 'GEMS' | 'VESSELS' | 'END_TIMES' | 'ASSISTANT') => {
+    setGameState(prev => {
+      const newState = { ...prev };
+      if (feature === 'GEMS') {
+        newState.unlockedGems = Object.values(GemType);
+      } else if (feature === 'VESSELS') {
+        newState.worshippers[WorshipperType.INDOLENT] += 1000;
+      } else if (feature === 'END_TIMES') {
+        newState.worshippers[WorshipperType.ZEALOUS] += 100;
+      } else if (feature === 'ASSISTANT') {
+        newState.assistantLevel = 1;
+      }
+      return newState;
+    });
+  }, []);
+
+  const debugAddSouls = useCallback((amount: number) => {
+    setGameState(prev => ({ ...prev, souls: prev.souls + amount }));
   }, []);
 
   return {
     gameState,
-    clickPower: calculateClickPower(gameState.miracleLevel),
+    clickPower: calculateManualClickPower(gameState.miracleLevel, gameState),
     passiveIncome: Object.values(calculateProductionByType(gameState)).reduce((a, b) => a + b, 0),
     performMiracle,
     lastMiracleEvent,
-    activateGem,
-    closeDiscovery: () => setGameState(prev => ({ ...prev, showGemDiscovery: null })),
+    lastGemRefresh,
+    activateGem: (gem: GemType) => setGameState(prev => (prev.activeGem || prev.gemCooldowns[gem] > 0) ? prev : { ...prev, activeGem: gem, activeGemTimeRemaining: 30 }),
+    closeDiscovery,
     purchaseRelic,
-    toggleVessel,
-    toggleAllVessels,
-    toggleAssistant,
+    purchaseFateRelic,
     triggerPrestige,
-    purchaseUpgrade,
-    purchaseVessel,
-    purchaseAssistant,
-    setMiracleIncrement,
-    setVesselIncrement,
-    toggleSound: () => setGameState(prev => ({ ...prev, settings: { ...prev.settings, soundEnabled: !prev.settings.soundEnabled } })),
-    toggleMusic: () => setGameState(prev => ({ ...prev, settings: { ...prev.settings, musicEnabled: !prev.settings.musicEnabled } })),
-    setMusicVolume: (v: number) => setGameState(prev => ({ ...prev, settings: { ...prev.settings, musicVolume: v } })),
+    purchaseUpgrade: () => setGameState(prev => {
+        const bulk = calculateBulkUpgrade(prev.miracleLevel, prev.miracleIncrement, prev);
+        if (prev.worshippers[WorshipperType.INDOLENT] < bulk.cost || bulk.count === 0) return prev;
+        return { ...prev, worshippers: { ...prev.worshippers, [WorshipperType.INDOLENT]: prev.worshippers[WorshipperType.INDOLENT] - bulk.cost }, miracleLevel: prev.miracleLevel + bulk.count };
+    }),
+    purchaseVessel: (id: string) => setGameState(prev => {
+        const lvl = prev.vesselLevels[id] || 0;
+        const bulk = calculateBulkVesselBuy(id, lvl, prev.vesselIncrement, prev);
+        if (prev.worshippers[bulk.costType] < bulk.cost || bulk.count === 0) return prev;
+        return { ...prev, worshippers: { ...prev.worshippers, [bulk.costType]: prev.worshippers[bulk.costType] - bulk.cost }, vesselLevels: { ...prev.vesselLevels, [id]: lvl + bulk.count } };
+    }),
+    purchaseAssistant: () => setGameState(prev => {
+        const bulk = calculateAssistantBulkVesselBuy(prev.assistantLevel, prev.miracleIncrement, prev);
+        if (prev.worshippers[bulk.costType] < bulk.cost || bulk.count === 0) return prev;
+        return { ...prev, worshippers: { ...prev.worshippers, [bulk.costType]: prev.worshippers[bulk.costType] - bulk.cost }, assistantLevel: prev.assistantLevel + bulk.count };
+    }),
+    toggleVessel: (id: string) => setGameState(prev => ({ ...prev, vesselToggles: { ...prev.vesselToggles, [id]: !prev.vesselToggles[id] } })),
+    toggleAllVessels: (caste: WorshipperType, imprison: boolean) => setGameState(prev => {
+        const nextToggles = { ...prev.vesselToggles };
+        VESSEL_DEFINITIONS.filter(v => v.type === caste).forEach(v => { if (prev.vesselLevels[v.id] > 0) nextToggles[v.id] = imprison; });
+        return { ...prev, vesselToggles: nextToggles };
+    }),
+    toggleAssistant: () => setGameState(prev => ({ ...prev, assistantActive: !prev.assistantActive })),
+    setMiracleIncrement: (val: IncrementType) => setGameState(prev => ({ ...prev, miracleIncrement: val })),
+    setVesselIncrement: (val: IncrementType) => setGameState(prev => ({ ...prev, vesselIncrement: val })),
+    toggleSound,
+    toggleMusic,
+    setMusicVolume,
     offlineGains,
-    closeOfflineModal: () => setOfflineGains(null),
-    setFlag: (flag: keyof GameState, value: any) => setGameState(prev => ({ ...prev, [flag]: value })),
-    resetSave: () => { localStorage.removeItem(STORAGE_KEY); setGameState(INITIAL_STATE); },
-    debugAddWorshippers: (type: WorshipperType, amount: number) => setGameState(prev => ({ ...prev, worshippers: { ...prev.worshippers, [type]: prev.worshippers[type] + amount } })),
-    debugUnlockFeature: (feature: 'GEMS' | 'VESSELS' | 'END_TIMES' | 'ASSISTANT') => {
-        setGameState(prev => {
-            const next = { ...prev };
-            if (feature === 'GEMS') next.unlockedGems = [GemType.LAPIS, GemType.QUARTZ, GemType.EMERALD, GemType.RUBY];
-            if (feature === 'VESSELS') next.maxWorshippersByType[WorshipperType.INDOLENT] = 1000;
-            if (feature === 'END_TIMES') next.maxWorshippersByType[WorshipperType.ZEALOUS] = PRESTIGE_UNLOCK_THRESHOLD;
-            if (feature === 'ASSISTANT') {
-                next.maxWorshippersByType[WorshipperType.INDOLENT] = Math.max(next.maxWorshippersByType[WorshipperType.INDOLENT], 1000);
-            }
-            return next;
-        });
-    },
-    debugAddSouls: (amount: number) => setGameState(prev => ({ ...prev, souls: prev.souls + amount }))
+    closeOfflineModal,
+    setFlag,
+    debugAddWorshippers,
+    debugUnlockFeature,
+    debugAddSouls,
+    resetSave: () => { localStorage.removeItem(STORAGE_KEY); setGameState(INITIAL_STATE); }
   };
 };

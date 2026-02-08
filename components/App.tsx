@@ -28,7 +28,9 @@ const App: React.FC = () => {
     purchaseAssistant,
     toggleAssistant,
     purchaseRelic,
+    purchaseFateRelic,
     toggleVessel,
+    toggleAllVessels,
     setMiracleIncrement,
     setVesselIncrement,
     toggleSound,
@@ -38,6 +40,8 @@ const App: React.FC = () => {
     closeOfflineModal,
     triggerPrestige,
     setFlag,
+    lastMiracleEvent,
+    lastGemRefresh,
     debugAddWorshippers,
     debugUnlockFeature,
     debugAddSouls,
@@ -198,22 +202,15 @@ const App: React.FC = () => {
 
   const showMiracleIntro = gameState.hasSeenStartSplash && gameState.totalAccruedWorshippers > 0 && !gameState.hasSeenMiracleIntro;
   const showVesselIntro = gameState.maxWorshippersByType[WorshipperType.INDOLENT] >= 100 && !gameState.hasSeenVesselIntro;
-  
-  // Technical Fix: Trigger End Times Modal specifically based on 1 Zealous Worshipper
   const showEodIntro = gameState.maxWorshippersByType[WorshipperType.ZEALOUS] >= PRESTIGE_UNLOCK_THRESHOLD && !gameState.hasSeenEodIntro;
-
-  // Revised Assistant Trigger Logic: 1000 Indolent Worshippers
   const assistantUnlocked = gameState.maxWorshippersByType[WorshipperType.INDOLENT] >= 1000;
   const showAssistantIntro = assistantUnlocked && !gameState.hasSeenAssistantIntro;
-
   const hasLowlyVessel = (gameState.vesselLevels['LOWLY_1'] || 0) > 0;
   const hasWorldlyVessel = (gameState.vesselLevels['WORLDLY_1'] || 0) > 0;
   const hasZealousVessel = (gameState.vesselLevels['ZEALOUS_1'] || 0) > 0;
-
   const showLowlyModal = hasLowlyVessel && !gameState.hasSeenLowlyModal;
   const showWorldlyModal = hasWorldlyVessel && !gameState.hasSeenWorldlyModal;
   const showZealousModal = hasZealousVessel && !gameState.hasSeenZealousModal;
-
   const canShowStarvedModal = gameState.hasSeenPausedModal && !gameState.hasAcknowledgedPausedModal && gameState.hasSeenStartSplash;
 
   return (
@@ -290,8 +287,10 @@ const App: React.FC = () => {
         <MainScreen 
           gameState={gameState} 
           onTap={(x, y) => performMiracle()} 
+          autoClickTrigger={lastMiracleEvent}
           worshipperImages={worshipperImages}
           bgUrl={bgUrl}
+          onToggleAllVessels={toggleAllVessels}
         />
         
         <Menu 
@@ -310,10 +309,13 @@ const App: React.FC = () => {
           assistantUrl={assistantUrl}
           onPrestige={triggerPrestige}
           onPurchaseRelic={purchaseRelic}
+          onPurchaseFate={purchaseFateRelic}
           onToggleVessel={toggleVessel}
+          onToggleAllVessels={toggleAllVessels}
           endOfDaysUrl={endOfDaysUrl}
           highlightVessels={highlightVessels}
           highlightAssistant={highlightAssistant}
+          lastGemRefresh={lastGemRefresh}
         />
       </main>
 

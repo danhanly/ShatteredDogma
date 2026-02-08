@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { GameState, WorshipperType, ClickEffect, WORSHIPPER_ORDER, GemType } from '../types';
 import { Crown, Ghost, Frown, Sword } from 'lucide-react';
@@ -105,8 +104,11 @@ export const MainScreen: React.FC<MainScreenProps> = ({ gameState, onTap, autoCl
   };
 
   const activeGemDef = gameState.activeGem ? GEM_DEFINITIONS[gameState.activeGem] : null;
-  const orbColor = activeGemDef ? activeGemDef.color : '#9333ea'; 
-  const orbLabel = activeGemDef ? activeGemDef.type : 'Worshippers';
+  
+  // Frenzy Orb Visual: Gold
+  const frenzyActive = gameState.frenzyTimeRemaining > 0;
+  const orbColor = frenzyActive ? '#c5a059' : (activeGemDef ? activeGemDef.color : '#9333ea'); 
+  const orbLabel = frenzyActive ? 'FRENZY' : (activeGemDef ? activeGemDef.type : 'Worshippers');
   const orbValue = activeGemDef ? gameState.worshippers[activeGemDef.type] : gameState.totalWorshippers;
 
   return (

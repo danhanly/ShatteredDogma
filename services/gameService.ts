@@ -1,9 +1,13 @@
+import { COST_MULTIPLIER, INITIAL_UPGRADE_COST, VESSEL_DEFINITIONS } from "../constants";
+import { GameState, WorshipperType, RelicId, GemType, IncrementType, VesselId, FateId, WORSHIPPER_ORDER } from "../types";
 
-import { COST_MULTIPLIER, INITIAL_UPGRADE_COST, VESSEL_DEFINITIONS, CONSUMPTION_RATES_PER_LVL } from "../constants";
-import { GameState, WorshipperType, RelicId, GemType, IncrementType, VesselId } from "../types";
+const getFateMod = (state: GameState, id: FateId) => {
+  return (state.fates[id] || 0);
+};
 
-export const calculateUpgradeCost = (currentLevel: number): number => {
-  return Math.floor(INITIAL_UPGRADE_COST * Math.pow(COST_MULTIPLIER, currentLevel));
+export const calculateUpgradeCost = (currentLevel: number, state: GameState): number => {
+  const fateCostMod = 1 + getFateMod(state, 'miracle_cost');
+  return Math.floor(INITIAL_UPGRADE_COST * Math.pow(COST_MULTIPLIER, currentLevel) * fateCostMod);
 };
 
 export const calculateBulkUpgrade = (currentLevel: number, increment: IncrementType, state: GameState) => {
@@ -13,7 +17,7 @@ export const calculateBulkUpgrade = (currentLevel: number, increment: IncrementT
   
   if (increment === 'MAX') {
     while (true) {
-      const cost = calculateUpgradeCost(tempLevel);
+      const cost = calculateUpgradeCost(tempLevel, state);
       if (state.worshippers[WorshipperType.INDOLENT] < totalCost + cost) break;
       totalCost += cost;
       tempLevel++;
@@ -26,7 +30,7 @@ export const calculateBulkUpgrade = (currentLevel: number, increment: IncrementT
     if (currentLevel % inc === 0) targetCount = inc;
 
     for (let i = 0; i < targetCount; i++) {
-      totalCost += calculateUpgradeCost(tempLevel + i);
+      totalCost += calculateUpgradeCost(tempLevel + i, state);
     }
     count = targetCount;
   }
@@ -34,12 +38,48 @@ export const calculateBulkUpgrade = (currentLevel: number, increment: IncrementT
   return { count, cost: totalCost };
 };
 
-export const calculateClickPower = (currentLevel: number): number => {
-  return 10 + (currentLevel * 5);
+export const calculateMilestoneMultiplier = (level: number): number => {
+  let multiplier = 1;
+  if (level >= 10) multiplier *= 2;
+  if (level >= 25) multiplier *= 2;
+  if (level >= 50) multiplier *= 2;
+  if (level >= 100) {
+    const hundreds = Math.floor(level / 100);
+    multiplier *= Math.pow(2, hundreds);
+  }
+  return multiplier;
 };
 
-export const rollWorshipperType = (): WorshipperType => {
-  return WorshipperType.INDOLENT; 
+export const isMilestoneLevel = (level: number): boolean => {
+  if (level === 10 || level === 25 || level === 50) return true;
+  if (level >= 100 && level % 100 === 0) return true;
+  return false;
+};
+
+// Split into Manual and Mattelock powers
+export const calculateManualClickPower = (currentLevel: number, state: GameState): number => {
+  const base = 10 + (currentLevel * 5);
+  const milestoneMultiplier = calculateMilestoneMultiplier(currentLevel);
+  const manualFateMod = 1 + getFateMod(state, 'click_power');
+  // Manual power only uses manual bonuses
+  return base * milestoneMultiplier * manualFateMod;
+};
+
+export const calculateMattelockClickPower = (currentLevel: number, state: GameState): number => {
+  const base = 10 + (currentLevel * 5);
+  const milestoneMultiplier = calculateMilestoneMultiplier(currentLevel);
+  
+  const mattelockFateMod = 1 + getFateMod(state, 'mattelock_power');
+  const contractLvl = state.relics[RelicId.CONTRACT] || 0;
+  const contractMultiplier = 1 + (contractLvl * 0.25);
+
+  // Mattelock power uses exclusive Mattelock bonuses and Relic_CONTRACT
+  return base * milestoneMultiplier * mattelockFateMod * contractMultiplier;
+};
+
+// Standard click power for UI display (usually manual)
+export const calculateClickPower = (currentLevel: number, state: GameState): number => {
+  return calculateManualClickPower(currentLevel, state);
 };
 
 const getGemForCaste = (caste: WorshipperType | null): GemType | null => {
@@ -51,12 +91,15 @@ const getGemForCaste = (caste: WorshipperType | null): GemType | null => {
 };
 
 export const calculateVesselEfficiency = (state: GameState, vesselId: VesselId): number => {
-  const requirements = CONSUMPTION_RATES_PER_LVL[vesselId];
+  const def = VESSEL_DEFINITIONS.find(v => v.id === vesselId);
+  const requirements = def?.baseConsumption;
+  
   if (!requirements || Object.keys(requirements).length === 0) return 1.0;
 
   const lvl = state.vesselLevels[vesselId] || 0;
   if (lvl === 0 || state.vesselToggles[vesselId]) return 0;
 
+  const milestoneMultiplier = calculateMilestoneMultiplier(lvl);
   const relicGluttonyLvl = state.relics[RelicId.GLUTTONY] || 0;
   const consumptionReduction = relicGluttonyLvl * 0.05;
 
@@ -64,9 +107,22 @@ export const calculateVesselEfficiency = (state: GameState, vesselId: VesselId):
 
   Object.entries(requirements).forEach(([resType, baseRate]) => {
     const type = resType as WorshipperType;
-    let required = Math.floor(baseRate! * lvl * (1 - consumptionReduction));
     
-    if (state.activeGem && getGemForCaste(state.vesselLevels[vesselId] ? VESSEL_DEFINITIONS.find(v => v.id === vesselId)!.type : null) === state.activeGem) {
+    // REBELLION LOGIC: If a resource is rebelling, vessels consuming it have free efficiency for that resource
+    if (state.rebellionTimeRemaining > 0 && state.rebelCaste === type) {
+      return; 
+    }
+
+    let fateConsMod = 1;
+    if (type === WorshipperType.LOWLY) fateConsMod += getFateMod(state, 'lowly_cons');
+    if (type === WorshipperType.WORLDLY) fateConsMod += getFateMod(state, 'worldly_cons');
+    if (type === WorshipperType.ZEALOUS) fateConsMod += getFateMod(state, 'zealous_cons');
+
+    let required = Math.floor(baseRate! * lvl * milestoneMultiplier * (1 - consumptionReduction) * fateConsMod);
+    
+    const defType = VESSEL_DEFINITIONS.find(v => v.id === vesselId)?.type || null;
+    const hasVoidCatalyst = (state.relics[RelicId.VOID_CATALYST] || 0) > 0;
+    if (hasVoidCatalyst && state.activeGem && getGemForCaste(defType) === state.activeGem) {
         required = Math.floor(required * 0.5);
     }
 
@@ -81,62 +137,67 @@ export const calculateVesselEfficiency = (state: GameState, vesselId: VesselId):
 };
 
 export const calculateSingleVesselConsumption = (state: GameState, vesselId: VesselId, level: number): { type: WorshipperType, amount: number } | null => {
-  const requirements = CONSUMPTION_RATES_PER_LVL[vesselId];
-  if (!requirements) return null;
-
   const def = VESSEL_DEFINITIONS.find(v => v.id === vesselId);
-  if (!def) return null;
+  const requirements = def?.baseConsumption;
+  if (!requirements || level === 0) return null;
 
-  // Find the consumed type (assuming 1 for now based on data)
   const consumedType = Object.keys(requirements)[0] as WorshipperType;
   if (!consumedType) return null;
 
-  const baseRate = requirements[consumedType]!;
+  // REBELLION LOGIC
+  if (state.rebellionTimeRemaining > 0 && state.rebelCaste === consumedType) {
+    return { type: consumedType, amount: 0 };
+  }
+
+  const baseRate = (requirements as any)[consumedType]!;
+  const milestoneMultiplier = calculateMilestoneMultiplier(level);
   
   const relicGluttonyLvl = state.relics[RelicId.GLUTTONY] || 0;
   const consumptionReduction = relicGluttonyLvl * 0.05;
+
+  let fateConsMod = 1;
+  if (consumedType === WorshipperType.LOWLY) fateConsMod += getFateMod(state, 'lowly_cons');
+  if (consumedType === WorshipperType.WORLDLY) fateConsMod += getFateMod(state, 'worldly_cons');
+  if (consumedType === WorshipperType.ZEALOUS) fateConsMod += getFateMod(state, 'zealous_cons');
   
   const efficiency = calculateVesselEfficiency(state, vesselId);
   
   let currentReduction = consumptionReduction;
-  if (state.activeGem && getGemForCaste(def.type) === state.activeGem) {
+  const hasVoidCatalyst = (state.relics[RelicId.VOID_CATALYST] || 0) > 0;
+  if (hasVoidCatalyst && state.activeGem && getGemForCaste(def!.type) === state.activeGem) {
       currentReduction = Math.min(1.0, currentReduction + 0.5);
   }
 
-  const amount = Math.floor(baseRate * level * efficiency * (1 - currentReduction));
+  const amount = Math.floor(baseRate * level * milestoneMultiplier * efficiency * (1 - currentReduction) * fateConsMod);
   
   return { type: consumedType, amount };
 };
 
-const getVesselMultiplier = (vesselId: string): number => {
-  const multipliers: Record<string, number> = {
-    [VesselId.INDOLENT_1]: 1.15, [VesselId.LOWLY_1]: 1.20, [VesselId.WORLDLY_1]: 1.22, [VesselId.ZEALOUS_1]: 1.25,
-    [VesselId.INDOLENT_2]: 1.18, [VesselId.LOWLY_2]: 1.22, [VesselId.WORLDLY_2]: 1.24, [VesselId.ZEALOUS_2]: 1.28,
-    [VesselId.INDOLENT_3]: 1.18, [VesselId.LOWLY_3]: 1.22, [VesselId.WORLDLY_3]: 1.25, [VesselId.ZEALOUS_3]: 1.30,
-    [VesselId.INDOLENT_4]: 1.15, [VesselId.LOWLY_4]: 1.20, [VesselId.WORLDLY_4]: 1.22, [VesselId.ZEALOUS_4]: 1.25,
-  };
-  return multipliers[vesselId] || 1.2;
-};
-
-export const getVesselCostInfo = (vesselId: string, level: number): { amount: number, type: WorshipperType } => {
+export const getVesselCostInfo = (vesselId: string, level: number, state: GameState): { amount: number, type: WorshipperType } => {
   const def = VESSEL_DEFINITIONS.find(v => v.id === vesselId);
   if (!def) return { amount: 0, type: WorshipperType.INDOLENT };
 
+  let fateCostMod = 1;
+  if (def.type === WorshipperType.INDOLENT) fateCostMod += getFateMod(state, 'indolent_cost');
+  if (def.type === WorshipperType.LOWLY) fateCostMod += getFateMod(state, 'lowly_cost');
+  if (def.type === WorshipperType.WORLDLY) fateCostMod += getFateMod(state, 'worldly_cost');
+  if (def.type === WorshipperType.ZEALOUS) fateCostMod += getFateMod(state, 'zealous_cost');
+
   if (level === 0) {
-    if (vesselId === VesselId.LOWLY_1) return { amount: 1000, type: WorshipperType.INDOLENT };
-    if (vesselId === VesselId.WORLDLY_1) return { amount: 1000, type: WorshipperType.LOWLY };
-    if (vesselId === VesselId.ZEALOUS_1) return { amount: 1000, type: WorshipperType.WORLDLY };
+    if (vesselId === VesselId.LOWLY_1) return { amount: Math.floor(1000 * fateCostMod), type: WorshipperType.INDOLENT };
+    if (vesselId === VesselId.WORLDLY_1) return { amount: Math.floor(1000 * fateCostMod), type: WorshipperType.LOWLY };
+    if (vesselId === VesselId.ZEALOUS_1) return { amount: Math.floor(1000 * fateCostMod), type: WorshipperType.WORLDLY };
   }
 
-  const multiplier = getVesselMultiplier(vesselId);
+  const multiplier = def.costMultiplier;
   return { 
-    amount: Math.floor(def.baseCost * Math.pow(multiplier, level)), 
+    amount: Math.floor(def.baseCost * Math.pow(multiplier, level) * fateCostMod), 
     type: def.type 
   };
 };
 
-export const calculateVesselCost = (vesselId: string, currentLevel: number): number => {
-  return getVesselCostInfo(vesselId, currentLevel).amount;
+export const calculateVesselCost = (vesselId: string, currentLevel: number, state: GameState): number => {
+  return getVesselCostInfo(vesselId, currentLevel, state).amount;
 };
 
 export const calculateBulkVesselBuy = (vesselId: string, currentLevel: number, increment: IncrementType, state: GameState) => {
@@ -144,11 +205,11 @@ export const calculateBulkVesselBuy = (vesselId: string, currentLevel: number, i
   let totalCost = 0;
   let tempLevel = currentLevel;
   
-  const { type: initialCostType } = getVesselCostInfo(vesselId, tempLevel);
+  const { type: initialCostType } = getVesselCostInfo(vesselId, tempLevel, state);
 
   if (increment === 'MAX') {
     while (true) {
-      const { amount, type } = getVesselCostInfo(vesselId, tempLevel);
+      const { amount, type } = getVesselCostInfo(vesselId, tempLevel, state);
       if (type !== initialCostType) break;
 
       if (state.worshippers[type] < totalCost + amount) break;
@@ -163,7 +224,7 @@ export const calculateBulkVesselBuy = (vesselId: string, currentLevel: number, i
     if (currentLevel % inc === 0) targetCount = inc;
     
     for (let i = 0; i < targetCount; i++) {
-      const { amount, type } = getVesselCostInfo(vesselId, tempLevel + i);
+      const { amount, type } = getVesselCostInfo(vesselId, tempLevel + i, state);
       if (type !== initialCostType && count > 0) break;
       
       totalCost += amount;
@@ -178,15 +239,17 @@ export const calculateBulkVesselBuy = (vesselId: string, currentLevel: number, i
 export const calculateRelicCost = (relicId: RelicId, currentLevel: number): number => {
   const baseCosts: Record<RelicId, number> = {
     [RelicId.GLUTTONY]: 10, [RelicId.BETRAYAL]: 25, [RelicId.FALSE_IDOL]: 500, [RelicId.CONTRACT]: 50,
+    [RelicId.VOID_CATALYST]: 500, [RelicId.ABYSSAL_REFLEX]: 100, [RelicId.FRENZY]: 1000, [RelicId.REBELLION]: 1000
   };
   const base = baseCosts[relicId] || 10;
   const multiplier = 2;
+  // Level caps are 1 for unique relics, cost stays base.
+  if (relicId === RelicId.FRENZY || relicId === RelicId.REBELLION || relicId === RelicId.FALSE_IDOL || relicId === RelicId.VOID_CATALYST) return base;
   return Math.floor(base * Math.pow(multiplier, currentLevel));
 };
 
 export const calculateAssistantCost = (currentLevel: number): { amount: number, type: WorshipperType } => {
-  // Start at 1 Worldly, scale by 2x per level. Exclusively Worldly.
-  const cost = Math.floor(1 * Math.pow(2, currentLevel));
+  const cost = Math.floor(1 * Math.pow(100, currentLevel));
   return { amount: cost, type: WorshipperType.WORLDLY };
 };
 
@@ -214,7 +277,6 @@ export const calculateAssistantBulkVesselBuy = (currentLevel: number, increment:
     let targetCount = inc - (currentLevel % inc);
     if (currentLevel % inc === 0) targetCount = inc;
     
-    // Clamp to MAX_LEVEL
     if (currentLevel + targetCount > MAX_LEVEL) {
         targetCount = MAX_LEVEL - currentLevel;
     }
@@ -229,20 +291,30 @@ export const calculateAssistantBulkVesselBuy = (currentLevel: number, increment:
   return { count, cost: totalCost, costType };
 };
 
-export const calculateAssistantInterval = (level: number): number => {
+export const calculateAssistantInterval = (level: number, state?: GameState): number => {
   if (level === 0) return Infinity;
-  // Level 1: 2000ms
-  // Level 2: 1000ms
-  // Level 3: 500ms
-  // Level 4: 250ms
-  // Level 5: 125ms
-  return 2000 / Math.pow(2, level - 1);
+  let baseInterval = 2000 / Math.pow(2, level - 1);
+  
+  // FRENZY LOGIC: Quadruple speed
+  if (state && state.frenzyTimeRemaining > 0) {
+    baseInterval /= 4;
+  }
+
+  return baseInterval;
 };
 
-export const calculateVesselOutput = (vesselId: string, currentLevel: number): number => {
+export const calculateVesselOutput = (vesselId: string, currentLevel: number, state: GameState): number => {
   const def = VESSEL_DEFINITIONS.find(v => v.id === vesselId);
   if (!def || currentLevel === 0) return 0;
-  return def.baseOutput * currentLevel;
+  const milestoneMultiplier = calculateMilestoneMultiplier(currentLevel);
+  
+  let fateOutMod = 1;
+  if (def.type === WorshipperType.INDOLENT) fateOutMod += getFateMod(state, 'indolent_output');
+  if (def.type === WorshipperType.LOWLY) fateOutMod += getFateMod(state, 'lowly_output');
+  if (def.type === WorshipperType.WORLDLY) fateOutMod += getFateMod(state, 'worldly_output');
+  if (def.type === WorshipperType.ZEALOUS) fateOutMod += getFateMod(state, 'zealous_output');
+
+  return def.baseOutput * currentLevel * milestoneMultiplier * fateOutMod;
 };
 
 export const calculateProductionByType = (state: GameState): Record<WorshipperType, number> => {
@@ -254,8 +326,8 @@ export const calculateProductionByType = (state: GameState): Record<WorshipperTy
     const level = state.vesselLevels[def.id] || 0;
     if (level > 0 && !state.vesselToggles[def.id]) {
       const efficiency = calculateVesselEfficiency(state, def.id as VesselId);
-      const baseOutput = calculateVesselOutput(def.id, level);
-      production[def.type] += Math.floor(baseOutput * efficiency);
+      const output = calculateVesselOutput(def.id, level, state);
+      production[def.type] += Math.floor(output * efficiency);
     }
   });
 
@@ -274,16 +346,32 @@ export const calculateConsumptionByType = (state: GameState): Record<WorshipperT
     const level = state.vesselLevels[def.id] || 0;
     if (level > 0 && !state.vesselToggles[def.id]) {
       const efficiency = calculateVesselEfficiency(state, def.id as VesselId);
-      const requirements = CONSUMPTION_RATES_PER_LVL[def.id as VesselId];
+      const requirements = def.baseConsumption;
       
+      if (!requirements) return;
+
+      const milestoneMultiplier = calculateMilestoneMultiplier(level);
       let baseReduction = consumptionReduction;
-      if (state.activeGem && getGemForCaste(def.type) === state.activeGem) {
+      
+      const hasVoidCatalyst = (state.relics[RelicId.VOID_CATALYST] || 0) > 0;
+      if (hasVoidCatalyst && state.activeGem && getGemForCaste(def.type) === state.activeGem) {
           baseReduction = Math.min(1.0, baseReduction + 0.5);
       }
 
       Object.entries(requirements).forEach(([resType, rate]) => {
         const type = resType as WorshipperType;
-        const amount = Math.floor(rate! * level * efficiency * (1 - baseReduction));
+        
+        // REBELLION LOGIC: Skip consumption if rebelling
+        if (state.rebellionTimeRemaining > 0 && state.rebelCaste === type) {
+          return;
+        }
+
+        let fateConsMod = 1;
+        if (type === WorshipperType.LOWLY) fateConsMod += getFateMod(state, 'lowly_cons');
+        if (type === WorshipperType.WORLDLY) fateConsMod += getFateMod(state, 'worldly_cons');
+        if (type === WorshipperType.ZEALOUS) fateConsMod += getFateMod(state, 'zealous_cons');
+
+        const amount = Math.floor(rate! * level * milestoneMultiplier * efficiency * (1 - baseReduction) * fateConsMod);
         totalConsumption[type] += amount;
       });
     }
@@ -295,16 +383,16 @@ export const calculateConsumptionByType = (state: GameState): Record<WorshipperT
 export const calculateNetIncomeByType = (state: GameState): Record<WorshipperType, number> => {
   const production = calculateProductionByType(state);
   const consumption = calculateConsumptionByType(state);
-  
-  return {
-    [WorshipperType.INDOLENT]: production[WorshipperType.INDOLENT] - consumption[WorshipperType.INDOLENT],
-    [WorshipperType.LOWLY]: production[WorshipperType.LOWLY] - consumption[WorshipperType.LOWLY],
-    [WorshipperType.WORLDLY]: production[WorshipperType.WORLDLY] - consumption[WorshipperType.WORLDLY],
-    [WorshipperType.ZEALOUS]: production[WorshipperType.ZEALOUS] - consumption[WorshipperType.ZEALOUS],
+  const net: Record<WorshipperType, number> = {
+    [WorshipperType.INDOLENT]: 0, [WorshipperType.LOWLY]: 0, [WorshipperType.WORLDLY]: 0, [WorshipperType.ZEALOUS]: 0,
   };
+  WORSHIPPER_ORDER.forEach(type => {
+    net[type] = production[type] - consumption[type];
+  });
+  return net;
 };
 
 export const calculateSoulsEarned = (state: GameState): number => {
-  const maxZealous = state.maxWorshippersByType[WorshipperType.ZEALOUS];
-  return Math.floor(Math.sqrt(maxZealous));
+  const currentZealous = state.worshippers[WorshipperType.ZEALOUS] || 0;
+  return Math.floor(Math.sqrt(currentZealous));
 };

@@ -1,8 +1,8 @@
 
 import React from 'react';
 import { GameState, VesselDefinition, WorshipperType, VesselId } from '../types';
-import { User, Crown, Frown, Ghost, Sword, Lock, Unlock, Activity, Utensils } from 'lucide-react';
-import { calculateVesselOutput, calculateSingleVesselConsumption, calculateVesselEfficiency } from '../services/gameService';
+import { User, Crown, Frown, Ghost, Sword, Lock, Unlock, Activity, Utensils, Zap } from 'lucide-react';
+import { calculateVesselOutput, calculateSingleVesselConsumption, calculateVesselEfficiency, calculateMilestoneMultiplier } from '../services/gameService';
 import { formatNumber } from '../utils/format';
 import { BaseModal } from './BaseModal';
 
@@ -33,10 +33,11 @@ const ROMAN_NUMERALS: Record<number, string> = {
 export const VesselModal: React.FC<VesselModalProps> = ({ vessel, level, isImprisoned, onToggle, onClose, imageUrl, gameState }) => {
   if (!vessel) return null;
   
-  const potentialOutput = calculateVesselOutput(vessel.id, level);
+  const potentialOutput = calculateVesselOutput(vessel.id, level, gameState);
   const efficiency = calculateVesselEfficiency(gameState, vessel.id as VesselId);
   const currentOutput = Math.floor(potentialOutput * efficiency);
   const consumption = calculateSingleVesselConsumption(gameState, vessel.id as VesselId, level);
+  const multiplier = calculateMilestoneMultiplier(level);
 
   const TypeIcon = ICON_MAP[vessel.type];
   const typeColor = vessel.type === WorshipperType.WORLDLY ? 'text-green-400 border-green-900 bg-green-950' : vessel.type === WorshipperType.ZEALOUS ? 'text-red-500 border-red-900 bg-red-950' : vessel.type === WorshipperType.INDOLENT ? 'text-blue-400 border-blue-900 bg-blue-950' : 'text-gray-400 border-gray-700 bg-gray-900';
@@ -94,6 +95,13 @@ export const VesselModal: React.FC<VesselModalProps> = ({ vessel, level, isImpri
                 </div>
               )}
           </div>
+
+          {multiplier > 1 && (
+              <div className="mb-6 flex items-center justify-center gap-2 rounded-lg bg-yellow-950/20 p-3 border border-yellow-700/30 animate-pulse">
+                  <Zap className="h-4 w-4 text-eldritch-gold" />
+                  <span className="text-xs font-bold uppercase tracking-widest text-eldritch-gold">Milestone Bonus Active: {multiplier}x Efficiency</span>
+              </div>
+          )}
 
           <div className="space-y-4 text-gray-300 font-sans leading-relaxed text-sm mb-4"><p>{vessel.lore}</p></div>
           {canImprison && <div className="text-xs text-gray-500">Imprisoning a vessel halts both its production and its consumption of lower castes. Use this to stabilize your cult's foundation.</div>}

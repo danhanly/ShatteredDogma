@@ -1,12 +1,11 @@
 
 import React from 'react';
 import { GameState, WorshipperType, RelicId, GemType, VesselId } from '../types';
-import { WORSHIPPER_DETAILS, VESSEL_DEFINITIONS, CONSUMPTION_RATES_PER_LVL } from '../constants';
+import { WORSHIPPER_DETAILS, VESSEL_DEFINITIONS } from '../constants';
 import { Activity, Utensils, ZapOff, Factory, TrendingUp, TrendingDown, Lock, Unlock } from 'lucide-react';
 import { formatNumber } from '../utils/format';
 import { calculateProductionByType, calculateConsumptionByType, calculateVesselOutput, calculateVesselEfficiency } from '../services/gameService';
 import { BaseModal } from './BaseModal';
-import { useGame } from '../hooks/useGame';
 
 interface WorshipperModalProps {
   type: WorshipperType | null;
@@ -44,10 +43,10 @@ export const WorshipperModal: React.FC<WorshipperModalProps> = ({ type, count, o
 
   VESSEL_DEFINITIONS.forEach(def => {
     const level = gameState.vesselLevels[def.id] || 0;
-    const requirements = CONSUMPTION_RATES_PER_LVL[def.id as VesselId];
+    const requirements = def.baseConsumption;
     
     // Check if this vessel consumes THIS type
-    if (level > 0 && requirements && requirements[type]) {
+    if (level > 0 && requirements && (requirements as any)[type]) {
       const isImprisoned = gameState.vesselToggles[def.id];
       const efficiency = calculateVesselEfficiency(gameState, def.id as VesselId);
       
@@ -56,7 +55,7 @@ export const WorshipperModal: React.FC<WorshipperModalProps> = ({ type, count, o
         currentReduction = Math.min(1.0, currentReduction + 0.5);
       }
       
-      const rate = !isImprisoned ? Math.floor(requirements[type]! * level * efficiency * (1 - currentReduction)) : 0;
+      const rate = !isImprisoned ? Math.floor((requirements as any)[type]! * level * efficiency * (1 - currentReduction)) : 0;
       
       if (!consumerAggregator[def.type]) {
           consumerAggregator[def.type] = { rate: 0, vessels: [], hasActive: false };
@@ -82,7 +81,7 @@ export const WorshipperModal: React.FC<WorshipperModalProps> = ({ type, count, o
         const efficiency = calculateVesselEfficiency(gameState, vessel.id as VesselId);
         productionSources.push({
           name: vessel.name,
-          rate: Math.floor(calculateVesselOutput(vessel.id, level) * efficiency)
+          rate: Math.floor(calculateVesselOutput(vessel.id, level, gameState) * efficiency)
         });
       }
     }

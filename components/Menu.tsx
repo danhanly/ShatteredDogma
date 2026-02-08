@@ -25,18 +25,20 @@ interface MenuProps {
   assistantUrl: string;
   onPrestige: () => void;
   onPurchaseRelic: (id: RelicId) => void;
+  onPurchaseFate: () => void;
   onToggleVessel: (id: string) => void;
   onToggleAllVessels: (caste: WorshipperType, imprison: boolean) => void;
   endOfDaysUrl: string;
   highlightVessels?: boolean;
   highlightAssistant?: boolean;
+  lastGemRefresh?: { gem: GemType, timestamp: number } | null;
 }
 
 export const Menu: React.FC<MenuProps> = ({
   gameState, clickPower, activeTab, setActiveTab, onUpgrade, onPurchaseVessel,
   onPurchaseAssistant, onToggleAssistant, onActivateGem, setMiracleIncrement, setVesselIncrement,
-  vesselImages, assistantUrl, onPrestige, onPurchaseRelic, onToggleVessel, onToggleAllVessels, endOfDaysUrl,
-  highlightVessels, highlightAssistant
+  vesselImages, assistantUrl, onPrestige, onPurchaseRelic, onPurchaseFate, onToggleVessel, onToggleAllVessels, endOfDaysUrl,
+  highlightVessels, highlightAssistant, lastGemRefresh
 }) => {
   const [isMobileExpanded, setIsMobileExpanded] = useState(true);
   const [selectedVessel, setSelectedVessel] = useState<VesselDefinition | null>(null);
@@ -45,12 +47,10 @@ export const Menu: React.FC<MenuProps> = ({
   const vesselsUnlocked = gameState.maxWorshippersByType[WorshipperType.INDOLENT] >= 100 || (gameState.relics[RelicId.FALSE_IDOL] > 0);
   const endTimesUnlocked = gameState.maxWorshippersByType[WorshipperType.ZEALOUS] >= PRESTIGE_UNLOCK_THRESHOLD;
 
-  // Zipper Model Unlock Logic
   const visibleVessels = VESSEL_DEFINITIONS.filter(v => {
     if (gameState.relics[RelicId.FALSE_IDOL] > 0) return true;
     if (gameState.vesselLevels[v.id] > 0) return true;
     
-    // Technical triggers
     switch(v.id) {
         case VesselId.INDOLENT_1: return true;
         case VesselId.LOWLY_1: return (gameState.vesselLevels[VesselId.INDOLENT_1] || 0) >= 10;
@@ -59,7 +59,7 @@ export const Menu: React.FC<MenuProps> = ({
         case VesselId.LOWLY_2: return (gameState.vesselLevels[VesselId.WORLDLY_1] || 0) >= 10;
         case VesselId.ZEALOUS_1: return (gameState.vesselLevels[VesselId.LOWLY_2] || 0) >= 10;
         case VesselId.WORLDLY_2: return (gameState.vesselLevels[VesselId.ZEALOUS_1] || 0) >= 10;
-        case VesselId.ZEALOUS_2: return (gameState.vesselLevels[VesselId.ZEALOUS_1] || 0) >= 10; // Shared trigger
+        case VesselId.ZEALOUS_2: return (gameState.vesselLevels[VesselId.ZEALOUS_1] || 0) >= 10; 
         case VesselId.INDOLENT_3: return (gameState.vesselLevels[VesselId.WORLDLY_2] || 0) >= 10;
         case VesselId.LOWLY_3: return (gameState.vesselLevels[VesselId.INDOLENT_3] || 0) >= 10;
         case VesselId.WORLDLY_3: return (gameState.vesselLevels[VesselId.LOWLY_3] || 0) >= 10;
@@ -102,6 +102,7 @@ export const Menu: React.FC<MenuProps> = ({
             onToggleAssistant={onToggleAssistant}
             onActivateGem={onActivateGem} 
             assistantUrl={assistantUrl} highlightAssistant={highlightAssistant}
+            lastGemRefresh={lastGemRefresh}
           />
         )}
         {activeTab === 'VESSELS' && (
@@ -113,8 +114,8 @@ export const Menu: React.FC<MenuProps> = ({
             onToggleAllVessels={onToggleAllVessels}
           />
         )}
-        {activeTab === 'CULT' && <CultTab gameState={gameState} vesselsUnlocked={vesselsUnlocked} />}
-        {activeTab === 'END_TIMES' && <EndTimesTab gameState={gameState} onPrestige={onPrestige} onPurchaseRelic={onPurchaseRelic} />}
+        {activeTab === 'CULT' && <CultTab gameState={gameState} />}
+        {activeTab === 'END_TIMES' && <EndTimesTab gameState={gameState} onPrestige={onPrestige} onPurchaseRelic={onPurchaseRelic} onPurchaseFate={onPurchaseFate} endOfDaysUrl={endOfDaysUrl} />}
       </div>
     </div>
     <VesselModal 

@@ -29,6 +29,8 @@ const App: React.FC = () => {
     purchaseAssistant,
     toggleAssistant,
     purchaseRelic,
+    // Add missing purchaseFateRelic from useGame hook
+    purchaseFateRelic,
     toggleVessel,
     toggleAllVessels,
     setMiracleIncrement,
@@ -40,6 +42,8 @@ const App: React.FC = () => {
     closeOfflineModal,
     triggerPrestige,
     setFlag,
+    // Add missing lastGemRefresh from useGame hook
+    lastGemRefresh,
     debugAddWorshippers,
     debugUnlockFeature,
     debugAddSouls,
@@ -314,11 +318,15 @@ const App: React.FC = () => {
           assistantUrl={assistantUrl}
           onPrestige={triggerPrestige}
           onPurchaseRelic={purchaseRelic}
+          // Fix: pass onPurchaseFate prop to Menu component
+          onPurchaseFate={purchaseFateRelic}
           onToggleVessel={toggleVessel}
           onToggleAllVessels={toggleAllVessels}
           endOfDaysUrl={endOfDaysUrl}
           highlightVessels={highlightVessels}
           highlightAssistant={highlightAssistant}
+          // Fix: pass lastGemRefresh prop to Menu component
+          lastGemRefresh={lastGemRefresh}
         />
       </main>
 

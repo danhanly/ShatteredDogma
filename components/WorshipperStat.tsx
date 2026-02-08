@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { WorshipperType } from '../types';
 import { ChevronRight, Lock, TrendingUp, TrendingDown, AlertCircle, AlertTriangle } from 'lucide-react';
@@ -14,7 +13,7 @@ interface WorshipperStatProps {
   iconColor: string;
   priorityIndex: number;
   isLast: boolean;
-  gameState: any; // Ideally this would be typed more strictly
+  gameState: any; 
   glowingStats: Record<string, boolean>;
   onSelect: (type: WorshipperType) => void;
   setStatBoxRef: (type: string, el: HTMLDivElement | null) => void;
@@ -39,7 +38,6 @@ export const WorshipperStat: React.FC<WorshipperStatProps> = ({
     
     const hasAnyVessel = Object.values(gameState.vesselLevels).some(lvl => (lvl as number) > 0);
     
-    // Technical Starvation: 0 resources while consumers are active
     const consumption = calculateConsumptionByType(gameState)[type];
     const isStarved = count <= 0 && consumption > 0;
     
@@ -47,6 +45,9 @@ export const WorshipperStat: React.FC<WorshipperStatProps> = ({
     const isNetNegative = netIncome < 0;
 
     const isPaused = gameState.isPaused[type] && hasAnyVessel;
+
+    // Rebellion Logic
+    const isRebelling = gameState.rebellionTimeRemaining > 0 && gameState.rebelCaste === type;
 
     // Influence Visuals
     const lastInfluence = gameState.lastInfluenceTime[type] || 0;
@@ -60,8 +61,14 @@ export const WorshipperStat: React.FC<WorshipperStatProps> = ({
     let bgClass = 'bg-black/60';
     let glowShadow = '';
     
+    // REBELLION Priority
+    if (isRebelling) {
+        glowShadow = 'shadow-[0_0_25px_rgba(197,160,89,1)] border-eldritch-gold animate-shake';
+        borderClass = 'border-eldritch-gold';
+        bgClass = 'bg-eldritch-gold/40';
+    }
     // Priority 1: Starvation Glow (Red)
-    if (isStarved) {
+    else if (isStarved) {
         glowShadow = 'shadow-[0_0_20px_rgba(239,68,68,0.8)] border-red-500 animate-pulse';
         borderClass = 'border-red-500';
         bgClass = 'bg-red-950/80';
@@ -101,7 +108,9 @@ export const WorshipperStat: React.FC<WorshipperStatProps> = ({
             
             {/* Status Indicators */}
             <div className="absolute bottom-1 right-1 flex flex-col gap-0.5">
-               {isStarved ? (
+               {isRebelling ? (
+                   <AlertCircle className="h-3 w-3 text-eldritch-gold animate-pulse" />
+               ) : isStarved ? (
                    <AlertTriangle className="h-3 w-3 text-red-500 animate-bounce" />
                ) : isPaused ? (
                    <AlertCircle className="h-3 w-3 text-red-500 animate-pulse" />
@@ -110,10 +119,10 @@ export const WorshipperStat: React.FC<WorshipperStatProps> = ({
                )}
             </div>
 
-            <Icon className={`h-4 w-4 ${isStarved || isNetNegative ? 'text-red-400' : iconColor} sm:h-6 w-6 transition-colors`} />
-            <span className={`hidden font-serif text-xs ${isStarved || isNetNegative ? 'text-red-300' : textColor} sm:block transition-colors`}>{type}</span>
-            <span className={`block font-serif text-[10px] ${isStarved || isNetNegative ? 'text-red-300' : textColor} sm:hidden transition-colors`}>{type.slice(0, 3)}</span>
-            <span className={`font-mono text-xs font-bold sm:text-lg ${isStarved || isNetNegative ? 'text-red-500' : 'text-white'} transition-colors`}>{formatNumber(count)}</span>
+            <Icon className={`h-4 w-4 ${isRebelling ? 'text-eldritch-gold' : (isStarved || isNetNegative ? 'text-red-400' : iconColor)} sm:h-6 w-6 transition-colors`} />
+            <span className={`hidden font-serif text-xs ${isRebelling ? 'text-white' : (isStarved || isNetNegative ? 'text-red-300' : textColor)} sm:block transition-colors`}>{type}</span>
+            <span className={`block font-serif text-[10px] ${isRebelling ? 'text-white' : (isStarved || isNetNegative ? 'text-red-300' : textColor)} sm:hidden transition-colors`}>{type.slice(0, 3)}</span>
+            <span className={`font-mono text-xs font-bold sm:text-lg ${isRebelling ? 'text-white' : (isStarved || isNetNegative ? 'text-red-500' : 'text-white')} transition-colors`}>{formatNumber(count)}</span>
         </div>
         {!isLast && <div className="mx-1 flex items-center justify-center sm:mx-2"><ChevronRight className="h-4 w-4 text-eldritch-gold/50 sm:h-6 w-6 animate-pulse" /></div>}
     </div>
