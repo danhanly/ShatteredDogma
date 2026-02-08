@@ -22,6 +22,13 @@ const ICON_MAP = {
   [WorshipperType.INDOLENT]: Ghost,
 };
 
+const ROMAN_NUMERALS: Record<number, string> = {
+  1: 'I',
+  2: 'II',
+  3: 'III',
+  4: 'IV'
+};
+
 export const VesselModal: React.FC<VesselModalProps> = ({ vessel, level, isImprisoned, onToggle, onClose, imageUrl }) => {
   if (!vessel) return null;
   const currentOutput = calculateVesselOutput(vessel.id, level);
@@ -33,6 +40,12 @@ export const VesselModal: React.FC<VesselModalProps> = ({ vessel, level, isImpri
       <div className="relative h-64 w-full overflow-hidden bg-black flex items-center justify-center">
           {imageUrl ? <div className="absolute inset-0 bg-no-repeat" style={{ backgroundImage: `url('${imageUrl}')`, backgroundSize: 'cover', backgroundPosition: 'top center' }} /> : <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-black to-eldritch-dark"><User className={`h-32 w-32 opacity-20 ${typeColor.split(' ')[0]}`} /></div>}
           <div className="absolute inset-0 bg-gradient-to-t from-eldritch-dark via-eldritch-dark/20 to-transparent" />
+          
+          {/* Tier Indicator */}
+          <div className="absolute top-4 left-4 z-20 flex h-8 w-8 items-center justify-center rounded-md border border-white/20 bg-black/60 font-serif text-sm font-bold text-eldritch-gold shadow-lg backdrop-blur-sm">
+              {ROMAN_NUMERALS[vessel.tier]}
+          </div>
+
            <div className="absolute bottom-4 left-6 z-10 text-left">
                <div className="flex items-center gap-2 mb-1"><TypeIcon className={`h-4 w-4 ${typeColor.split(' ')[0]}`} /><span className={`text-xs uppercase tracking-widest font-bold ${typeColor.split(' ')[0]}`}>{vessel.type} Vessel</span></div>
                <h2 className="font-serif text-3xl font-bold uppercase tracking-widest drop-shadow-md text-white">{vessel.name}</h2>

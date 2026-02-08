@@ -17,6 +17,7 @@ Crystallized essence of the void. These gems allow you to focus your miracles to
 Vessels are the pillars of your cult—mortals or artifacts bound to your service. 
 * **Generators:** Some vessels simply draw power from the void (producing Indolent souls).
 * **Parasites:** Most vessels are predatory; they consume the souls of a lower caste to sustain the creation of a higher one. This hierarchy forms the core of your "Liturgy of Numbers."
+But fear not, for if your parasites outweigh your generators, you have the ability to imprison a parasite, halting its consumptive powers until you can stabilise your economy.
 
 ### Mattelock Verbinsk (The Assistant)
 A marionette of the Abyss, Mattelock appears once your influence is undeniable. He performs miracles in your stead, clicking with rhythmic, eldritch precision that accelerates as you invest more of your worldly power into his contract.
