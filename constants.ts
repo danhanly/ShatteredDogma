@@ -214,9 +214,9 @@ export const VESSEL_DEFINITIONS: VesselDefinition[] = [
 // Technical Report: Integer Consumption Rates
 export const CONSUMPTION_RATES_PER_LVL: Record<VesselId, Partial<Record<WorshipperType, number>>> = {
   [VesselId.INDOLENT_1]: {},
-  [VesselId.LOWLY_1]: { [WorshipperType.INDOLENT]: 20 },
-  [VesselId.WORLDLY_1]: { [WorshipperType.LOWLY]: 50 },
-  [VesselId.ZEALOUS_1]: { [WorshipperType.WORLDLY]: 100 },
+  [VesselId.LOWLY_1]: { [WorshipperType.INDOLENT]: 10 },
+  [VesselId.WORLDLY_1]: { [WorshipperType.LOWLY]: 25 },
+  [VesselId.ZEALOUS_1]: { [WorshipperType.WORLDLY]: 50 },
   
   [VesselId.INDOLENT_2]: {},
   [VesselId.LOWLY_2]: { [WorshipperType.INDOLENT]: 250 },

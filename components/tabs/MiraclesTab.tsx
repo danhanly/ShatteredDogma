@@ -1,9 +1,9 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { GameState, GemType, WorshipperType, IncrementType } from '../../types';
-import { calculateBulkUpgrade, calculateAssistantInterval } from '../../services/gameService';
+import { calculateBulkUpgrade, calculateAssistantInterval, calculateAssistantBulkVesselBuy } from '../../services/gameService';
 import { formatNumber } from '../../utils/format';
-import { ArrowUpCircle, Sparkles, Timer, ShieldAlert, User, Info, Activity, Crown, Sword, Play, Pause } from 'lucide-react';
+import { ArrowUpCircle, Sparkles, Timer, ShieldAlert, User, Info, Activity, Crown, Sword } from 'lucide-react';
 import { IncrementSelector } from '../IncrementSelector';
 import { GEM_DEFINITIONS } from '../../constants';
 import { AbyssAssistantModal } from '../AbyssAssistantModal';
@@ -28,6 +28,7 @@ export const MiraclesTab: React.FC<MiraclesTabProps> = ({
   increment,
   onSetIncrement,
   onUpgrade,
+  onPurchaseAssistant,
   onToggleAssistant,
   onActivateGem,
   assistantUrl,
@@ -60,8 +61,18 @@ export const MiraclesTab: React.FC<MiraclesTabProps> = ({
   const assistantUnlocked = gameState.maxWorshippersByType[WorshipperType.INDOLENT] >= 1000;
   
   const currentInterval = calculateAssistantInterval(gameState.assistantLevel);
-  const intervalSeconds = currentInterval === Infinity ? 0 : (currentInterval / 1000).toFixed(2);
+  const intervalSeconds = currentInterval === Infinity ? 0 : (currentInterval / 1000).toFixed(3);
   const isActive = gameState.assistantActive;
+
+  // Assistant Upgrade Logic
+  const assistantBulkUpgrade = calculateAssistantBulkVesselBuy(gameState.assistantLevel, increment, gameState);
+  const canAffordAssistant = gameState.worshippers[assistantBulkUpgrade.costType] >= assistantBulkUpgrade.cost && assistantBulkUpgrade.count > 0;
+  
+  // Dynamic icon and color based on cost type (though it is fixed to WORLDLY now)
+  const AssistantCostIcon = assistantBulkUpgrade.costType === WorshipperType.WORLDLY ? Crown : Sword;
+  const assistantCostColor = assistantBulkUpgrade.costType === WorshipperType.WORLDLY ? 'text-green-400' : 'text-red-500';
+  
+  const isAssistantMaxed = gameState.assistantLevel >= 5;
 
   return (
     <div className="flex flex-col gap-6">
@@ -120,24 +131,44 @@ export const MiraclesTab: React.FC<MiraclesTabProps> = ({
                                 {isActive && <Activity className="h-3 w-3 text-purple-500 animate-pulse-fast ml-1" />}
                             </div>
                         </div>
-                        <div className="shrink-0 rounded bg-black/40 px-2 py-1 border border-eldritch-purple/20"><span className="text-[10px] font-bold text-eldritch-purple">Lvl {gameState.assistantLevel}</span></div>
+                        <div className="flex flex-col items-end gap-2 shrink-0">
+                            <div className="rounded bg-black/40 px-2 py-1 border border-eldritch-purple/20">
+                                <span className="text-[10px] font-bold text-eldritch-purple">Lvl {gameState.assistantLevel}</span>
+                            </div>
+                            <button 
+                                onClick={() => onToggleAssistant()} 
+                                className={`flex items-center gap-1.5 px-2 py-1 rounded border text-[9px] font-bold uppercase tracking-wider transition-all
+                                ${isActive 
+                                    ? 'bg-eldritch-purple/20 border-eldritch-purple text-eldritch-purple shadow-[0_0_5px_rgba(147,51,234,0.3)]' 
+                                    : 'bg-black/40 border-gray-700 text-gray-500 hover:border-gray-500'}`}
+                            >
+                                <div className={`h-1.5 w-1.5 rounded-full ${isActive ? 'bg-green-400 animate-pulse' : 'bg-gray-600'}`} />
+                                <span>{isActive ? 'Active' : 'Sleep'}</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
                 
-                <button 
-                    onClick={() => onToggleAssistant()} 
-                    className={`flex w-full items-center justify-between rounded px-3 py-2.5 transition-all border ${isActive ? 'bg-gradient-to-r from-eldritch-purple/40 to-eldritch-black border-eldritch-purple/60 shadow-[0_0_10px_rgba(147,51,234,0.3)] animate-pulse' : 'bg-black/40 border-eldritch-crimson/30 hover:border-eldritch-crimson/50'}`}
-                >
-                    <div className="flex items-center gap-2">
-                        {isActive ? <Play className="h-3 w-3 text-eldritch-purple" /> : <Pause className="h-3 w-3 text-eldritch-crimson" />}
-                        <span className={`text-xs font-bold uppercase tracking-widest ${isActive ? 'text-white' : 'text-gray-500'}`}>
-                            {isActive ? 'Active' : 'Inactive'}
-                        </span>
-                    </div>
-                    <span className={`text-[10px] font-serif italic ${isActive ? 'text-eldritch-purple' : 'text-gray-600'}`}>
-                        {isActive ? 'Assisting...' : 'Standing by...'}
-                    </span>
-                </button>
+                <div className="space-y-2">
+                    <button
+                        onClick={() => onPurchaseAssistant()}
+                        disabled={!canAffordAssistant}
+                        className={`flex w-full items-center justify-between rounded px-3 py-2.5 transition-all border ${canAffordAssistant ? 'bg-eldritch-purple/10 border-eldritch-purple/40 hover:bg-eldritch-purple/20' : 'bg-black/40 border-gray-800 opacity-60 cursor-not-allowed'}`}
+                    >
+                        <div className="flex items-center gap-2">
+                            <ArrowUpCircle className={`h-4 w-4 ${canAffordAssistant ? 'text-eldritch-purple' : 'text-gray-600'}`} />
+                            <span className={`text-xs font-bold uppercase tracking-widest ${canAffordAssistant ? 'text-white' : 'text-gray-500'}`}>
+                                {isAssistantMaxed ? 'Max Level' : `Upgrade ${assistantBulkUpgrade.count > 1 ? `x${assistantBulkUpgrade.count}` : ''}`}
+                            </span>
+                        </div>
+                         {!isAssistantMaxed && (
+                             <div className="flex items-center gap-1.5">
+                                 <span className={`font-mono text-sm font-bold ${canAffordAssistant ? 'text-white' : 'text-gray-500'}`}>{formatNumber(assistantBulkUpgrade.cost)}</span>
+                                 <AssistantCostIcon className={`h-3 w-3 ${canAffordAssistant ? assistantCostColor : 'text-gray-600'}`} />
+                            </div>
+                         )}
+                    </button>
+                </div>
             </section>
         )}
 

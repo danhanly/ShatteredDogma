@@ -21,6 +21,7 @@ const App: React.FC = () => {
     clickPower, 
     passiveIncome,
     performMiracle, 
+    lastMiracleEvent,
     activateGem,
     closeDiscovery,
     purchaseUpgrade, 
@@ -215,7 +216,7 @@ const App: React.FC = () => {
   const showWorldlyModal = hasWorldlyVessel && !gameState.hasSeenWorldlyModal;
   const showZealousModal = hasZealousVessel && !gameState.hasSeenZealousModal;
 
-  const canShowStarvedModal = gameState.hasSeenNetNegative && !gameState.hasAcknowledgedPausedModal && gameState.hasSeenStartSplash;
+  const canShowStarvedModal = gameState.hasSeenPausedModal && !gameState.hasAcknowledgedPausedModal && gameState.hasSeenStartSplash;
 
   return (
     <div className="flex h-[100dvh] w-screen flex-col overflow-hidden bg-black text-gray-200">
@@ -291,6 +292,7 @@ const App: React.FC = () => {
         <MainScreen 
           gameState={gameState} 
           onTap={(x, y) => performMiracle()} 
+          autoClickTrigger={lastMiracleEvent}
           worshipperImages={worshipperImages}
           bgUrl={bgUrl}
           onToggleAllVessels={toggleAllVessels}

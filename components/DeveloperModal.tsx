@@ -152,7 +152,7 @@ export const DeveloperModal: React.FC<DeveloperModalProps> = ({
                       <p className="font-bold text-eldritch-gold mb-1 underline">Mattelock (Assistant) Rate</p>
                       <p className="mb-2 text-xs">Mattelock triggers miracles with frequency $F$:</p>
                       <div className="bg-black/40 p-3 rounded border border-white/5">
-                        <MathDisplay block tex="F = \frac{1}{\max(0.1, 2.1 - 0.1L)} \text{ mir/s}" />
+                        <MathDisplay block tex="\text{Interval} = \frac{2000}{2^{L-1}} \text{ ms}" />
                       </div>
                     </div>
                   </div>

@@ -185,21 +185,25 @@ export const calculateRelicCost = (relicId: RelicId, currentLevel: number): numb
 };
 
 export const calculateAssistantCost = (currentLevel: number): { amount: number, type: WorshipperType } => {
-  const cost = Math.floor(100 * Math.pow(1.4, currentLevel));
-  const type = currentLevel === 0 ? WorshipperType.WORLDLY : WorshipperType.ZEALOUS;
-  return { amount: cost, type };
+  // Start at 1 Worldly, scale by 2x per level. Exclusively Worldly.
+  const cost = Math.floor(1 * Math.pow(2, currentLevel));
+  return { amount: cost, type: WorshipperType.WORLDLY };
 };
 
 export const calculateAssistantBulkVesselBuy = (currentLevel: number, increment: IncrementType, state: GameState) => {
   let count = 0;
   let totalCost = 0;
   let tempLevel = currentLevel;
-  let costType = WorshipperType.WORLDLY;
+  const costType = WorshipperType.WORLDLY;
+  const MAX_LEVEL = 5;
+
+  if (currentLevel >= MAX_LEVEL) {
+    return { count: 0, cost: 0, costType };
+  }
 
   if (increment === 'MAX') {
-    while (tempLevel < 10) {
-      const { amount, type } = calculateAssistantCost(tempLevel);
-      costType = type;
+    while (tempLevel < MAX_LEVEL) {
+      const { amount } = calculateAssistantCost(tempLevel);
       if (state.worshippers[costType] < totalCost + amount) break;
       totalCost += amount;
       tempLevel++;
@@ -210,12 +214,16 @@ export const calculateAssistantBulkVesselBuy = (currentLevel: number, increment:
     let targetCount = inc - (currentLevel % inc);
     if (currentLevel % inc === 0) targetCount = inc;
     
+    // Clamp to MAX_LEVEL
+    if (currentLevel + targetCount > MAX_LEVEL) {
+        targetCount = MAX_LEVEL - currentLevel;
+    }
+
     for (let i = 0; i < targetCount; i++) {
-      const { amount, type } = calculateAssistantCost(currentLevel + i);
-      costType = type;
+      const { amount } = calculateAssistantCost(tempLevel + i);
       totalCost += amount;
     }
-    count = Math.max(0, targetCount);
+    count = targetCount;
   }
 
   return { count, cost: totalCost, costType };
@@ -223,10 +231,12 @@ export const calculateAssistantBulkVesselBuy = (currentLevel: number, increment:
 
 export const calculateAssistantInterval = (level: number): number => {
   if (level === 0) return Infinity;
-  // Adjusted: Formula: 1 click / (2.1 - (Level * 0.1)) seconds
-  // At Level 1: 1 / (2.1 - 0.1) = 1 / 2.0 = 0.5 clicks/sec = 2.0 seconds
-  const rate = 1 / Math.max(0.1, 2.1 - (level * 0.1)); 
-  return 1000 / rate;
+  // Level 1: 2000ms
+  // Level 2: 1000ms
+  // Level 3: 500ms
+  // Level 4: 250ms
+  // Level 5: 125ms
+  return 2000 / Math.pow(2, level - 1);
 };
 
 export const calculateVesselOutput = (vesselId: string, currentLevel: number): number => {
