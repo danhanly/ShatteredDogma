@@ -39,7 +39,6 @@ const INITIAL_STATE: GameState = {
     [RelicId.ABYSSAL_REFLEX]: 0,
     [RelicId.FRENZY]: 0,
     [RelicId.REBELLION]: 0,
-    // Fix: Added missing SOUL_HARVESTER to initial state relics to satisfy Record<RelicId, number> type
     [RelicId.SOUL_HARVESTER]: 0,
   },
   fates: {} as any,
@@ -264,6 +263,22 @@ export const useGame = () => {
             newMaxByType[type] = Math.max(newMaxByType[type], newWorshippers[type]);
           });
 
+          // GEM UNLOCK LOGIC
+          const newUnlockedGems = [...prev.unlockedGems];
+          let newShowDiscovery = prev.showGemDiscovery;
+
+          const checkAndUnlock = (gem: GemType, condition: boolean) => {
+             if (condition && !newUnlockedGems.includes(gem)) {
+                 newUnlockedGems.push(gem);
+                 if (!newShowDiscovery) newShowDiscovery = gem;
+             }
+          }
+
+          checkAndUnlock(GemType.LAPIS, newMaxByType[WorshipperType.INDOLENT] >= 500);
+          checkAndUnlock(GemType.QUARTZ, newMaxByType[WorshipperType.INDOLENT] >= 2500);
+          checkAndUnlock(GemType.EMERALD, newMaxByType[WorshipperType.LOWLY] >= 2500);
+          checkAndUnlock(GemType.RUBY, newMaxByType[WorshipperType.WORLDLY] >= 2500);
+
           let finalAssistantLevel = prev.assistantLevel;
           if (finalAssistantLevel === 0 && newMaxByType[WorshipperType.INDOLENT] >= 1000) {
             finalAssistantLevel = 1;
@@ -284,7 +299,9 @@ export const useGame = () => {
              assistantLevel: finalAssistantLevel,
              frenzyTimeRemaining: newFrenzyTime,
              rebellionTimeRemaining: newRebellionTime,
-             rebelCaste: newRebelCaste
+             rebelCaste: newRebelCaste,
+             unlockedGems: newUnlockedGems,
+             showGemDiscovery: newShowDiscovery
           };
         });
 

@@ -162,7 +162,8 @@ export const EndTimesTab: React.FC<EndTimesTabProps> = ({ gameState, onPrestige,
                 <h4 className="text-[10px] uppercase tracking-widest text-gray-500 mb-2 font-bold border-b border-white/10 pb-1">Cumulative Bonuses</h4>
                 <div className="grid grid-cols-1 gap-1">
                     {Object.entries(gameState.fates).length > 0 ? (
-                        Object.entries(gameState.fates).sort((a,b) => a[0].localeCompare(b[0])).map(([fateId, value]) => {
+                        Object.entries(gameState.fates).sort((a,b) => a[0].localeCompare(b[0])).map(([fateId, val]) => {
+                            const value = val as number;
                             const def = FATE_DEFINITIONS[fateId as FateId];
                             const displayValue = (value * 100).toFixed(1);
                             const isPositive = value > 0;

@@ -24,8 +24,8 @@ export const CultTab: React.FC<CultTabProps> = ({ gameState }) => {
   const totalProd = Object.values(currentProdRates).reduce((a: number, b: number) => a + b, 0);
   const totalCons = Object.values(currentConsRates).reduce((a: number, b: number) => a + b, 0);
 
-  const vesselsUnlocked = Object.values(gameState.vesselLevels).some(v => v > 0);
-  const hasLegacy = gameState.souls > 0 || Object.values(gameState.relics).some(r => r > 0) || Object.keys(gameState.fates).length > 0;
+  const vesselsUnlocked = Object.values(gameState.vesselLevels).some(v => (v as number) > 0);
+  const hasLegacy = gameState.souls > 0 || Object.values(gameState.relics).some(r => (r as number) > 0) || Object.keys(gameState.fates).length > 0;
 
   return (
     <div className="flex flex-col gap-6">
@@ -153,7 +153,8 @@ export const CultTab: React.FC<CultTabProps> = ({ gameState }) => {
                                 <Dna className="h-3 w-3 text-indigo-400" /> Fates Intertwined
                             </div>
                             <div className="grid grid-cols-1 gap-1">
-                                {Object.entries(gameState.fates).sort((a,b) => a[0].localeCompare(b[0])).map(([fateId, value]) => {
+                                {Object.entries(gameState.fates).sort((a,b) => a[0].localeCompare(b[0])).map(([fateId, val]) => {
+                                    const value = val as number;
                                     const def = FATE_DEFINITIONS[fateId as FateId];
                                     const displayValue = (value * 100).toFixed(1);
                                     return (
