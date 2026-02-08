@@ -155,16 +155,23 @@ export const useGame = () => {
         power = powerBase;
         type = WorshipperType.LOWLY;
     } else if (state.activeGem === GemType.EMERALD) {
-        power = Math.floor(powerBase / 2);
+        // Emerald Rate: 25% (1:4)
+        power = Math.floor(powerBase / 4);
         type = WorshipperType.WORLDLY;
     } else if (state.activeGem === GemType.RUBY) {
-        power = Math.floor(powerBase / 5);
+        // Ruby Rate: 10% (1:10)
+        power = Math.floor(powerBase / 10);
         type = WorshipperType.ZEALOUS;
     }
 
     const gemPowerFateMod = 1 + (state.fates['gem_power'] || 0);
     if (state.activeGem) {
       power = Math.floor(power * gemPowerFateMod);
+    }
+
+    // Ensure at least 1 power if gem is active but division resulted in 0 (unless base is 0)
+    if (state.activeGem && power === 0 && powerBase > 0) {
+        power = 1;
     }
 
     return { power, type };
@@ -275,9 +282,9 @@ export const useGame = () => {
           }
 
           checkAndUnlock(GemType.LAPIS, newMaxByType[WorshipperType.INDOLENT] >= 500);
-          checkAndUnlock(GemType.QUARTZ, newMaxByType[WorshipperType.INDOLENT] >= 2500);
-          checkAndUnlock(GemType.EMERALD, newMaxByType[WorshipperType.LOWLY] >= 2500);
-          checkAndUnlock(GemType.RUBY, newMaxByType[WorshipperType.WORLDLY] >= 2500);
+          checkAndUnlock(GemType.QUARTZ, newMaxByType[WorshipperType.LOWLY] >= 500);
+          checkAndUnlock(GemType.EMERALD, newMaxByType[WorshipperType.WORLDLY] >= 1000);
+          checkAndUnlock(GemType.RUBY, newMaxByType[WorshipperType.ZEALOUS] >= 100);
 
           let finalAssistantLevel = prev.assistantLevel;
           if (finalAssistantLevel === 0 && newMaxByType[WorshipperType.INDOLENT] >= 1000) {

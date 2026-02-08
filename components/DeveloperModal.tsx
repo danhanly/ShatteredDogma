@@ -180,8 +180,8 @@ export const DeveloperModal: React.FC<DeveloperModalProps> = ({
                   <ul className="list-disc pl-5 space-y-1">
                     <li><strong className="text-blue-400">Lapis:</strong> <MathDisplay tex="2\times" /> Click Power.</li>
                     <li><strong className="text-gray-400">Quartz:</strong> <MathDisplay tex="1:1" /> Lowly conversion.</li>
-                    <li><strong className="text-green-400">Emerald:</strong> <MathDisplay tex="1:2" /> Worldly conversion.</li>
-                    <li><strong className="text-red-500">Ruby:</strong> <MathDisplay tex="1:5" /> Zealous conversion.</li>
+                    <li><strong className="text-green-400">Emerald:</strong> <MathDisplay tex="1:4" /> Worldly conversion.</li>
+                    <li><strong className="text-red-500">Ruby:</strong> <MathDisplay tex="1:10" /> Zealous conversion.</li>
                   </ul>
                 </section>
 

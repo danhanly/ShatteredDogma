@@ -1,3 +1,4 @@
+
 import { WorshipperType, VesselId, VesselDefinition, GemType, RelicId, RelicDefinition, FateId, FateDefinition } from "./types";
 
 export const INITIAL_UPGRADE_COST = 50; 
@@ -315,14 +316,14 @@ export const GEM_DEFINITIONS: Record<GemType, {
   },
   [GemType.EMERALD]: {
     name: "Emerald of the Greedy",
-    description: "Convert miracles to attract the Worldly (2:1 Ratio).",
+    description: "Convert miracles to attract the Worldly (4:1 Ratio).",
     color: "#4ade80",
     type: WorshipperType.WORLDLY,
     image: './public/gems/3.jpg'
   },
   [GemType.RUBY]: {
     name: "Ruby of the Fervent",
-    description: "Convert miracles to attract the Zealous (5:1 Ratio).",
+    description: "Convert miracles to attract the Zealous (10:1 Ratio).",
     color: "#ef4444",
     type: WorshipperType.ZEALOUS,
     image: './public/gems/4.jpg'
