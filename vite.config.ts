@@ -7,7 +7,7 @@ export default defineConfig(({ }) => {
     plugins: [react()],
     // Only use the repo name as base in production (GitHub Pages)
     // In dev/preview, use root '/' to avoid path issues
-    base: '/',
+    base: './',
     build: {
       minify: 'esbuild'
     }
