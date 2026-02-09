@@ -302,28 +302,28 @@ export const GEM_DEFINITIONS: Record<GemType, {
 }> = {
   [GemType.LAPIS]: {
     name: "Lapis of the Torpid",
-    description: "Doubles your click power.",
+    description: "Double Click Output.",
     color: "#60a5fa",
     type: WorshipperType.INDOLENT,
     image: '/img/gems/1.jpeg'
   },
   [GemType.QUARTZ]: {
     name: "Quartz of the Industrious",
-    description: "Your miracles attract the Lowly.",
+    description: "Convert miracles to attract the Lowly (1:1 Ratio).",
     color: "#9ca3af",
     type: WorshipperType.LOWLY,
     image: '/img/gems/2.jpeg'
   },
   [GemType.EMERALD]: {
     name: "Emerald of the Greedy",
-    description: "Your miracles attract the Worldly.",
+    description: "Convert miracles to attract the Worldly (4:1 Ratio).",
     color: "#4ade80",
     type: WorshipperType.WORLDLY,
     image: '/img/gems/3.jpeg'
   },
   [GemType.RUBY]: {
     name: "Ruby of the Fervent",
-    description: "Your miracles attract the Zealous.",
+    description: "Convert miracles to attract the Zealous (10:1 Ratio).",
     color: "#ef4444",
     type: WorshipperType.ZEALOUS,
     image: '/img/gems/4.jpeg'

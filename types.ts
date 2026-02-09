@@ -1,4 +1,5 @@
 
+
 export enum WorshipperType {
   WORLDLY = 'Worldly',
   LOWLY = 'Lowly',
@@ -147,6 +148,7 @@ export interface GameState {
   activeGemTimeRemaining: number;
   gemCooldowns: Record<GemType, number>;
   showGemDiscovery: GemType | null;
+  highlightGem: GemType | null;
 
   frenzyTimeRemaining: number;
   rebellionTimeRemaining: number;

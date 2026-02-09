@@ -31,19 +31,17 @@ interface MenuProps {
   endOfDaysUrl: string;
   highlightAssistant?: boolean;
   lastGemRefresh?: { gem: GemType, timestamp: number } | null;
-  selectedVessel: VesselDefinition | null;
-  setSelectedVessel: (vessel: VesselDefinition | null) => void;
-  showAssistantDetails: boolean;
-  setShowAssistantDetails: (show: boolean) => void;
+  highlightGem?: GemType | null;
 }
 
 export const Menu: React.FC<MenuProps> = ({
   gameState, activeTab, setActiveTab, onUpgrade, onPurchaseVessel,
   onPurchaseAssistant, onToggleAssistant, onActivateGem, setMiracleIncrement, setVesselIncrement,
   vesselImages, gemImages, assistantUrl, onPrestige, onPurchaseRelic, onPurchaseFate, onToggleVessel, onToggleAllVessels, endOfDaysUrl,
-  highlightAssistant, lastGemRefresh, selectedVessel, setSelectedVessel, showAssistantDetails, setShowAssistantDetails
+  highlightAssistant, lastGemRefresh, highlightGem
 }) => {
   const [isMobileExpanded, setIsMobileExpanded] = useState(true);
+  const [selectedVessel, setSelectedVessel] = useState<VesselDefinition | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const vesselsUnlocked = gameState.maxWorshippersByType[WorshipperType.INDOLENT] >= 100 || (gameState.relics[RelicId.FALSE_IDOL] > 0);
@@ -110,8 +108,7 @@ export const Menu: React.FC<MenuProps> = ({
             highlightAssistant={highlightAssistant}
             lastGemRefresh={lastGemRefresh}
             gemImages={gemImages}
-            showAssistantDetails={showAssistantDetails}
-            setShowAssistantDetails={setShowAssistantDetails}
+            highlightGem={highlightGem}
           />
         )}
         {activeTab === 'VESSELS' && (

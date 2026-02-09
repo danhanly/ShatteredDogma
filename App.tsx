@@ -12,7 +12,7 @@ import { EodUnlockModal } from './components/EodUnlockModal';
 import { MiracleIntroModal } from './components/MiracleIntroModal';
 import { IntroduceAssistantModal } from './components/IntroduceAssistantModal';
 import { LowlyModal, WorldlyModal, ZealousModal, ProductionStarvedModal } from './components/IntroductionModals';
-import { WorshipperType, VesselDefinition } from './types';
+import { WorshipperType } from './types';
 import { VESSEL_DEFINITIONS, PRESTIGE_UNLOCK_THRESHOLD, GEM_DEFINITIONS } from './constants';
 
 const App: React.FC = () => {
@@ -44,8 +44,7 @@ const App: React.FC = () => {
     debugAddWorshippers,
     debugUnlockFeature,
     debugAddSouls,
-    resetSave,
-    setPause
+    resetSave
   } = useGame();
 
   const [activeTab, setActiveTab] = useState<'MIRACLES' | 'VESSELS' | 'CULT' | 'END_TIMES'>('MIRACLES');
@@ -54,12 +53,6 @@ const App: React.FC = () => {
 
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [assetsLoaded, setAssetsLoaded] = useState(false);
-
-  // Lifted States for Modal Control
-  const [selectedVessel, setSelectedVessel] = useState<VesselDefinition | null>(null);
-  const [selectedWorshipper, setSelectedWorshipper] = useState<WorshipperType | null>(null);
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [showAssistantDetails, setShowAssistantDetails] = useState(false);
 
   const [worshipperImages, setWorshipperImages] = useState<Record<WorshipperType, string>>({
     [WorshipperType.INDOLENT]: "",
@@ -194,6 +187,12 @@ const App: React.FC = () => {
     }
   }, [musicUrl, gameState.settings.musicEnabled, gameState.settings.musicVolume, gameState.hasSeenStartSplash]);
 
+  useEffect(() => {
+    if (gameState.highlightGem) {
+        setActiveTab('MIRACLES');
+    }
+  }, [gameState.highlightGem]);
+
   const handleSplashStart = () => {
     setFlag('hasSeenStartSplash', true);
     if (gameState.settings.musicEnabled && audioRef.current) {
@@ -224,28 +223,6 @@ const App: React.FC = () => {
   const showWorldlyModal = hasWorldlyVessel && !gameState.hasSeenWorldlyModal;
   const showZealousModal = hasZealousVessel && !gameState.hasSeenZealousModal;
   const canShowStarvedModal = gameState.hasSeenPausedModal && !gameState.hasAcknowledgedPausedModal && gameState.hasSeenStartSplash;
-
-  // Determine global pause state
-  const isAnyModalOpen = 
-      !gameState.hasSeenStartSplash ||
-      showMiracleIntro ||
-      showVesselIntro ||
-      showAssistantIntro ||
-      showEodIntro ||
-      showLowlyModal ||
-      showWorldlyModal ||
-      showZealousModal ||
-      canShowStarvedModal ||
-      !!gameState.showGemDiscovery ||
-      !!offlineGains ||
-      !!selectedVessel ||
-      !!selectedWorshipper ||
-      isSettingsOpen ||
-      showAssistantDetails;
-
-  useEffect(() => {
-    setPause(isAnyModalOpen);
-  }, [isAnyModalOpen, setPause]);
 
   return (
     <div className="flex h-[100dvh] w-screen flex-col overflow-hidden bg-black text-gray-200 relative">
@@ -323,8 +300,6 @@ const App: React.FC = () => {
         debugUnlockFeature={debugUnlockFeature}
         debugAddSouls={debugAddSouls}
         resetSave={resetSave}
-        isSettingsOpen={isSettingsOpen}
-        setIsSettingsOpen={setIsSettingsOpen}
       />
       
       <main className="flex flex-1 flex-col lg:flex-row lg:overflow-hidden">
@@ -335,8 +310,6 @@ const App: React.FC = () => {
           worshipperImages={worshipperImages}
           bgUrl={bgUrl}
           onToggleAllVessels={toggleAllVessels}
-          selectedWorshipper={selectedWorshipper}
-          setSelectedWorshipper={setSelectedWorshipper}
         />
         
         <Menu 
@@ -361,10 +334,7 @@ const App: React.FC = () => {
           endOfDaysUrl={endOfDaysUrl}
           highlightAssistant={highlightAssistant}
           lastGemRefresh={lastGemRefresh}
-          selectedVessel={selectedVessel}
-          setSelectedVessel={setSelectedVessel}
-          showAssistantDetails={showAssistantDetails}
-          setShowAssistantDetails={setShowAssistantDetails}
+          highlightGem={gameState.highlightGem}
         />
       </main>
 

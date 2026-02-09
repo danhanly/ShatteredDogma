@@ -83,7 +83,7 @@ const INITIAL_STATE: GameState = {
   pausedStartTime: 0,
   ignoredHaltVessels: [],
   assistantLevel: 0,
-  assistantActive: true, // Assistant is active by default when unlocked
+  assistantActive: false,
   totalClicks: 0,
   manualClicks: 0,
   mattelockClicks: 0,
@@ -97,6 +97,7 @@ const INITIAL_STATE: GameState = {
     [GemType.RUBY]: 0,
   },
   showGemDiscovery: null,
+  highlightGem: null,
   frenzyTimeRemaining: 0,
   rebellionTimeRemaining: 0,
   rebelCaste: null,
@@ -127,7 +128,6 @@ export const useGame = () => {
           ...parsed,
           relics: { ...INITIAL_STATE.relics, ...(parsed.relics || {}) },
           fates: parsed.fates || {},
-          assistantActive: parsed.assistantActive !== undefined ? parsed.assistantActive : true,
         };
       }
     } catch (e) {}
@@ -137,7 +137,6 @@ export const useGame = () => {
   const lastPassiveTick = useRef(Date.now());
   const assistantTimer = useRef(0);
   const stateRef = useRef(gameState);
-  const isGlobalPaused = useRef(false);
 
   useEffect(() => {
     stateRef.current = gameState;
@@ -185,8 +184,7 @@ export const useGame = () => {
       const now = Date.now();
       const delta = (now - lastPassiveTick.current) / 1000; 
       
-      // Only run game logic if not paused
-      if (!isGlobalPaused.current && delta > 0 && document.visibilityState === 'visible') {
+      if (delta > 0 && document.visibilityState === 'visible') {
         lastPassiveTick.current = now;
         const current = stateRef.current;
         let autoMiracle: { power: number, type: WorshipperType } | null = null;
@@ -210,27 +208,14 @@ export const useGame = () => {
           
           const newWorshippers = { ...prev.worshippers };
           let detectedNetNegative = false;
-          let currentFrameNetNegative = false;
-          let currentFrameConsumption = false;
 
           WORSHIPPER_ORDER.forEach(type => {
             const net = production[type] - consumption[type];
-            if (net < 0) {
-                if (!prev.hasSeenNetNegative) detectedNetNegative = true;
-                currentFrameNetNegative = true;
-            }
-            if (consumption[type] > 0) {
-                currentFrameConsumption = true;
+            if (net < 0 && !prev.hasSeenNetNegative && !detectedNetNegative) {
+                detectedNetNegative = true;
             }
             newWorshippers[type] = Math.max(0, newWorshippers[type] + net * delta);
           });
-          
-          // Trigger Starved Modal Logic
-          // Conditions: active consumption AND negative net growth AND haven't seen/acknowledged modal
-          let triggerStarvedModal = prev.hasSeenPausedModal;
-          if (!triggerStarvedModal && !prev.hasAcknowledgedPausedModal && currentFrameNetNegative && currentFrameConsumption) {
-              triggerStarvedModal = true;
-          }
 
           if (autoMiracle) {
             newWorshippers[autoMiracle.type] += autoMiracle.power;
@@ -325,7 +310,6 @@ export const useGame = () => {
              gemCooldowns: newGemCooldowns,
              lastSaveTime: now,
              hasSeenNetNegative: prev.hasSeenNetNegative || detectedNetNegative,
-             hasSeenPausedModal: triggerStarvedModal,
              mattelockClicks: prev.mattelockClicks + (autoMiracle ? 1 : 0),
              assistantLevel: finalAssistantLevel,
              frenzyTimeRemaining: newFrenzyTime,
@@ -344,9 +328,6 @@ export const useGame = () => {
             timestamp: performance.now() + Math.random() 
           });
         }
-      } else {
-        // Keep ticks updated even if paused to prevent huge jump on resume
-        lastPassiveTick.current = now;
       }
     }, 100); 
 
@@ -354,8 +335,6 @@ export const useGame = () => {
   }, [calculateInternalPower]);
 
   const performMiracle = useCallback(() => {
-    if (isGlobalPaused.current) return { power: 0, type: WorshipperType.INDOLENT }; // Prevent clicks when paused
-
     const { power, type } = calculateInternalPower(gameState, false);
     setGameState(prev => ({
         ...prev,
@@ -439,7 +418,19 @@ export const useGame = () => {
   }, []);
 
   const closeDiscovery = useCallback(() => {
-    setGameState(prev => ({ ...prev, showGemDiscovery: null }));
+    setGameState(prev => {
+        const gemToHighlight = prev.showGemDiscovery;
+        return { 
+            ...prev, 
+            showGemDiscovery: null,
+            highlightGem: gemToHighlight
+        };
+    });
+
+    // Clear highlight after 2.5 seconds to allow animation to complete
+    setTimeout(() => {
+        setGameState(prev => ({ ...prev, highlightGem: null }));
+    }, 2500);
   }, []);
 
   const closeOfflineModal = useCallback(() => {
@@ -484,10 +475,6 @@ export const useGame = () => {
 
   const debugAddSouls = useCallback((amount: number) => {
     setGameState(prev => ({ ...prev, souls: prev.souls + amount }));
-  }, []);
-
-  const setPause = useCallback((paused: boolean) => {
-      isGlobalPaused.current = paused;
   }, []);
 
   return {
@@ -536,7 +523,6 @@ export const useGame = () => {
     debugAddWorshippers,
     debugUnlockFeature,
     debugAddSouls,
-    resetSave: () => { localStorage.removeItem(STORAGE_KEY); setGameState(INITIAL_STATE); },
-    setPause
+    resetSave: () => { localStorage.removeItem(STORAGE_KEY); setGameState(INITIAL_STATE); }
   };
 };

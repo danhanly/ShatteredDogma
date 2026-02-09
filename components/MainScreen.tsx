@@ -15,24 +15,13 @@ interface MainScreenProps {
   worshipperImages: Record<WorshipperType, string>;
   bgUrl: string;
   onToggleAllVessels: (caste: WorshipperType, imprison: boolean) => void;
-  selectedWorshipper: WorshipperType | null;
-  setSelectedWorshipper: (type: WorshipperType | null) => void;
 }
 
-export const MainScreen: React.FC<MainScreenProps> = ({ 
-    gameState, 
-    onTap, 
-    autoClickTrigger, 
-    worshipperImages, 
-    bgUrl, 
-    onToggleAllVessels,
-    selectedWorshipper,
-    setSelectedWorshipper
-}) => {
+export const MainScreen: React.FC<MainScreenProps> = ({ gameState, onTap, autoClickTrigger, worshipperImages, bgUrl, onToggleAllVessels }) => {
   const [clickEffects, setClickEffects] = useState<ClickEffect[]>([]);
   const [zipParticles, setZipParticles] = useState<ZipParticle[]>([]);
   const [glowingStats, setGlowingStats] = useState<Record<string, boolean>>({});
-  
+  const [selectedWorshipper, setSelectedWorshipper] = useState<WorshipperType | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const orbRef = useRef<HTMLDivElement>(null);
   const statBoxRefs = useRef<Record<string, HTMLDivElement | null>>({});

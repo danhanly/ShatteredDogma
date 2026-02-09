@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
   <head>    
@@ -75,6 +76,7 @@
                 'highlight-glow': 'highlightGlow 5s ease-out forwards',
                 'flash-gold': 'flashGold 2s ease-out forwards',
                 'x2-pop': 'x2Pop 2s ease-out forwards',
+                'glow-out': 'glowOut 2s ease-out forwards',
               },
               keyframes: {
                 float: {
@@ -125,6 +127,10 @@
                   '0%': { opacity: '0', transform: 'scale(0.5) translateY(0)' },
                   '20%': { opacity: '1', transform: 'scale(1.5) translateY(-10px)' },
                   '100%': { opacity: '0', transform: 'scale(1) translateY(-40px)' }
+                },
+                glowOut: {
+                  '0%': { boxShadow: '0 0 30px #c5a059', borderColor: '#c5a059' },
+                  '100%': { boxShadow: '0 0 0px transparent', borderColor: '#374151' }
                 }
               }
             },

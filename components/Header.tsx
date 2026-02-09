@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { GameState, WorshipperType } from '../types';
 import { Settings, Users, Activity, Orbit, Coffee } from 'lucide-react';
 import { SettingsModal } from './SettingsModal';
@@ -16,24 +16,10 @@ interface HeaderProps {
   debugUnlockFeature?: (feature: 'GEMS' | 'VESSELS' | 'END_TIMES' | 'ASSISTANT') => void;
   debugAddSouls?: (amount: number) => void;
   resetSave: () => void;
-  isSettingsOpen: boolean;
-  setIsSettingsOpen: (isOpen: boolean) => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ 
-    gameState, 
-    toggleSound, 
-    toggleMusic, 
-    setMusicVolume, 
-    setActiveTab, 
-    passiveIncome = 0, 
-    debugAddWorshippers, 
-    debugUnlockFeature, 
-    debugAddSouls, 
-    resetSave,
-    isSettingsOpen,
-    setIsSettingsOpen
-}) => {
+export const Header: React.FC<HeaderProps> = ({ gameState, toggleSound, toggleMusic, setMusicVolume, setActiveTab, passiveIncome = 0, debugAddWorshippers, debugUnlockFeature, debugAddSouls, resetSave }) => {
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   return (
     <header className="flex h-[10%] w-full items-center justify-between border-b border-eldritch-grey/30 bg-eldritch-black px-3 sm:px-8 shadow-2xl z-20 relative">

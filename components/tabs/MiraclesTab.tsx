@@ -21,8 +21,6 @@ interface MiraclesTabProps {
   highlightGem?: GemType | null;
   lastGemRefresh?: { gem: GemType, timestamp: number } | null;
   gemImages?: Record<string, string>;
-  showAssistantDetails: boolean;
-  setShowAssistantDetails: (show: boolean) => void;
 }
 
 export const MiraclesTab: React.FC<MiraclesTabProps> = ({
@@ -37,10 +35,9 @@ export const MiraclesTab: React.FC<MiraclesTabProps> = ({
   highlightAssistant,
   highlightGem,
   lastGemRefresh,
-  gemImages,
-  showAssistantDetails,
-  setShowAssistantDetails
+  gemImages
 }) => {
+  const [showAssistantDetails, setShowAssistantDetails] = useState(false);
   const [lastMilestoneTime, setLastMilestoneTime] = useState<number>(0);
   const prevCooldowns = useRef<Record<GemType, number>>(gameState.gemCooldowns);
   const [expiredCooldownGems, setExpiredCooldownGems] = useState<Record<string, number>>({});
@@ -238,6 +235,7 @@ export const MiraclesTab: React.FC<MiraclesTabProps> = ({
                         // Just refreshed animation
                         const justRefreshed = lastGemRefresh && lastGemRefresh.gem === gem && (Date.now() - lastGemRefresh.timestamp < 1000);
                         const justExpired = expiredCooldownGems[gem] && (Date.now() - expiredCooldownGems[gem] < 1000);
+                        const isHighlighted = highlightGem === gem;
 
                         const imageSrc = gemImages?.[gem] || def.image;
 
@@ -252,6 +250,7 @@ export const MiraclesTab: React.FC<MiraclesTabProps> = ({
                                         ? 'border-white shadow-[0_0_20px_rgba(255,255,255,0.3)] ring-1 ring-white' 
                                         : (isOnCooldown ? 'border-gray-800 bg-gray-900/50 opacity-60' : 'border-gray-700 bg-black/40 hover:border-gray-500')}
                                     ${justRefreshed || justExpired ? 'animate-flash-gold' : ''}
+                                    ${isHighlighted ? 'animate-glow-out' : ''}
                                 `}
                             >
                                 <img src={imageSrc} className={`absolute inset-0 h-full w-full object-cover object-top origin-top transition-transform duration-700 ${isActive ? 'scale-150 blur-sm' : 'grayscale group-hover:grayscale-0 scale-125'}`} alt={def.name} />
