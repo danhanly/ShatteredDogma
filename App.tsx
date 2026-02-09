@@ -79,7 +79,7 @@ const App: React.FC = () => {
       const base = import.meta.env.BASE_URL;
       return base.endsWith('/') ? base : `${base}/`;
     }
-    return 'public/';
+    return 'static/';
   };
 
   useEffect(() => {
@@ -91,16 +91,16 @@ const App: React.FC = () => {
       const assetsToLoad: Array<{ type: string; id?: string; path: string }> = [];
 
       // Static Images
-      assetsToLoad.push({ type: 'BG', path: `${prefix}bg.jpeg` });
-      assetsToLoad.push({ type: 'EOD', path: `${prefix}endofdays.jpeg` });
-      assetsToLoad.push({ type: 'ASSISTANT', path: `${prefix}assistant.jpg` });
+      assetsToLoad.push({ type: 'BG', path: `${prefix}img/bg.jpeg` });
+      assetsToLoad.push({ type: 'EOD', path: `${prefix}img/endofdays.jpeg` });
+      assetsToLoad.push({ type: 'ASSISTANT', path: `${prefix}img/assistant.jpg` });
 
       // Worshippers
       const IMAGE_PATHS = {
-        [WorshipperType.INDOLENT]: `${prefix}indolent.jpeg`,
-        [WorshipperType.LOWLY]: `${prefix}lowly.jpeg`,
-        [WorshipperType.WORLDLY]: `${prefix}worldly.jpeg`,
-        [WorshipperType.ZEALOUS]: `${prefix}zealous.jpeg`,
+        [WorshipperType.INDOLENT]: `${prefix}img/indolent.jpeg`,
+        [WorshipperType.LOWLY]: `${prefix}img/lowly.jpeg`,
+        [WorshipperType.WORLDLY]: `${prefix}img/worldly.jpeg`,
+        [WorshipperType.ZEALOUS]: `${prefix}img/zealous.jpeg`,
       };
       Object.entries(IMAGE_PATHS).forEach(([type, path]) => {
         assetsToLoad.push({ type: 'WORSHIPPER', id: type, path });
@@ -112,7 +112,7 @@ const App: React.FC = () => {
          if (parts.length === 2) {
              const typeFolder = def.type.toLowerCase();
              const number = parts[1];
-             const path = `${prefix}vessels/${typeFolder}/${number}.jpeg`;
+             const path = `${prefix}img/vessels/${typeFolder}/${number}.jpeg`;
              assetsToLoad.push({ type: 'VESSEL', id: def.id, path });
          }
       }
@@ -121,7 +121,7 @@ const App: React.FC = () => {
       for (const [gemKey, def] of Object.entries(GEM_DEFINITIONS)) {
         // Fix: cast as any to bypass TS unknown property access issue
         const normalizedPath = (def as any).image.replace(/^\.\//, '');
-        const path = `${prefix}${normalizedPath.replace(/^public\//, '')}`;
+        const path = `${prefix}${normalizedPath.replace(/^static\//, '')}`;
         assetsToLoad.push({ type: 'GEM', id: gemKey, path });
       }
 

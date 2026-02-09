@@ -74,20 +74,20 @@ const App: React.FC = () => {
       const base = import.meta.env.BASE_URL;
       return base.endsWith('/') ? base : `${base}/`;
     }
-    return 'public/';
+    return 'static/';
   };
 
   useEffect(() => {
     const prefix = getAssetPrefix();
     const IMAGE_PATHS = {
-      [WorshipperType.INDOLENT]: `${prefix}indolent.jpeg`,
-      [WorshipperType.LOWLY]: `${prefix}lowly.jpeg`,
-      [WorshipperType.WORLDLY]: `${prefix}worldly.jpeg`,
-      [WorshipperType.ZEALOUS]: `${prefix}zealous.jpeg`,
+      [WorshipperType.INDOLENT]: `${prefix}img/indolent.jpeg`,
+      [WorshipperType.LOWLY]: `${prefix}img/lowly.jpeg`,
+      [WorshipperType.WORLDLY]: `${prefix}img/worldly.jpeg`,
+      [WorshipperType.ZEALOUS]: `${prefix}img/zealous.jpeg`,
     };
-    const BG_PATH = `${prefix}bg.jpeg`;
-    const END_OF_DAYS_PATH = `${prefix}endofdays.jpeg`;
-    const ASSISTANT_PATH = `${prefix}assistant.jpg`;
+    const BG_PATH = `${prefix}img/bg.jpeg`;
+    const END_OF_DAYS_PATH = `${prefix}img/endofdays.jpeg`;
+    const ASSISTANT_PATH = `${prefix}img/assistant.jpg`;
     const MUSIC_PATH = `${prefix}audio/music.ogg`;
     
     setMusicUrl(MUSIC_PATH);
@@ -107,27 +107,30 @@ const App: React.FC = () => {
       setWorshipperImages(newImages);
 
       try {
-        const response = await fetch(BG_PATH);
-        if (response.ok) {
-          const blob = await response.blob();
+        const response = fetch(BG_PATH);
+        const res = await response;
+        if (res.ok) {
+          const blob = await res.blob();
           const url = URL.createObjectURL(blob);
           setBgUrl(url);
         }
       } catch (e) {}
 
       try {
-        const response = await fetch(END_OF_DAYS_PATH);
-        if (response.ok) {
-          const blob = await response.blob();
+        const response = fetch(END_OF_DAYS_PATH);
+        const res = await response;
+        if (res.ok) {
+          const blob = await res.blob();
           const url = URL.createObjectURL(blob);
           setEndOfDaysUrl(url);
         }
       } catch (e) {}
 
       try {
-        const response = await fetch(ASSISTANT_PATH);
-        if (response.ok) {
-          const blob = await response.blob();
+        const response = fetch(ASSISTANT_PATH);
+        const res = await response;
+        if (res.ok) {
+          const blob = await res.blob();
           const url = URL.createObjectURL(blob);
           setAssistantUrl(url);
         }
@@ -139,7 +142,7 @@ const App: React.FC = () => {
          if (parts.length === 2) {
              const typeFolder = def.type.toLowerCase();
              const number = parts[1];
-             const path = `${prefix}vessels/${typeFolder}/${number}.jpeg`;
+             const path = `${prefix}img/vessels/${typeFolder}/${number}.jpeg`;
              try {
                 const response = await fetch(path);
                 if (response.ok) {
@@ -157,7 +160,7 @@ const App: React.FC = () => {
         try {
           // Fix: cast as any to bypass TS unknown property access issue when Object.entries loses type info
           const normalizedPath = (def as any).image.replace(/^\.\//, '');
-          const path = `${prefix}${normalizedPath.replace(/^public\//, '')}`;
+          const path = `${prefix}${normalizedPath.replace(/^static\//, '')}`;
           const response = await fetch(path);
           if (response.ok) {
             const blob = await response.blob();

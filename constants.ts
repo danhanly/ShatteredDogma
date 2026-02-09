@@ -305,28 +305,28 @@ export const GEM_DEFINITIONS: Record<GemType, {
     description: "Double Click Output.",
     color: "#60a5fa",
     type: WorshipperType.INDOLENT,
-    image: './public/gems/1.jpg'
+    image: './static/img/gems/1.jpg'
   },
   [GemType.QUARTZ]: {
     name: "Quartz of the Industrious",
     description: "Convert miracles to attract the Lowly (1:1 Ratio).",
     color: "#9ca3af",
     type: WorshipperType.LOWLY,
-    image: './public/gems/2.jpg'
+    image: './static/img/gems/2.jpg'
   },
   [GemType.EMERALD]: {
     name: "Emerald of the Greedy",
     description: "Convert miracles to attract the Worldly (4:1 Ratio).",
     color: "#4ade80",
     type: WorshipperType.WORLDLY,
-    image: './public/gems/3.jpg'
+    image: './static/img/gems/3.jpg'
   },
   [GemType.RUBY]: {
     name: "Ruby of the Fervent",
     description: "Convert miracles to attract the Zealous (10:1 Ratio).",
     color: "#ef4444",
     type: WorshipperType.ZEALOUS,
-    image: './public/gems/4.jpg'
+    image: './static/img/gems/4.jpg'
   }
 };
 

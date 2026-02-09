@@ -64,7 +64,7 @@ export const EndTimesTab: React.FC<EndTimesTabProps> = ({ gameState, onPrestige,
         <div className="relative w-full rounded-xl overflow-hidden border border-indigo-900/50 shadow-[0_0_30px_rgba(49,46,129,0.3)]">
             <div className="h-40 w-full overflow-hidden relative bg-black flex items-center justify-center">
                 <img 
-                    src={endOfDaysUrl || "./public/endofdays.jpeg"} 
+                    src={endOfDaysUrl || "./static/img/endofdays.jpeg"} 
                     className="w-full h-full object-cover transition-all duration-1000" 
                     alt="End of Days" 
                     onError={(e) => {
