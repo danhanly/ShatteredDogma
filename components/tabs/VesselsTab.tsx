@@ -1,6 +1,7 @@
+
 import React, { useState } from 'react';
 import { GameState, WorshipperType, VesselDefinition, IncrementType, VesselId, WORSHIPPER_ORDER } from '../../types';
-import { calculateBulkVesselBuy, calculateVesselOutput, calculateVesselEfficiency, calculateSingleVesselConsumption, isMilestoneLevel, calculateMilestoneMultiplier } from '../../services/gameService';
+import { calculateBulkVesselBuy, calculateVesselOutput, calculateVesselEfficiency, calculateSingleVesselConsumption, isMilestoneLevel } from '../../services/gameService';
 import { formatNumber } from '../../utils/format';
 import { Crown, Frown, Ghost, Sword, User, Info, Activity, ZapOff, AlertTriangle, Utensils, Lock, Unlock, ChevronUp } from 'lucide-react';
 import { IncrementSelector } from '../IncrementSelector';
@@ -131,12 +132,11 @@ export const VesselsTab: React.FC<VesselsTabProps> = ({
                     if (useSlimDesign) {
                         return (
                             <div key={vessel.id} 
-                                onClick={() => imprisoned && onSelectVessel(vessel)}
-                                className={`relative flex items-center gap-3 rounded-lg border bg-eldritch-dark p-2 transition-all ${typeColor.split(' ')[1]} ${imprisoned ? 'opacity-60 grayscale cursor-pointer' : ''}`}
+                                onClick={() => onSelectVessel(vessel)}
+                                className={`relative flex items-center gap-3 rounded-lg border bg-eldritch-dark p-2 transition-all cursor-pointer ${typeColor.split(' ')[1]} ${imprisoned ? 'opacity-60 grayscale' : ''}`}
                             >
                                 <div 
-                                    onClick={(e) => { e.stopPropagation(); onSelectVessel(vessel); }}
-                                    className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded bg-black/50 border border-white/10 font-serif font-bold text-eldritch-gold cursor-pointer hover:bg-black/80 hover:scale-105 transition-all shadow-md overflow-hidden"
+                                    className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded bg-black/50 border border-white/10 font-serif font-bold text-eldritch-gold hover:bg-black/80 hover:scale-105 transition-all shadow-md overflow-hidden"
                                 >
                                     {isAnimating && <div className="absolute inset-0 animate-flash-gold z-0" />}
                                     <span className="relative z-10">{ROMAN_NUMERALS[vessel.tier]}</span>
@@ -188,8 +188,8 @@ export const VesselsTab: React.FC<VesselsTabProps> = ({
 
                     return (
                         <div key={vessel.id} 
-                             onClick={() => imprisoned && onSelectVessel(vessel)}
-                             className={`relative rounded-xl border bg-eldritch-dark p-3 transition-all ${typeColor.split(' ')[1]} ${imprisoned ? 'opacity-40 grayscale cursor-pointer' : ''}`}
+                             onClick={() => onSelectVessel(vessel)}
+                             className={`relative rounded-xl border bg-eldritch-dark p-3 transition-all cursor-pointer ${typeColor.split(' ')[1]} ${imprisoned ? 'opacity-40 grayscale' : ''}`}
                         >
                             <div className="absolute -top-1.5 -right-1.5 z-20 flex h-6 w-6 items-center justify-center rounded-md border border-white/10 bg-black font-serif text-[10px] font-bold text-eldritch-gold shadow-lg ring-1 ring-white/5">
                                 {ROMAN_NUMERALS[vessel.tier]}
@@ -203,7 +203,7 @@ export const VesselsTab: React.FC<VesselsTabProps> = ({
                             )}
 
                             <div className="flex items-center gap-3 mb-3">
-                                <button onClick={(e) => { e.stopPropagation(); onSelectVessel(vessel); }} className={`relative flex h-14 w-14 shrink-0 items-center justify-center rounded-lg border-2 bg-black hover:scale-105 transition-transform overflow-hidden ${typeColor.split(' ')[1]}`}>
+                                <div className={`relative flex h-14 w-14 shrink-0 items-center justify-center rounded-lg border-2 bg-black hover:scale-105 transition-transform overflow-hidden ${typeColor.split(' ')[1]}`}>
                                 {isAnimating && <div className="absolute inset-0 animate-flash-gold z-30 pointer-events-none" />}
                                 {isAnimating && (
                                     <div className="absolute inset-0 z-40 flex items-center justify-center pointer-events-none">
@@ -212,7 +212,7 @@ export const VesselsTab: React.FC<VesselsTabProps> = ({
                                 )}
                                 {vesselImages[vessel.id] ? <img src={vesselImages[vessel.id]} alt={vessel.name} className="h-full w-full object-cover object-top scale-125" /> : <User className={`h-8 w-8 ${typeColor.split(' ')[0]}`} />}
                                 <div className="absolute top-1 right-1 bg-black/50 rounded-full p-0.5"><Info className="h-2 w-2 text-white" /></div>
-                                </button>
+                                </div>
                                 <div className="flex-1 min-w-0 flex justify-between items-start">
                                     <div className="min-w-0 mr-1">
                                         <h4 className={`font-serif text-sm font-bold truncate ${typeColor.split(' ')[0]}`}>{vessel.name}</h4>

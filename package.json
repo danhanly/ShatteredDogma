@@ -3,7 +3,7 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "homepage": "https://danhanly.github.io/ShatteredDogma/",
+  "homepage": "https://danhanly.itch.io/shattered-dogma",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",

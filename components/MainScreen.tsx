@@ -1,5 +1,6 @@
+
 import React, { useState, useRef, useEffect } from 'react';
-import { GameState, WorshipperType, ClickEffect, WORSHIPPER_ORDER, GemType } from '../types';
+import { GameState, WorshipperType, ClickEffect } from '../types';
 import { Crown, Ghost, Frown, Sword } from 'lucide-react';
 import { WorshipperModal } from './WorshipperModal';
 import { formatNumber } from '../utils/format';
@@ -14,13 +15,24 @@ interface MainScreenProps {
   worshipperImages: Record<WorshipperType, string>;
   bgUrl: string;
   onToggleAllVessels: (caste: WorshipperType, imprison: boolean) => void;
+  selectedWorshipper: WorshipperType | null;
+  setSelectedWorshipper: (type: WorshipperType | null) => void;
 }
 
-export const MainScreen: React.FC<MainScreenProps> = ({ gameState, onTap, autoClickTrigger, worshipperImages, bgUrl, onToggleAllVessels }) => {
+export const MainScreen: React.FC<MainScreenProps> = ({ 
+    gameState, 
+    onTap, 
+    autoClickTrigger, 
+    worshipperImages, 
+    bgUrl, 
+    onToggleAllVessels,
+    selectedWorshipper,
+    setSelectedWorshipper
+}) => {
   const [clickEffects, setClickEffects] = useState<ClickEffect[]>([]);
   const [zipParticles, setZipParticles] = useState<ZipParticle[]>([]);
   const [glowingStats, setGlowingStats] = useState<Record<string, boolean>>({});
-  const [selectedWorshipper, setSelectedWorshipper] = useState<WorshipperType | null>(null);
+  
   const containerRef = useRef<HTMLDivElement>(null);
   const orbRef = useRef<HTMLDivElement>(null);
   const statBoxRefs = useRef<Record<string, HTMLDivElement | null>>({});

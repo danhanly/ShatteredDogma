@@ -1,5 +1,6 @@
+
 import React from 'react';
-import { WorshipperType } from '../types';
+import { GameState, WorshipperType } from '../types';
 import { ChevronRight, Lock, TrendingUp, TrendingDown, AlertCircle, AlertTriangle } from 'lucide-react';
 import { formatNumber } from '../utils/format';
 import { calculateNetIncomeByType, calculateConsumptionByType } from '../services/gameService';
@@ -13,7 +14,7 @@ interface WorshipperStatProps {
   iconColor: string;
   priorityIndex: number;
   isLast: boolean;
-  gameState: any; 
+  gameState: GameState; 
   glowingStats: Record<string, boolean>;
   onSelect: (type: WorshipperType) => void;
   setStatBoxRef: (type: string, el: HTMLDivElement | null) => void;

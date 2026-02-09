@@ -2,7 +2,7 @@
 import React from 'react';
 import { GameState, WorshipperType, RelicId, GemType, VesselId } from '../types';
 import { WORSHIPPER_DETAILS, VESSEL_DEFINITIONS } from '../constants';
-import { Activity, Utensils, ZapOff, Factory, TrendingUp, TrendingDown, Lock, Unlock } from 'lucide-react';
+import { Utensils, ZapOff, Factory, TrendingUp, TrendingDown, Lock, Unlock } from 'lucide-react';
 import { formatNumber } from '../utils/format';
 import { calculateProductionByType, calculateConsumptionByType, calculateVesselOutput, calculateVesselEfficiency } from '../services/gameService';
 import { BaseModal } from './BaseModal';

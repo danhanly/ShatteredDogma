@@ -150,7 +150,7 @@ export const calculateSingleVesselConsumption = (state: GameState, vesselId: Ves
     return { type: consumedType, amount: 0 };
   }
 
-  const baseRate = (requirements as any)[consumedType]!;
+  const baseRate = requirements[consumedType]!;
   const milestoneMultiplier = calculateMilestoneMultiplier(level);
   
   const relicGluttonyLvl = state.relics[RelicId.GLUTTONY] || 0;

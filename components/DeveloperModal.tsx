@@ -4,8 +4,7 @@ import { WorshipperType, WORSHIPPER_ORDER } from '../types';
 import { X, Terminal, PlusCircle, Unlock, Sparkles, BookOpen } from 'lucide-react';
 import { BaseModal } from './BaseModal';
 
-// @ts-ignore
-import katex from 'https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.mjs';
+declare const katex: any;
 
 interface DeveloperModalProps {
   isOpen: boolean;
@@ -127,7 +126,7 @@ export const DeveloperModal: React.FC<DeveloperModalProps> = ({
               <div className="prose prose-invert max-w-none text-xs sm:text-sm font-sans text-gray-300 space-y-6 pb-8">
                 <section>
                   <h1 className="text-xl font-serif text-eldritch-gold border-b border-eldritch-gold/30 pb-2 uppercase tracking-widest text-center">The Liturgy of Ascension</h1>
-                  <p className="italic mt-4 text-gray-400 text-center">"In the silent spaces between stars, an ancient hunger stirs. You are that hunger..."</p>
+                  <p className="italic mt-4 text-gray-400 text-center">"In the silent spaces between stars, an ancient hunger stirs. You are the hunger..."</p>
                 </section>
 
                 <section>
@@ -202,7 +201,7 @@ export const DeveloperModal: React.FC<DeveloperModalProps> = ({
                     <li><strong>Mattelock's Contract:</strong> $+25\%$ Mattelock power / level.</li>
                     <li><strong>Void Catalyst:</strong> Gem consumption $-50\%$.</li>
                     <li><strong>The Frenzied Heart:</strong> Enables quad-speed frenzy.</li>
-                    <li><strong>Martyr's Defiance:</strong> Enables zero-consumption rebellion.</li>
+                    <li><strong>Martyr's Defiance:</strong> Enables periodic 30s caste rebellion (zero consumption).</li>
                     <li><strong>Eye of the Abyss:</strong> Endless $+5\%$ Soul gain / level.</li>
                   </ul>
                 </section>

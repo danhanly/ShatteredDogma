@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { GameState, WorshipperType, RelicId, FateId } from '../../types';
+import { GameState, WorshipperType, FateId } from '../../types';
 import { calculateProductionByType, calculateConsumptionByType } from '../../services/gameService';
 import { formatNumber } from '../../utils/format';
 import { BarChart2, Crown, Frown, Ghost, Sword, Activity, Utensils, Orbit, Sparkles, Dna, MousePointer2, User } from 'lucide-react';

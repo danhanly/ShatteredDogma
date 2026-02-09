@@ -1,6 +1,6 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { GameState, WorshipperType, VesselId, WORSHIPPER_ORDER, GemType, RelicId, IncrementType, FateId } from '../types';
+import { GameState, WorshipperType, WORSHIPPER_ORDER, GemType, RelicId, IncrementType, FateId } from '../types';
 import { PRESTIGE_UNLOCK_THRESHOLD, VESSEL_DEFINITIONS, FATE_DEFINITIONS } from '../constants';
 import { 
   calculateManualClickPower, 
@@ -41,7 +41,7 @@ const INITIAL_STATE: GameState = {
     [RelicId.REBELLION]: 0,
     [RelicId.SOUL_HARVESTER]: 0,
   },
-  fates: {} as any,
+  fates: {} as Record<FateId, number>,
   fatePurchases: 0,
   lastPurchasedFateId: null,
   lastPurchasedFateTime: 0,
@@ -83,7 +83,7 @@ const INITIAL_STATE: GameState = {
   pausedStartTime: 0,
   ignoredHaltVessels: [],
   assistantLevel: 0,
-  assistantActive: false,
+  assistantActive: true, // Assistant is active by default when unlocked
   totalClicks: 0,
   manualClicks: 0,
   mattelockClicks: 0,
@@ -127,6 +127,7 @@ export const useGame = () => {
           ...parsed,
           relics: { ...INITIAL_STATE.relics, ...(parsed.relics || {}) },
           fates: parsed.fates || {},
+          assistantActive: parsed.assistantActive !== undefined ? parsed.assistantActive : true,
         };
       }
     } catch (e) {}
@@ -136,6 +137,7 @@ export const useGame = () => {
   const lastPassiveTick = useRef(Date.now());
   const assistantTimer = useRef(0);
   const stateRef = useRef(gameState);
+  const isGlobalPaused = useRef(false);
 
   useEffect(() => {
     stateRef.current = gameState;
@@ -183,7 +185,8 @@ export const useGame = () => {
       const now = Date.now();
       const delta = (now - lastPassiveTick.current) / 1000; 
       
-      if (delta > 0 && document.visibilityState === 'visible') {
+      // Only run game logic if not paused
+      if (!isGlobalPaused.current && delta > 0 && document.visibilityState === 'visible') {
         lastPassiveTick.current = now;
         const current = stateRef.current;
         let autoMiracle: { power: number, type: WorshipperType } | null = null;
@@ -207,14 +210,27 @@ export const useGame = () => {
           
           const newWorshippers = { ...prev.worshippers };
           let detectedNetNegative = false;
+          let currentFrameNetNegative = false;
+          let currentFrameConsumption = false;
 
           WORSHIPPER_ORDER.forEach(type => {
             const net = production[type] - consumption[type];
-            if (net < 0 && !prev.hasSeenNetNegative && !detectedNetNegative) {
-                detectedNetNegative = true;
+            if (net < 0) {
+                if (!prev.hasSeenNetNegative) detectedNetNegative = true;
+                currentFrameNetNegative = true;
+            }
+            if (consumption[type] > 0) {
+                currentFrameConsumption = true;
             }
             newWorshippers[type] = Math.max(0, newWorshippers[type] + net * delta);
           });
+          
+          // Trigger Starved Modal Logic
+          // Conditions: active consumption AND negative net growth AND haven't seen/acknowledged modal
+          let triggerStarvedModal = prev.hasSeenPausedModal;
+          if (!triggerStarvedModal && !prev.hasAcknowledgedPausedModal && currentFrameNetNegative && currentFrameConsumption) {
+              triggerStarvedModal = true;
+          }
 
           if (autoMiracle) {
             newWorshippers[autoMiracle.type] += autoMiracle.power;
@@ -309,6 +325,7 @@ export const useGame = () => {
              gemCooldowns: newGemCooldowns,
              lastSaveTime: now,
              hasSeenNetNegative: prev.hasSeenNetNegative || detectedNetNegative,
+             hasSeenPausedModal: triggerStarvedModal,
              mattelockClicks: prev.mattelockClicks + (autoMiracle ? 1 : 0),
              assistantLevel: finalAssistantLevel,
              frenzyTimeRemaining: newFrenzyTime,
@@ -327,6 +344,9 @@ export const useGame = () => {
             timestamp: performance.now() + Math.random() 
           });
         }
+      } else {
+        // Keep ticks updated even if paused to prevent huge jump on resume
+        lastPassiveTick.current = now;
       }
     }, 100); 
 
@@ -334,6 +354,8 @@ export const useGame = () => {
   }, [calculateInternalPower]);
 
   const performMiracle = useCallback(() => {
+    if (isGlobalPaused.current) return { power: 0, type: WorshipperType.INDOLENT }; // Prevent clicks when paused
+
     const { power, type } = calculateInternalPower(gameState, false);
     setGameState(prev => ({
         ...prev,
@@ -464,6 +486,10 @@ export const useGame = () => {
     setGameState(prev => ({ ...prev, souls: prev.souls + amount }));
   }, []);
 
+  const setPause = useCallback((paused: boolean) => {
+      isGlobalPaused.current = paused;
+  }, []);
+
   return {
     gameState,
     clickPower: calculateManualClickPower(gameState.miracleLevel, gameState),
@@ -510,6 +536,7 @@ export const useGame = () => {
     debugAddWorshippers,
     debugUnlockFeature,
     debugAddSouls,
-    resetSave: () => { localStorage.removeItem(STORAGE_KEY); setGameState(INITIAL_STATE); }
+    resetSave: () => { localStorage.removeItem(STORAGE_KEY); setGameState(INITIAL_STATE); },
+    setPause
   };
 };

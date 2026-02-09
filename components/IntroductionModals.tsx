@@ -11,7 +11,7 @@ interface IntroModalProps {
 export const LowlyModal: React.FC<IntroModalProps> = ({ onClose, imageUrl }) => (
   <BaseModal onClose={onClose} zIndex={120} containerClassName="max-w-lg w-full border-gray-600" backdropClassName="bg-black/95 backdrop-blur-xl">
     <div className="h-64 w-full bg-black overflow-hidden relative">
-      <img src={imageUrl || "vessels/lowly/1.jpeg"} className="h-full w-full object-cover opacity-60" alt="Lowly" />
+      <img src={imageUrl || "img/vessels/lowly/1.jpeg"} className="h-full w-full object-cover opacity-60" alt="Lowly" />
       <div className="absolute inset-0 bg-gradient-to-t from-eldritch-dark via-transparent to-transparent" />
     </div>
     <div className="p-8 text-center">
@@ -32,7 +32,7 @@ export const LowlyModal: React.FC<IntroModalProps> = ({ onClose, imageUrl }) => 
 export const WorldlyModal: React.FC<IntroModalProps> = ({ onClose, imageUrl }) => (
   <BaseModal onClose={onClose} zIndex={120} containerClassName="max-w-lg w-full border-green-900" backdropClassName="bg-black/95 backdrop-blur-xl">
     <div className="h-64 w-full bg-black overflow-hidden relative">
-      <img src={imageUrl || "vessels/worldly/1.jpeg"} className="h-full w-full object-cover opacity-60" alt="Worldly" />
+      <img src={imageUrl || "img/vessels/worldly/1.jpeg"} className="h-full w-full object-cover opacity-60" alt="Worldly" />
       <div className="absolute inset-0 bg-gradient-to-t from-eldritch-dark via-transparent to-transparent" />
     </div>
     <div className="p-8 text-center">
@@ -53,7 +53,7 @@ export const WorldlyModal: React.FC<IntroModalProps> = ({ onClose, imageUrl }) =
 export const ZealousModal: React.FC<IntroModalProps> = ({ onClose, imageUrl }) => (
   <BaseModal onClose={onClose} zIndex={120} containerClassName="max-w-lg w-full border-red-900" backdropClassName="bg-black/95 backdrop-blur-xl">
     <div className="h-64 w-full bg-black overflow-hidden relative">
-      <img src={imageUrl || "vessels/zealous/1.jpeg"} className="h-full w-full object-cover opacity-60" alt="Zealous" />
+      <img src={imageUrl || "img/vessels/zealous/1.jpeg"} className="h-full w-full object-cover opacity-60" alt="Zealous" />
       <div className="absolute inset-0 bg-gradient-to-t from-eldritch-dark via-transparent to-transparent" />
     </div>
     <div className="p-8 text-center">

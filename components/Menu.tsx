@@ -11,9 +11,8 @@ import { EndTimesTab } from './tabs/EndTimesTab';
 
 interface MenuProps {
   gameState: GameState;
-  clickPower: number;
   activeTab: 'MIRACLES' | 'VESSELS' | 'CULT' | 'END_TIMES';
-  setActiveTab: (tab: any) => void;
+  setActiveTab: (tab: 'MIRACLES' | 'VESSELS' | 'CULT' | 'END_TIMES') => void;
   onUpgrade: () => void;
   onPurchaseVessel: (id: string) => void;
   onPurchaseAssistant: () => void;
@@ -22,6 +21,7 @@ interface MenuProps {
   setMiracleIncrement: (val: IncrementType) => void;
   setVesselIncrement: (val: IncrementType) => void;
   vesselImages: Record<string, string>;
+  gemImages?: Record<string, string>;
   assistantUrl: string;
   onPrestige: () => void;
   onPurchaseRelic: (id: RelicId) => void;
@@ -29,19 +29,21 @@ interface MenuProps {
   onToggleVessel: (id: string) => void;
   onToggleAllVessels: (caste: WorshipperType, imprison: boolean) => void;
   endOfDaysUrl: string;
-  highlightVessels?: boolean;
   highlightAssistant?: boolean;
   lastGemRefresh?: { gem: GemType, timestamp: number } | null;
+  selectedVessel: VesselDefinition | null;
+  setSelectedVessel: (vessel: VesselDefinition | null) => void;
+  showAssistantDetails: boolean;
+  setShowAssistantDetails: (show: boolean) => void;
 }
 
 export const Menu: React.FC<MenuProps> = ({
-  gameState, clickPower, activeTab, setActiveTab, onUpgrade, onPurchaseVessel,
+  gameState, activeTab, setActiveTab, onUpgrade, onPurchaseVessel,
   onPurchaseAssistant, onToggleAssistant, onActivateGem, setMiracleIncrement, setVesselIncrement,
-  vesselImages, assistantUrl, onPrestige, onPurchaseRelic, onPurchaseFate, onToggleVessel, onToggleAllVessels, endOfDaysUrl,
-  highlightVessels, highlightAssistant, lastGemRefresh
+  vesselImages, gemImages, assistantUrl, onPrestige, onPurchaseRelic, onPurchaseFate, onToggleVessel, onToggleAllVessels, endOfDaysUrl,
+  highlightAssistant, lastGemRefresh, selectedVessel, setSelectedVessel, showAssistantDetails, setShowAssistantDetails
 }) => {
   const [isMobileExpanded, setIsMobileExpanded] = useState(true);
-  const [selectedVessel, setSelectedVessel] = useState<VesselDefinition | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const vesselsUnlocked = gameState.maxWorshippersByType[WorshipperType.INDOLENT] >= 100 || (gameState.relics[RelicId.FALSE_IDOL] > 0);
@@ -84,7 +86,7 @@ export const Menu: React.FC<MenuProps> = ({
           return (
             <button 
               key={tab} 
-              onClick={() => setActiveTab(tab)} 
+              onClick={() => setActiveTab(tab as any)} 
               className={`flex items-center gap-1 pb-2 font-serif text-xs sm:text-sm font-bold transition-all ${activeTab === tab ? 'text-eldritch-gold border-b-2 border-eldritch-gold' : 'text-gray-500'}`}
             >
               {tab.replace('_', ' ')}
@@ -97,13 +99,19 @@ export const Menu: React.FC<MenuProps> = ({
       <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 pb-32">
         {activeTab === 'MIRACLES' && (
           <MiraclesTab 
-            gameState={gameState} clickPower={clickPower} increment={gameState.miracleIncrement} 
-            onSetIncrement={setMiracleIncrement} onUpgrade={onUpgrade} 
+            gameState={gameState}
+            increment={gameState.miracleIncrement} 
+            onSetIncrement={setMiracleIncrement}
+            onUpgrade={onUpgrade} 
             onPurchaseAssistant={onPurchaseAssistant} 
             onToggleAssistant={onToggleAssistant}
             onActivateGem={onActivateGem} 
-            assistantUrl={assistantUrl} highlightAssistant={highlightAssistant}
+            assistantUrl={assistantUrl}
+            highlightAssistant={highlightAssistant}
             lastGemRefresh={lastGemRefresh}
+            gemImages={gemImages}
+            showAssistantDetails={showAssistantDetails}
+            setShowAssistantDetails={setShowAssistantDetails}
           />
         )}
         {activeTab === 'VESSELS' && (

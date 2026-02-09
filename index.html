@@ -13,200 +13,237 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Shattered Dogma</title>
-    <style>
-      /* latin-ext */
-      @font-face {
-        font-family: 'Cinzel';
-        font-style: normal;
-        font-weight: 400;
-        font-display: swap;
-        src: url(./static/fonts/8vIJ7ww63mVu7gt7-GT7LEc.woff2) format('woff2');
-        unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
-      }
-      /* latin */
-      @font-face {
-        font-family: 'Cinzel';
-        font-style: normal;
-        font-weight: 400;
-        font-display: swap;
-        src: url(./static/fonts/8vIJ7ww63mVu7gt79mT7.woff2) format('woff2');
-        unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-      }
-      /* latin-ext */
-      @font-face {
-        font-family: 'Cinzel';
-        font-style: normal;
-        font-weight: 700;
-        font-display: swap;
-        src: url(./static/fonts/8vIJ7ww63mVu7gt7-GT7LEc.woff2) format('woff2');
-        unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
-      }
-      /* latin */
-      @font-face {
-        font-family: 'Cinzel';
-        font-style: normal;
-        font-weight: 700;
-        font-display: swap;
-        src: url(./static/fonts/8vIJ7ww63mVu7gt79mT7.woff2) format('woff2');
-        unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-      }
-      /* latin-ext */
-      @font-face {
-        font-family: 'Lato';
-        font-style: normal;
-        font-weight: 400;
-        font-display: swap;
-        src: url(./static/fonts/S6uyw4BMUTPHjxAwXjeu.woff2) format('woff2');
-        unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
-      }
-      /* latin */
-      @font-face {
-        font-family: 'Lato';
-        font-style: normal;
-        font-weight: 400;
-        font-display: swap;
-        src: url(./static/fonts/S6uyw4BMUTPHjx4wXg.woff2) format('woff2');
-        unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-      }
-      /* latin-ext */
-      @font-face {
-        font-family: 'Lato';
-        font-style: normal;
-        font-weight: 700;
-        font-display: swap;
-        src: url(./static/fonts/S6u9w4BMUTPHh6UVSwaPGR_p.woff2) format('woff2');
-        unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
-      }
-      /* latin */
-      @font-face {
-        font-family: 'Lato';
-        font-style: normal;
-        font-weight: 700;
-        font-display: swap;
-        src: url(./static/fonts/S6u9w4BMUTPHh6UVSwiPGQ.woff2) format('woff2');
-        unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-      }
-      /* latin-ext */
-      @font-face {
-        font-family: 'Pirata One';
-        font-style: normal;
-        font-weight: 400;
-        font-display: swap;
-        src: url(./static/fonts/I_urMpiDvgLdLh0fAtofhiGOrq_B.woff2) format('woff2');
-        unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
-      }
-      /* latin */
-      @font-face {
-        font-family: 'Pirata One';
-        font-style: normal;
-        font-weight: 400;
-        font-display: swap;
-        src: url(./static/fonts/I_urMpiDvgLdLh0fAtofhi-Org.woff2) format('woff2');
-        unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-      }
-    </style>
     
-    <!-- KaTeX for math rendering -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-
-    <script src="https://cdn.tailwindcss.com"></script>
     <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            colors: {
-              eldritch: {
-                black: '#0a0a0a',
-                dark: '#1a1a1a',
-                crimson: '#660000',
-                blood: '#8a0303',
-                gold: '#c5a059',
-                grey: '#4a4a4a',
-                purple: '#9333ea',
-                lilac: '#d8b4fe',
+      (function() {
+        var isPreview = window.location.pathname.includes('usercontent.goog');
+
+        function loadCSS(href) {
+          var link = document.createElement('link');
+          link.rel = 'stylesheet';
+          link.href = href;
+          document.head.appendChild(link);
+        }
+
+        function loadScript(src, callback) {
+          var script = document.createElement('script');
+          script.src = src;
+          script.async = false;
+          if (callback) {
+             script.onload = callback;
+          }
+          document.head.appendChild(script);
+        }
+
+        var twConfig = {
+          theme: {
+            extend: {
+              colors: {
+                eldritch: {
+                  black: '#0a0a0a',
+                  dark: '#1a1a1a',
+                  crimson: '#660000',
+                  blood: '#8a0303',
+                  gold: '#c5a059',
+                  grey: '#4a4a4a',
+                  purple: '#9333ea',
+                  lilac: '#d8b4fe',
+                },
+                worshipper: {
+                  worldly: '#4ade80', // Greenish
+                  lowly: '#9ca3af',   // Grey
+                  zealous: '#ef4444', // Red
+                  indolent: '#60a5fa', // Blue
+                }
               },
-              worshipper: {
-                worldly: '#4ade80', // Greenish
-                lowly: '#9ca3af',   // Grey
-                zealous: '#ef4444', // Red
-                indolent: '#60a5fa', // Blue
+              fontFamily: {
+                serif: ['Cinzel', 'Georgia', 'serif'],
+                sans: ['Lato', 'sans-serif'],
+                gothic: ['Pirata One', 'cursive'],
+              },
+              animation: {
+                'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                'pulse-fast': 'pulse 1s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                'float': 'float 6s ease-in-out infinite',
+                'fade-out-up': 'fadeOutUp 1s ease-out forwards',
+                'fade-out-up-2s': 'fadeOutUp 2s ease-out forwards',
+                'progress': 'progress 1s linear infinite',
+                'shake': 'shake 0.4s cubic-bezier(.36,.07,.19,.97) both',
+                'fade-in': 'fadeIn 0.3s ease-out forwards',
+                'scale-in': 'scaleIn 0.3s ease-out forwards',
+                'pop-shake': 'popShake 0.5s cubic-bezier(0.26, 0.53, 0.74, 1.48) forwards',
+                'highlight-glow': 'highlightGlow 5s ease-out forwards',
+                'flash-gold': 'flashGold 2s ease-out forwards',
+                'x2-pop': 'x2Pop 2s ease-out forwards',
+              },
+              keyframes: {
+                float: {
+                  '0%, 100%': { transform: 'translateY(0)' },
+                  '50%': { transform: 'translateY(-10px)' },
+                },
+                fadeOutUp: {
+                  '0%': { opacity: '1', transform: 'translateY(0)' },
+                  '100%': { opacity: '0', transform: 'translateY(-50px)' },
+                },
+                progress: {
+                  '0%': { width: '0%', opacity: '0.8' },
+                  '100%': { width: '100%', opacity: '0' }
+                },
+                shake: {
+                  '10%, 90%': { transform: 'translate3d(-1px, 0, 0)' },
+                  '20%, 80%': { transform: 'translate3d(2px, 0, 0)' },
+                  '30%, 50%, 70%': { transform: 'translate3d(-4px, 0, 0)' },
+                  '40%, 60%': { transform: 'translate3d(4px, 0, 0)' }
+                },
+                fadeIn: {
+                  '0%': { opacity: '0' },
+                  '100%': { opacity: '1' },
+                },
+                scaleIn: {
+                  '0%': { opacity: '0', transform: 'scale(0.95)' },
+                  '100%': { opacity: '1', transform: 'scale(1)' },
+                },
+                popShake: {
+                  '0%': { opacity: '0', transform: 'scale(0.5)' },
+                  '40%': { opacity: '1', transform: 'scale(1.08)' },
+                  '55%': { transform: 'translateX(-4px)' },
+                  '70%': { transform: 'translateX(4px)' },
+                  '85%': { transform: 'translateX(-2px)' },
+                  '100%': { opacity: '1', transform: 'scale(1) translateX(0)' },
+                },
+                highlightGlow: {
+                  '0%': { boxShadow: '0 0 0px transparent' },
+                  '10%': { boxShadow: '0 0 30px #c5a059', borderColor: '#c5a059' },
+                  '80%': { boxShadow: '0 0 30px #c5a059', borderColor: '#c5a059' },
+                  '100%': { boxShadow: '0 0 0px transparent' }
+                },
+                flashGold: {
+                  '0%': { backgroundColor: 'rgba(197, 160, 89, 0.8)', boxShadow: '0 0 40px #c5a059' },
+                  '100%': { backgroundColor: 'transparent', boxShadow: '0 0 0px transparent' }
+                },
+                x2Pop: {
+                  '0%': { opacity: '0', transform: 'scale(0.5) translateY(0)' },
+                  '20%': { opacity: '1', transform: 'scale(1.5) translateY(-10px)' },
+                  '100%': { opacity: '0', transform: 'scale(1) translateY(-40px)' }
+                }
               }
             },
-            fontFamily: {
-              serif: ['Cinzel', 'Georgia', 'serif'],
-              sans: ['Lato', 'sans-serif'],
-              gothic: ['Pirata One', 'cursive'],
-            },
-            animation: {
-              'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-              'pulse-fast': 'pulse 1s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-              'float': 'float 6s ease-in-out infinite',
-              'fade-out-up': 'fadeOutUp 1s ease-out forwards',
-              'fade-out-up-2s': 'fadeOutUp 2s ease-out forwards',
-              'progress': 'progress 1s linear infinite',
-              'shake': 'shake 0.4s cubic-bezier(.36,.07,.19,.97) both',
-              'fade-in': 'fadeIn 0.3s ease-out forwards',
-              'scale-in': 'scaleIn 0.3s ease-out forwards',
-              'pop-shake': 'popShake 0.5s cubic-bezier(0.26, 0.53, 0.74, 1.48) forwards',
-              'highlight-glow': 'highlightGlow 5s ease-out forwards',
-              'flash-gold': 'flashGold 2s ease-out forwards',
-              'x2-pop': 'x2Pop 2s ease-out forwards',
-            },
-            keyframes: {
-              float: {
-                '0%, 100%': { transform: 'translateY(0)' },
-                '50%': { transform: 'translateY(-10px)' },
-              },
-              fadeOutUp: {
-                '0%': { opacity: '1', transform: 'translateY(0)' },
-                '100%': { opacity: '0', transform: 'translateY(-50px)' },
-              },
-              progress: {
-                '0%': { width: '0%', opacity: '0.8' },
-                '100%': { width: '100%', opacity: '0' }
-              },
-              shake: {
-                '10%, 90%': { transform: 'translate3d(-1px, 0, 0)' },
-                '20%, 80%': { transform: 'translate3d(2px, 0, 0)' },
-                '30%, 50%, 70%': { transform: 'translate3d(-4px, 0, 0)' },
-                '40%, 60%': { transform: 'translate3d(4px, 0, 0)' }
-              },
-              fadeIn: {
-                '0%': { opacity: '0' },
-                '100%': { opacity: '1' },
-              },
-              scaleIn: {
-                '0%': { opacity: '0', transform: 'scale(0.95)' },
-                '100%': { opacity: '1', transform: 'scale(1)' },
-              },
-              popShake: {
-                '0%': { opacity: '0', transform: 'scale(0.5)' },
-                '40%': { opacity: '1', transform: 'scale(1.08)' },
-                '55%': { transform: 'translateX(-4px)' },
-                '70%': { transform: 'translateX(4px)' },
-                '85%': { transform: 'translateX(-2px)' },
-                '100%': { opacity: '1', transform: 'scale(1) translateX(0)' },
-              },
-              highlightGlow: {
-                '0%': { boxShadow: '0 0 0px transparent' },
-                '10%': { boxShadow: '0 0 30px #c5a059', borderColor: '#c5a059' },
-                '80%': { boxShadow: '0 0 30px #c5a059', borderColor: '#c5a059' },
-                '100%': { boxShadow: '0 0 0px transparent' }
-              },
-              flashGold: {
-                '0%': { backgroundColor: 'rgba(197, 160, 89, 0.8)', boxShadow: '0 0 40px #c5a059' },
-                '100%': { backgroundColor: 'transparent', boxShadow: '0 0 0px transparent' }
-              },
-              x2Pop: {
-                '0%': { opacity: '0', transform: 'scale(0.5) translateY(0)' },
-                '20%': { opacity: '1', transform: 'scale(1.5) translateY(-10px)' },
-                '100%': { opacity: '0', transform: 'scale(1) translateY(-40px)' }
-              }
-            }
           },
-        },
-      }
+        };
+
+        function initTailwind() {
+            if (window.tailwind) {
+                window.tailwind.config = twConfig;
+            }
+        }
+
+        if (isPreview) {
+          // CDN Assets for Preview Environment
+          loadCSS('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Lato:wght@400;700&family=Pirata+One&display=swap');
+          loadCSS('https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css');
+          loadScript('https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js');
+          loadScript('https://cdn.tailwindcss.com/3.4.17', initTailwind);
+        } else {
+          // Local Assets for Production Build
+          var style = document.createElement('style');
+          style.textContent = `
+            /* latin-ext */
+            @font-face {
+              font-family: 'Cinzel';
+              font-style: normal;
+              font-weight: 400;
+              font-display: swap;
+              src: url(/fonts/8vIJ7ww63mVu7gt7-GT7LEc.woff2) format('woff2');
+              unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+            }
+            /* latin */
+            @font-face {
+              font-family: 'Cinzel';
+              font-style: normal;
+              font-weight: 400;
+              font-display: swap;
+              src: url(/fonts/8vIJ7ww63mVu7gt79mT7.woff2) format('woff2');
+              unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+            }
+            /* latin-ext */
+            @font-face {
+              font-family: 'Cinzel';
+              font-style: normal;
+              font-weight: 700;
+              font-display: swap;
+              src: url(/fonts/8vIJ7ww63mVu7gt7-GT7LEc.woff2) format('woff2');
+              unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+            }
+            /* latin */
+            @font-face {
+              font-family: 'Cinzel';
+              font-style: normal;
+              font-weight: 700;
+              font-display: swap;
+              src: url(/fonts/8vIJ7ww63mVu7gt79mT7.woff2) format('woff2');
+              unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+            }
+            /* latin-ext */
+            @font-face {
+              font-family: 'Lato';
+              font-style: normal;
+              font-weight: 400;
+              font-display: swap;
+              src: url(/fonts/S6uyw4BMUTPHjxAwXjeu.woff2) format('woff2');
+              unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+            }
+            /* latin */
+            @font-face {
+              font-family: 'Lato';
+              font-style: normal;
+              font-weight: 400;
+              font-display: swap;
+              src: url(/fonts/S6uyw4BMUTPHjx4wXg.woff2) format('woff2');
+              unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+            }
+            /* latin-ext */
+            @font-face {
+              font-family: 'Lato';
+              font-style: normal;
+              font-weight: 700;
+              font-display: swap;
+              src: url(/fonts/S6u9w4BMUTPHh6UVSwaPGR_p.woff2) format('woff2');
+              unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+            }
+            /* latin */
+            @font-face {
+              font-family: 'Lato';
+              font-style: normal;
+              font-weight: 700;
+              font-display: swap;
+              src: url(/fonts/S6u9w4BMUTPHh6UVSwiPGQ.woff2) format('woff2');
+              unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+            }
+            /* latin-ext */
+            @font-face {
+              font-family: 'Pirata One';
+              font-style: normal;
+              font-weight: 400;
+              font-display: swap;
+              src: url(/fonts/I_urMpiDvgLdLh0fAtofhiGOrq_B.woff2) format('woff2');
+              unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+            }
+            /* latin */
+            @font-face {
+              font-family: 'Pirata One';
+              font-style: normal;
+              font-weight: 400;
+              font-display: swap;
+              src: url(/fonts/I_urMpiDvgLdLh0fAtofhi-Org.woff2) format('woff2');
+              unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+            }
+          `;
+          document.head.appendChild(style);
+          loadCSS('/css/katex.min.css');
+          loadScript('/js/katex.min.js');
+          loadScript('/js/tailwind.min.js', initTailwind);
+        }
+      })();
     </script>
   <script type="importmap">
 {

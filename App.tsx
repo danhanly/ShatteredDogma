@@ -12,13 +12,12 @@ import { EodUnlockModal } from './components/EodUnlockModal';
 import { MiracleIntroModal } from './components/MiracleIntroModal';
 import { IntroduceAssistantModal } from './components/IntroduceAssistantModal';
 import { LowlyModal, WorldlyModal, ZealousModal, ProductionStarvedModal } from './components/IntroductionModals';
-import { WorshipperType, GemType } from './types';
+import { WorshipperType, VesselDefinition } from './types';
 import { VESSEL_DEFINITIONS, PRESTIGE_UNLOCK_THRESHOLD, GEM_DEFINITIONS } from './constants';
 
 const App: React.FC = () => {
   const { 
-    gameState, 
-    clickPower, 
+    gameState,
     passiveIncome,
     performMiracle, 
     activateGem,
@@ -45,16 +44,22 @@ const App: React.FC = () => {
     debugAddWorshippers,
     debugUnlockFeature,
     debugAddSouls,
-    resetSave
+    resetSave,
+    setPause
   } = useGame();
 
   const [activeTab, setActiveTab] = useState<'MIRACLES' | 'VESSELS' | 'CULT' | 'END_TIMES'>('MIRACLES');
-  const [highlightVessels, setHighlightVessels] = useState(false);
   const [highlightAssistant, setHighlightAssistant] = useState(false);
   const [ascensionPhase, setAscensionPhase] = useState<'IDLE' | 'IN' | 'OUT'>('IDLE');
 
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [assetsLoaded, setAssetsLoaded] = useState(false);
+
+  // Lifted States for Modal Control
+  const [selectedVessel, setSelectedVessel] = useState<VesselDefinition | null>(null);
+  const [selectedWorshipper, setSelectedWorshipper] = useState<WorshipperType | null>(null);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [showAssistantDetails, setShowAssistantDetails] = useState(false);
 
   const [worshipperImages, setWorshipperImages] = useState<Record<WorshipperType, string>>({
     [WorshipperType.INDOLENT]: "",
@@ -79,7 +84,7 @@ const App: React.FC = () => {
       const base = import.meta.env.BASE_URL;
       return base.endsWith('/') ? base : `${base}/`;
     }
-    return 'static/';
+    return './';
   };
 
   useEffect(() => {
@@ -93,14 +98,14 @@ const App: React.FC = () => {
       // Static Images
       assetsToLoad.push({ type: 'BG', path: `${prefix}img/bg.jpeg` });
       assetsToLoad.push({ type: 'EOD', path: `${prefix}img/endofdays.jpeg` });
-      assetsToLoad.push({ type: 'ASSISTANT', path: `${prefix}img/assistant.jpg` });
+      assetsToLoad.push({ type: 'ASSISTANT', path: `${prefix}img/assistant.jpeg` });
 
       // Worshippers
       const IMAGE_PATHS = {
-        [WorshipperType.INDOLENT]: `${prefix}img/indolent.jpeg`,
-        [WorshipperType.LOWLY]: `${prefix}img/lowly.jpeg`,
-        [WorshipperType.WORLDLY]: `${prefix}img/worldly.jpeg`,
-        [WorshipperType.ZEALOUS]: `${prefix}img/zealous.jpeg`,
+        [WorshipperType.INDOLENT]: `${prefix}img/vessels/indolent/1.jpeg`,
+        [WorshipperType.LOWLY]: `${prefix}img/vessels/lowly/2.jpeg`,
+        [WorshipperType.WORLDLY]: `${prefix}img/vessels/worldly/2.jpeg`,
+        [WorshipperType.ZEALOUS]: `${prefix}img/vessels/zealous/3.jpeg`,
       };
       Object.entries(IMAGE_PATHS).forEach(([type, path]) => {
         assetsToLoad.push({ type: 'WORSHIPPER', id: type, path });
@@ -119,8 +124,8 @@ const App: React.FC = () => {
 
       // Gems
       for (const [gemKey, def] of Object.entries(GEM_DEFINITIONS)) {
-        // Fix: cast as any to bypass TS unknown property access issue
-        const normalizedPath = (def as any).image.replace(/^\.\//, '');
+        // Strip leading slash or ./ to prevent double slashes when combining with prefix
+        const normalizedPath = def.image.replace(/^(\.\/|\/)/, '');
         const path = `${prefix}${normalizedPath.replace(/^static\//, '')}`;
         assetsToLoad.push({ type: 'GEM', id: gemKey, path });
       }
@@ -148,9 +153,11 @@ const App: React.FC = () => {
               case 'VESSEL': if(asset.id) loadedVessels[asset.id] = url; break;
               case 'GEM': if(asset.id) loadedGems[asset.id] = url; break;
             }
+          } else {
+             console.warn(`Failed to load asset: ${asset.path} - ${response.status}`);
           }
         } catch (e) {
-          console.warn(`Failed to load asset: ${asset.path}`);
+          console.warn(`Failed to load asset: ${asset.path}`, e);
         } finally {
           loadedCount++;
           setLoadingProgress((loadedCount / totalAssets) * 100);
@@ -195,18 +202,11 @@ const App: React.FC = () => {
   };
 
   const handleAscension = () => {
-    // 1. Fade IN (White) over 50ms
     setAscensionPhase('IN');
-    
     setTimeout(() => {
-        // 2. Perform Data Reset at peak brightness
         triggerPrestige();
-        
-        // 3. Fade OUT (Transparent) over 2s
         setAscensionPhase('OUT');
-        
         setTimeout(() => {
-            // 4. Reset animation state
             setAscensionPhase('IDLE');
         }, 2000);
     }, 50);
@@ -224,6 +224,28 @@ const App: React.FC = () => {
   const showWorldlyModal = hasWorldlyVessel && !gameState.hasSeenWorldlyModal;
   const showZealousModal = hasZealousVessel && !gameState.hasSeenZealousModal;
   const canShowStarvedModal = gameState.hasSeenPausedModal && !gameState.hasAcknowledgedPausedModal && gameState.hasSeenStartSplash;
+
+  // Determine global pause state
+  const isAnyModalOpen = 
+      !gameState.hasSeenStartSplash ||
+      showMiracleIntro ||
+      showVesselIntro ||
+      showAssistantIntro ||
+      showEodIntro ||
+      showLowlyModal ||
+      showWorldlyModal ||
+      showZealousModal ||
+      canShowStarvedModal ||
+      !!gameState.showGemDiscovery ||
+      !!offlineGains ||
+      !!selectedVessel ||
+      !!selectedWorshipper ||
+      isSettingsOpen ||
+      showAssistantDetails;
+
+  useEffect(() => {
+    setPause(isAnyModalOpen);
+  }, [isAnyModalOpen, setPause]);
 
   return (
     <div className="flex h-[100dvh] w-screen flex-col overflow-hidden bg-black text-gray-200 relative">
@@ -252,8 +274,6 @@ const App: React.FC = () => {
         onClose={() => {
             setFlag('hasSeenVesselIntro', true);
             setActiveTab('VESSELS');
-            setHighlightVessels(true);
-            setTimeout(() => setHighlightVessels(false), 3000);
         }} 
       />}
 
@@ -303,21 +323,24 @@ const App: React.FC = () => {
         debugUnlockFeature={debugUnlockFeature}
         debugAddSouls={debugAddSouls}
         resetSave={resetSave}
+        isSettingsOpen={isSettingsOpen}
+        setIsSettingsOpen={setIsSettingsOpen}
       />
       
       <main className="flex flex-1 flex-col lg:flex-row lg:overflow-hidden">
         <MainScreen 
           gameState={gameState} 
-          onTap={(x, y) => performMiracle()} 
+          onTap={() => performMiracle()} 
           autoClickTrigger={lastMiracleEvent}
           worshipperImages={worshipperImages}
           bgUrl={bgUrl}
           onToggleAllVessels={toggleAllVessels}
+          selectedWorshipper={selectedWorshipper}
+          setSelectedWorshipper={setSelectedWorshipper}
         />
         
         <Menu 
           gameState={gameState}
-          clickPower={clickPower}
           activeTab={activeTab}
           setActiveTab={setActiveTab}
           onUpgrade={purchaseUpgrade}
@@ -328,6 +351,7 @@ const App: React.FC = () => {
           setMiracleIncrement={setMiracleIncrement}
           setVesselIncrement={setVesselIncrement}
           vesselImages={vesselImages}
+          gemImages={gemImages}
           assistantUrl={assistantUrl}
           onPrestige={handleAscension}
           onPurchaseRelic={purchaseRelic}
@@ -335,9 +359,12 @@ const App: React.FC = () => {
           onToggleVessel={toggleVessel}
           onToggleAllVessels={toggleAllVessels}
           endOfDaysUrl={endOfDaysUrl}
-          highlightVessels={highlightVessels}
           highlightAssistant={highlightAssistant}
           lastGemRefresh={lastGemRefresh}
+          selectedVessel={selectedVessel}
+          setSelectedVessel={setSelectedVessel}
+          showAssistantDetails={showAssistantDetails}
+          setShowAssistantDetails={setShowAssistantDetails}
         />
       </main>
 

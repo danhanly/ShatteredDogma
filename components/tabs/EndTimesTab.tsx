@@ -4,7 +4,7 @@ import { GameState, RelicId, WorshipperType, FateId } from '../../types';
 import { calculateSoulsEarned, calculateRelicCost } from '../../services/gameService';
 import { formatNumber } from '../../utils/format';
 import { RELIC_DEFINITIONS, PRESTIGE_UNLOCK_THRESHOLD, FATE_DEFINITIONS } from '../../constants';
-import { Skull, Orbit, AlertTriangle, Sparkles, ChevronUp, Lock, Dna } from 'lucide-react';
+import { Skull, Orbit, Sparkles, ChevronUp, Lock, Dna } from 'lucide-react';
 
 interface EndTimesTabProps {
   gameState: GameState;
@@ -46,12 +46,12 @@ export const EndTimesTab: React.FC<EndTimesTabProps> = ({ gameState, onPrestige,
         </div>
         <div>
           <h2 className="font-serif text-2xl text-white uppercase tracking-widest mb-2">The Cycle is Not Yet Full</h2>
-          <p className="max-w-xs text-sm text-gray-500 italic">
+          <p className="max-w-xs text-sm text-gray-500 italic mx-auto">
             "The Abyss only acknowledges the fire of true devotion. Amass at least 1 Zealous worshipper to begin the ritual of ascension."
           </p>
         </div>
-        <div className="rounded-lg bg-indigo-950/20 border border-indigo-500/20 px-6 py-3">
-          <span className="text-xs uppercase tracking-tighter text-gray-400">Requirement: </span>
+        <div className="rounded-lg bg-indigo-950/20 border border-indigo-500/20 px-6 py-3 mx-auto">
+          <span className="text-xs uppercase tracking-tighter text-gray-400">Requirement:<br /></span>
           <span className="font-mono text-sm font-bold text-red-500">1 Zealous Worshipper</span>
         </div>
       </div>
@@ -64,7 +64,7 @@ export const EndTimesTab: React.FC<EndTimesTabProps> = ({ gameState, onPrestige,
         <div className="relative w-full rounded-xl overflow-hidden border border-indigo-900/50 shadow-[0_0_30px_rgba(49,46,129,0.3)]">
             <div className="h-40 w-full overflow-hidden relative bg-black flex items-center justify-center">
                 <img 
-                    src={endOfDaysUrl || "./static/img/endofdays.jpeg"} 
+                    src={endOfDaysUrl || "./img/endofdays.jpeg"} 
                     className="w-full h-full object-cover transition-all duration-1000" 
                     alt="End of Days" 
                     onError={(e) => {
