@@ -1,6 +1,6 @@
 
-import { COST_MULTIPLIER, INITIAL_UPGRADE_COST, VESSEL_DEFINITIONS } from "../constants";
-import { GameState, WorshipperType, RelicId, GemType, IncrementType, VesselId, FateId, WORSHIPPER_ORDER } from "../types";
+import { COST_MULTIPLIER, INITIAL_UPGRADE_COST, VESSEL_DEFINITIONS, ZEALOTRY_DEFINITIONS } from "../constants";
+import { GameState, WorshipperType, RelicId, GemType, IncrementType, VesselId, FateId, WORSHIPPER_ORDER, ZealotryId } from "../types";
 
 const getFateMod = (state: GameState, id: FateId) => {
   return (state.fates[id] || 0);
@@ -126,6 +126,18 @@ export const calculateVesselEfficiency = (state: GameState, vesselId: VesselId):
     if (hasVoidCatalyst && state.activeGem && getGemForCaste(defType) === state.activeGem) {
         required = Math.floor(required * 0.5);
     }
+    
+    // ZEALOTRY CONSUMPTION REDUCTION
+    const now = Date.now();
+    if (type === WorshipperType.LOWLY && (state.zealotryActive[ZealotryId.ISOLATING] || 0) > now) {
+      required = Math.floor(required * 0.5);
+    }
+    if (type === WorshipperType.WORLDLY && (state.zealotryActive[ZealotryId.SELF_FLAGELLATION] || 0) > now) {
+      required = Math.floor(required * 0.5);
+    }
+    if (type === WorshipperType.INDOLENT && (state.zealotryActive[ZealotryId.PITY] || 0) > now) {
+      required = Math.floor(required * 0.5);
+    }
 
     if (required === 0) return;
 
@@ -167,6 +179,18 @@ export const calculateSingleVesselConsumption = (state: GameState, vesselId: Ves
   const hasVoidCatalyst = (state.relics[RelicId.VOID_CATALYST] || 0) > 0;
   if (hasVoidCatalyst && state.activeGem && getGemForCaste(def!.type) === state.activeGem) {
       currentReduction = Math.min(1.0, currentReduction + 0.5);
+  }
+
+  // ZEALOTRY CONSUMPTION REDUCTION
+  const now = Date.now();
+  if (consumedType === WorshipperType.LOWLY && (state.zealotryActive[ZealotryId.ISOLATING] || 0) > now) {
+    currentReduction = Math.min(1.0, currentReduction + 0.5);
+  }
+  if (consumedType === WorshipperType.WORLDLY && (state.zealotryActive[ZealotryId.SELF_FLAGELLATION] || 0) > now) {
+    currentReduction = Math.min(1.0, currentReduction + 0.5);
+  }
+  if (consumedType === WorshipperType.INDOLENT && (state.zealotryActive[ZealotryId.PITY] || 0) > now) {
+    currentReduction = Math.min(1.0, currentReduction + 0.5);
   }
 
   const amount = Math.floor(baseRate * level * milestoneMultiplier * efficiency * (1 - currentReduction) * fateConsMod);
@@ -247,17 +271,26 @@ export const calculateRelicCost = (relicId: RelicId, currentLevel: number): numb
     [RelicId.ABYSSAL_REFLEX]: 100, 
     [RelicId.FRENZY]: 1000, 
     [RelicId.REBELLION]: 1000,
-    [RelicId.SOUL_HARVESTER]: 500
+    [RelicId.SOUL_HARVESTER]: 500,
+    [RelicId.FURY_OF_ZEALOUS]: 10, 
+    [RelicId.MATTELOCKS_GEMS]: 10,
   };
   const base = baseCosts[relicId] || 10;
   const multiplier = (relicId === RelicId.SOUL_HARVESTER) ? 4 : 2;
   // Level caps are 1 for specific relics
-  if (relicId === RelicId.FRENZY || relicId === RelicId.REBELLION || relicId === RelicId.FALSE_IDOL || relicId === RelicId.VOID_CATALYST) return base;
+  if ([RelicId.FRENZY, RelicId.REBELLION, RelicId.FALSE_IDOL, RelicId.VOID_CATALYST, RelicId.FURY_OF_ZEALOUS, RelicId.MATTELOCKS_GEMS].includes(relicId)) return base;
   return Math.floor(base * Math.pow(multiplier, currentLevel));
 };
 
 export const calculateAssistantCost = (currentLevel: number): { amount: number, type: WorshipperType } => {
-  const cost = Math.floor(1 * Math.pow(100, currentLevel));
+  // Recruitment is free
+  if (currentLevel === 0) {
+      return { amount: 0, type: WorshipperType.WORLDLY };
+  }
+  
+  // Level 1 -> 2 costs 1 Worldly (1 * 100^0)
+  // Scaling starts from there.
+  const cost = Math.floor(1 * Math.pow(100, currentLevel - 1));
   return { amount: cost, type: WorshipperType.WORLDLY };
 };
 
@@ -322,7 +355,21 @@ export const calculateVesselOutput = (vesselId: string, currentLevel: number, st
   if (def.type === WorshipperType.WORLDLY) fateOutMod += getFateMod(state, 'worldly_output');
   if (def.type === WorshipperType.ZEALOUS) fateOutMod += getFateMod(state, 'zealous_output');
 
-  return def.baseOutput * currentLevel * milestoneMultiplier * fateOutMod;
+  let baseOutput = def.baseOutput * currentLevel * milestoneMultiplier * fateOutMod;
+
+  // ZEALOTRY PRODUCTION MULTIPLIERS
+  const now = Date.now();
+  if (def.type === WorshipperType.INDOLENT && (state.zealotryActive[ZealotryId.DISDAIN] || 0) > now) {
+    baseOutput *= 4;
+  }
+  if (def.type === WorshipperType.LOWLY && (state.zealotryActive[ZealotryId.NO_BREAKS] || 0) > now) {
+    baseOutput *= 4;
+  }
+  if (def.type === WorshipperType.WORLDLY && (state.zealotryActive[ZealotryId.POLITICS] || 0) > now) {
+    baseOutput *= 4;
+  }
+
+  return baseOutput;
 };
 
 export const calculateProductionByType = (state: GameState): Record<WorshipperType, number> => {
@@ -350,6 +397,7 @@ export const calculateConsumptionByType = (state: GameState): Record<WorshipperT
   const relicGluttonyLvl = state.relics[RelicId.GLUTTONY] || 0;
   const consumptionReduction = relicGluttonyLvl * 0.05;
 
+  // 1. Vessel Consumption
   VESSEL_DEFINITIONS.forEach(def => {
     const level = state.vesselLevels[def.id] || 0;
     if (level > 0 && !state.vesselToggles[def.id]) {
@@ -379,10 +427,40 @@ export const calculateConsumptionByType = (state: GameState): Record<WorshipperT
         if (type === WorshipperType.WORLDLY) fateConsMod += getFateMod(state, 'worldly_cons');
         if (type === WorshipperType.ZEALOUS) fateConsMod += getFateMod(state, 'zealous_cons');
 
-        const amount = Math.floor(rate! * level * milestoneMultiplier * efficiency * (1 - baseReduction) * fateConsMod);
+        // ZEALOTRY CONSUMPTION REDUCTION
+        let zealotryReduction = 0;
+        const now = Date.now();
+        if (type === WorshipperType.LOWLY && (state.zealotryActive[ZealotryId.ISOLATING] || 0) > now) {
+          zealotryReduction = 0.5;
+        }
+        if (type === WorshipperType.WORLDLY && (state.zealotryActive[ZealotryId.SELF_FLAGELLATION] || 0) > now) {
+          zealotryReduction = 0.5;
+        }
+        if (type === WorshipperType.INDOLENT && (state.zealotryActive[ZealotryId.PITY] || 0) > now) {
+          zealotryReduction = 0.5;
+        }
+        
+        let finalReduction = Math.min(1.0, baseReduction + zealotryReduction);
+
+        const amount = Math.floor(rate! * level * milestoneMultiplier * efficiency * (1 - finalReduction) * fateConsMod);
         totalConsumption[type] += amount;
       });
     }
+  });
+
+  // 2. Zealotry Decree Consumption (Active Decrees cost Zealous Worshippers over time technically, but here we just need to account for it if requested, 
+  // but logic in useGame.ts deducts full cost upfront. 
+  // However, for the Modal display, we might want to represent the "effective" drain if we treat it as amortized.
+  // The prompt asks: "Show the Zealotry decrees as consumption on the WorshipperModal... and represent them against the net growth of Zealous."
+  // This implies we should calculate the amortized cost per second (Cost / Duration).
+  
+  const now = Date.now();
+  ZEALOTRY_DEFINITIONS.forEach(def => {
+     if ((state.zealotryActive[def.id] || 0) > now) {
+         // It's active. Amortized cost = cost / duration
+         const amortized = def.cost / def.duration;
+         totalConsumption[WorshipperType.ZEALOUS] += amortized;
+     }
   });
 
   return totalConsumption;

@@ -1,9 +1,9 @@
 
 import React, { useEffect, useRef, useState } from 'react';
-import { GameState, GemType, WorshipperType, IncrementType } from '../../types';
+import { GameState, GemType, WorshipperType, IncrementType, RelicId } from '../../types';
 import { calculateBulkUpgrade, calculateAssistantInterval, calculateAssistantBulkVesselBuy, isMilestoneLevel, calculateManualClickPower } from '../../services/gameService';
 import { formatNumber } from '../../utils/format';
-import { ArrowUpCircle, Sparkles, Timer, User, Info, Activity, Crown } from 'lucide-react';
+import { ArrowUpCircle, Sparkles, Timer, User, Info, Activity, Crown, Gem } from 'lucide-react';
 import { IncrementSelector } from '../IncrementSelector';
 import { GEM_DEFINITIONS } from '../../constants';
 import { AbyssAssistantModal } from '../AbyssAssistantModal';
@@ -21,6 +21,7 @@ interface MiraclesTabProps {
   highlightGem?: GemType | null;
   lastGemRefresh?: { gem: GemType, timestamp: number } | null;
   gemImages?: Record<string, string>;
+  onSetMattelockGem?: (gem: GemType | null) => void;
 }
 
 export const MiraclesTab: React.FC<MiraclesTabProps> = ({
@@ -35,7 +36,8 @@ export const MiraclesTab: React.FC<MiraclesTabProps> = ({
   highlightAssistant,
   highlightGem,
   lastGemRefresh,
-  gemImages
+  gemImages,
+  onSetMattelockGem
 }) => {
   const [showAssistantDetails, setShowAssistantDetails] = useState(false);
   const [lastMilestoneTime, setLastMilestoneTime] = useState<number>(0);
@@ -72,6 +74,7 @@ export const MiraclesTab: React.FC<MiraclesTabProps> = ({
   }, [gameState.gemCooldowns]);
 
   const assistantUnlocked = gameState.maxWorshippersByType[WorshipperType.INDOLENT] >= 1000;
+  const mattelockGemsUnlocked = (gameState.relics[RelicId.MATTELOCKS_GEMS] || 0) > 0;
   
   const frenzyActive = gameState.frenzyTimeRemaining > 0;
   const currentInterval = calculateAssistantInterval(gameState.assistantLevel, gameState);
@@ -79,6 +82,7 @@ export const MiraclesTab: React.FC<MiraclesTabProps> = ({
   const rateDisplay = intervalSeconds === 0 ? 'Inactive' : (intervalSeconds < 1.0 ? `${(1 / intervalSeconds).toFixed(1)} clicks/s` : `Every ${intervalSeconds.toFixed(1)}s`);
 
   const isActive = gameState.assistantActive;
+  const isRecruited = gameState.assistantLevel > 0;
   const assistantBulkUpgrade = calculateAssistantBulkVesselBuy(gameState.assistantLevel, increment, gameState);
   const canAffordAssistant = gameState.worshippers[WorshipperType.WORLDLY] >= assistantBulkUpgrade.cost && assistantBulkUpgrade.count > 0;
 
@@ -160,16 +164,18 @@ export const MiraclesTab: React.FC<MiraclesTabProps> = ({
             <div ref={assistantRef} className={`relative rounded-xl border bg-eldritch-dark p-3 transition-all duration-500 ${highlightAssistant ? 'border-eldritch-gold shadow-[0_0_30px_rgba(197,160,89,0.3)] scale-[1.02]' : 'border-purple-900/40'}`}>
                 {frenzyActive && <div className="absolute inset-0 animate-flash-gold z-0 pointer-events-none rounded-xl" />}
 
-                {/* Toggle Button - Positioned like Status Badge */}
-                <div className="absolute top-3 right-3 z-20">
-                     <button 
-                        onClick={(e) => { e.stopPropagation(); onToggleAssistant(); }}
-                        className={`flex items-center gap-1 rounded px-2 py-1 border text-[10px] font-bold uppercase tracking-wider transition-all ${isActive ? 'bg-purple-900/50 text-purple-300 border-purple-500/50 hover:bg-purple-900' : 'bg-gray-900 text-gray-500 border-gray-700 hover:text-gray-400'}`}
-                    >
-                        <Activity className="h-3 w-3" />
-                        {isActive ? 'Active' : 'Dormant'}
-                    </button>
-                </div>
+                {/* Toggle Button - Only visible if recruited */}
+                {isRecruited && (
+                    <div className="absolute top-3 right-3 z-20">
+                         <button 
+                            onClick={(e) => { e.stopPropagation(); onToggleAssistant(); }}
+                            className={`flex items-center gap-1 rounded px-2 py-1 border text-[10px] font-bold uppercase tracking-wider transition-all ${isActive ? 'bg-purple-900/50 text-purple-300 border-purple-500/50 hover:bg-purple-900' : 'bg-gray-900 text-gray-500 border-gray-700 hover:text-gray-400'}`}
+                        >
+                            <Activity className="h-3 w-3" />
+                            {isActive ? 'Active' : 'Dormant'}
+                        </button>
+                    </div>
+                )}
                 
                 <div className="flex items-center gap-3 mb-3 relative z-10">
                     <button onClick={() => setShowAssistantDetails(true)} className="relative flex h-14 w-14 shrink-0 items-center justify-center rounded-lg border-2 border-purple-500/30 bg-black hover:scale-105 transition-transform overflow-hidden group">
@@ -179,16 +185,50 @@ export const MiraclesTab: React.FC<MiraclesTabProps> = ({
 
                     <div className="flex-1 min-w-0 flex flex-col justify-center">
                          <h4 className="font-serif text-sm font-bold text-purple-300">Mattelock Verbinsk</h4>
-                         <p className="text-xs text-purple-400/60">Level {gameState.assistantLevel}</p>
+                         <p className="text-xs text-purple-400/60">{isRecruited ? `Level ${gameState.assistantLevel}` : 'Not Recruited'}</p>
 
-                         <div className="mt-1 flex items-center gap-3 text-[10px] uppercase tracking-wider text-gray-400">
-                            <span className={`flex items-center gap-1 ${frenzyActive ? 'text-eldritch-gold animate-pulse font-bold' : ''}`}>
-                                 <Timer className="h-3 w-3" />
-                                 {rateDisplay}
-                            </span>
-                         </div>
+                         {isRecruited && (
+                             <div className="mt-1 flex items-center gap-3 text-[10px] uppercase tracking-wider text-gray-400">
+                                <span className={`flex items-center gap-1 ${frenzyActive ? 'text-eldritch-gold animate-pulse font-bold' : ''}`}>
+                                     <Timer className="h-3 w-3" />
+                                     {rateDisplay}
+                                </span>
+                             </div>
+                         )}
                     </div>
                 </div>
+
+                {/* Mattelock Gems (New Relic Feature) */}
+                {mattelockGemsUnlocked && isRecruited && (
+                    <div className="mb-3 px-1">
+                        <p className="text-[10px] uppercase text-gray-500 mb-1.5 font-bold tracking-widest">Alignment</p>
+                        <div className="flex gap-2">
+                             {/* Default Button (Null) */}
+                            <button
+                                onClick={() => onSetMattelockGem?.(null)}
+                                className={`h-8 flex-1 rounded border transition-all flex items-center justify-center ${gameState.mattelockGem === null ? 'bg-purple-900/50 border-purple-500 text-purple-200 shadow-[0_0_10px_rgba(147,51,234,0.3)]' : 'bg-black/40 border-white/5 hover:border-white/20 text-gray-500'}`}
+                                title="Default (Miracle)"
+                            >
+                                <Sparkles className="h-4 w-4" />
+                            </button>
+                            {Object.values(GemType).map(gem => {
+                                const def = GEM_DEFINITIONS[gem];
+                                const isSelected = gameState.mattelockGem === gem;
+                                return (
+                                    <button 
+                                        key={gem}
+                                        onClick={() => onSetMattelockGem?.(gem)}
+                                        className={`h-8 flex-1 rounded border transition-all flex items-center justify-center relative group
+                                            ${isSelected ? 'bg-white/10 border-white shadow-[0_0_10px_rgba(255,255,255,0.2)]' : 'bg-black/40 border-white/5 hover:border-white/20'}`}
+                                        style={{ borderColor: isSelected ? def.color : undefined }}
+                                    >
+                                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: def.color, boxShadow: isSelected ? `0 0 8px ${def.color}` : 'none' }} />
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+                )}
 
                 <div className="space-y-1 relative z-10">
                     {gameState.assistantLevel < 5 ? (
@@ -201,7 +241,7 @@ export const MiraclesTab: React.FC<MiraclesTabProps> = ({
                                     : 'bg-black/40 border border-white/5 text-gray-600 cursor-not-allowed'
                                 }`}
                         >
-                            <span className="text-xs font-bold uppercase tracking-wider">Strengthen Bond</span>
+                            <span className="text-xs font-bold uppercase tracking-wider">{isRecruited ? 'Strengthen Bond' : 'Recruit Mattelock'}</span>
                             <div className="flex items-center gap-1.5">
                                 <span className={`font-mono text-sm font-bold ${!canAffordAssistant ? 'text-red-500' : 'text-purple-200'}`}>
                                     {formatNumber(assistantBulkUpgrade.cost)}

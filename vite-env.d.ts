@@ -10,11 +10,11 @@ declare module '*.gif';
 declare module '*.webp';
 
 interface ImportMetaEnv {
-  readonly BASE_URL: string;
-  readonly MODE: string;
-  readonly DEV: boolean;
-  readonly PROD: boolean;
-  readonly SSR: boolean;
+  BASE_URL: string;
+  MODE: string;
+  DEV: boolean;
+  PROD: boolean;
+  SSR: boolean;
 }
 
 interface ImportMeta {

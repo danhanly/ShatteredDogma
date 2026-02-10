@@ -1,10 +1,10 @@
 
 import React from 'react';
-import { GameState, WorshipperType, FateId } from '../../types';
+import { GameState, WorshipperType, FateId, ZealotryId } from '../../types';
 import { calculateProductionByType, calculateConsumptionByType } from '../../services/gameService';
 import { formatNumber } from '../../utils/format';
-import { BarChart2, Crown, Frown, Ghost, Sword, Activity, Utensils, Orbit, Sparkles, Dna, MousePointer2, User } from 'lucide-react';
-import { RELIC_DEFINITIONS, FATE_DEFINITIONS } from '../../constants';
+import { BarChart2, Crown, Frown, Ghost, Sword, Activity, Utensils, Orbit, Sparkles, Dna, MousePointer2, User, Flame } from 'lucide-react';
+import { RELIC_DEFINITIONS, FATE_DEFINITIONS, ZEALOTRY_DEFINITIONS } from '../../constants';
 
 const ICON_MAP = {
   [WorshipperType.WORLDLY]: Crown,
@@ -26,6 +26,7 @@ export const CultTab: React.FC<CultTabProps> = ({ gameState }) => {
 
   const vesselsUnlocked = Object.values(gameState.vesselLevels).some(v => (v as number) > 0);
   const hasLegacy = gameState.souls > 0 || Object.values(gameState.relics).some(r => (r as number) > 0) || Object.keys(gameState.fates).length > 0;
+  const zealotryUnlocked = gameState.hasUnlockedZealotry;
 
   return (
     <div className="flex flex-col gap-6">
@@ -106,6 +107,31 @@ export const CultTab: React.FC<CultTabProps> = ({ gameState }) => {
                 )}
             </div>
         </div>
+
+        {/* Zealotry History */}
+        {zealotryUnlocked && (
+           <div className="rounded-xl border border-red-900/40 bg-eldritch-dark p-4">
+                <div className="flex items-center gap-2 mb-4">
+                    <Flame className="h-5 w-5 text-red-500" />
+                    <h3 className="font-serif text-lg text-red-400 uppercase tracking-widest">Decrees Enacted</h3>
+                </div>
+                <div className="grid grid-cols-1 gap-2">
+                    {ZEALOTRY_DEFINITIONS.map(def => {
+                        const count = gameState.zealotryCounts?.[def.id] || 0;
+                        if (count === 0) return null;
+                        return (
+                            <div key={def.id} className="flex justify-between items-center bg-black/20 p-2 rounded text-xs">
+                                <span className="text-gray-300">{def.name}</span>
+                                <span className="font-bold text-red-500">{count} times</span>
+                            </div>
+                        );
+                    })}
+                    {(!gameState.zealotryCounts || Object.values(gameState.zealotryCounts).every(c => c === 0)) && (
+                        <p className="text-[10px] text-gray-600 italic">No decrees have been enacted yet.</p>
+                    )}
+                </div>
+           </div>
+        )}
 
         {/* End Times / Legacy Section */}
         {hasLegacy && (

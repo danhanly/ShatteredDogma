@@ -1,8 +1,8 @@
 
 import React from 'react';
 import { GameState, WorshipperType, RelicId, GemType, VesselId } from '../types';
-import { WORSHIPPER_DETAILS, VESSEL_DEFINITIONS } from '../constants';
-import { Utensils, ZapOff, Factory, TrendingUp, TrendingDown, Lock, Unlock } from 'lucide-react';
+import { WORSHIPPER_DETAILS, VESSEL_DEFINITIONS, ZEALOTRY_DEFINITIONS } from '../constants';
+import { Utensils, ZapOff, Factory, TrendingUp, TrendingDown, Lock, Unlock, Flame } from 'lucide-react';
 import { formatNumber } from '../utils/format';
 import { calculateProductionByType, calculateConsumptionByType, calculateVesselOutput, calculateVesselEfficiency } from '../services/gameService';
 import { BaseModal } from './BaseModal';
@@ -29,7 +29,7 @@ export const WorshipperModal: React.FC<WorshipperModalProps> = ({ type, count, o
   const isPaused = gameState.isPaused[type] && hasAnyVessel;
 
   // Breakdown consumption by caste type
-  const consumers: { type: WorshipperType, rate: number, vessels: string[], hasActive: boolean }[] = [];
+  const consumers: { type: string, rate: number, vessels: string[], hasActive: boolean, isZealotry?: boolean }[] = [];
   const consumptionReduction = (gameState.relics[RelicId.GLUTTONY] || 0) * 0.05;
   const consumerAggregator: Partial<Record<WorshipperType, { rate: number, vessels: string[], hasActive: boolean }>> = {};
 
@@ -69,8 +69,25 @@ export const WorshipperModal: React.FC<WorshipperModalProps> = ({ type, count, o
   });
 
   Object.entries(consumerAggregator).forEach(([cType, data]) => {
-    consumers.push({ type: cType as WorshipperType, rate: data!.rate, vessels: data!.vessels, hasActive: data!.hasActive });
+    consumers.push({ type: cType + " Caste", rate: data!.rate, vessels: data!.vessels, hasActive: data!.hasActive, isZealotry: false });
   });
+
+  // Zealotry Consumption (Active Decrees) for Zealous type
+  if (type === WorshipperType.ZEALOUS) {
+      const now = Date.now();
+      ZEALOTRY_DEFINITIONS.forEach(def => {
+         if ((gameState.zealotryActive[def.id] || 0) > now) {
+             const amortized = def.cost / def.duration;
+             consumers.push({
+                 type: def.name,
+                 rate: amortized,
+                 vessels: [],
+                 hasActive: true,
+                 isZealotry: true
+             });
+         }
+      });
+  }
 
   // Find production sources for THIS type
   const productionSources: { name: string, rate: number }[] = [];
@@ -151,7 +168,7 @@ export const WorshipperModal: React.FC<WorshipperModalProps> = ({ type, count, o
           )}
 
           {/* Consumption Box */}
-          {hasAnyVessel && consumers.length > 0 && (
+          {(hasAnyVessel || consumers.length > 0) && consumers.length > 0 && (
             <div className="mb-6 rounded-lg bg-red-950/20 p-4 border border-red-900/30">
                 <div className="flex items-center gap-2 mb-2 text-red-400">
                     <Utensils className="h-4 w-4" />
@@ -166,16 +183,22 @@ export const WorshipperModal: React.FC<WorshipperModalProps> = ({ type, count, o
                     {consumers.map(c => (
                         <div key={c.type} className="flex items-center justify-between text-xs bg-black/20 p-2 rounded">
                             <div className="flex flex-col">
-                                <span className="text-gray-300 font-bold">{c.type} Caste</span>
+                                <span className={`text-gray-300 font-bold ${c.isZealotry ? 'flex items-center gap-1' : ''}`}>
+                                    {c.isZealotry && <Flame className="h-3 w-3 text-eldritch-gold" />}
+                                    {c.type}
+                                </span>
                                 <span className="text-red-400/70 font-mono">-{formatNumber(c.rate)}/s</span>
                             </div>
-                            {onToggleVessels && (
+                            {onToggleVessels && !c.isZealotry && (
                                 <button 
-                                    onClick={() => onToggleVessels(c.type, c.hasActive)}
+                                    onClick={() => onToggleVessels(c.type as WorshipperType, c.hasActive)}
                                     className={`px-2 py-1 rounded text-[10px] uppercase font-bold border transition-colors ${c.hasActive ? 'border-red-500 text-red-400 hover:bg-red-900/50' : 'border-green-500 text-green-400 hover:bg-green-900/50'}`}
                                 >
                                     {c.hasActive ? <><Lock className="h-3 w-3 inline mr-1"/> Lock</> : <><Unlock className="h-3 w-3 inline mr-1"/> Unlock</>}
                                 </button>
+                            )}
+                            {c.isZealotry && (
+                                <div className="text-[9px] uppercase text-red-500 font-bold px-2 py-1">Decree Active</div>
                             )}
                         </div>
                     ))}

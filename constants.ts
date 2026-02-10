@@ -1,9 +1,10 @@
 
-import { WorshipperType, VesselId, VesselDefinition, GemType, RelicId, RelicDefinition, FateId, FateDefinition } from "./types";
+import { WorshipperType, VesselId, VesselDefinition, GemType, RelicId, RelicDefinition, FateId, FateDefinition, ZealotryId, ZealotryDefinition } from "./types";
 
 export const INITIAL_UPGRADE_COST = 50; 
 export const COST_MULTIPLIER = 1.5;
 
+// Updated threshold handled in gameService/logic, keeping constant for reference or legacy checks
 export const PRESTIGE_UNLOCK_THRESHOLD = 1; 
 
 export const RELIC_DEFINITIONS: RelicDefinition[] = [
@@ -15,18 +16,25 @@ export const RELIC_DEFINITIONS: RelicDefinition[] = [
     baseCost: 10
   },
   {
+    id: RelicId.MATTELOCKS_GEMS,
+    name: "Mattelock’s Bag of Gemstones",
+    description: "Unlocks permanent Focus Gem alignment switches for Mattelock.",
+    maxLevel: 1,
+    baseCost: 10
+  },
+  {
+    id: RelicId.FURY_OF_ZEALOUS,
+    name: "Fury of the Zealous",
+    description: "Unlocks automation switches for Zealotry powers, allowing them to auto-renew.",
+    maxLevel: 1,
+    baseCost: 10
+  },
+  {
     id: RelicId.BETRAYAL,
     name: "Dagger of Betrayal",
     description: "Reduces the cooldown of Focus Gems by 10s per level.",
     maxLevel: 6,
     baseCost: 25
-  },
-  {
-    id: RelicId.FALSE_IDOL,
-    name: "The False Idol",
-    description: "Unlocks New Game+ visibility: all vessel tiers are visible from the start.",
-    maxLevel: 1,
-    baseCost: 500
   },
   {
     id: RelicId.CONTRACT,
@@ -36,6 +44,20 @@ export const RELIC_DEFINITIONS: RelicDefinition[] = [
     baseCost: 50
   },
   {
+    id: RelicId.ABYSSAL_REFLEX,
+    name: "Abyssal Reflex",
+    description: "10% chance per level (max 50%) for Focus Gem cooldown to reset immediately after use.",
+    maxLevel: 5,
+    baseCost: 100
+  },
+  {
+    id: RelicId.FALSE_IDOL,
+    name: "The False Idol",
+    description: "Unlocks New Game+ visibility: all vessel tiers are visible from the start.",
+    maxLevel: 1,
+    baseCost: 500
+  },
+  {
     id: RelicId.VOID_CATALYST,
     name: "Void Catalyst",
     description: "Unlocks the 50% consumption reduction bonus for Focus Gems.",
@@ -43,11 +65,11 @@ export const RELIC_DEFINITIONS: RelicDefinition[] = [
     baseCost: 500
   },
   {
-    id: RelicId.ABYSSAL_REFLEX,
-    name: "Abyssal Reflex",
-    description: "10% chance per level (max 50%) for Focus Gem cooldown to reset immediately after use.",
-    maxLevel: 5,
-    baseCost: 100
+    id: RelicId.SOUL_HARVESTER,
+    name: "Eye of the Abyss",
+    description: "Permanent +5% Soul acquisition per level. Endlessly upgradeable.",
+    maxLevel: 999,
+    baseCost: 500
   },
   {
     id: RelicId.FRENZY,
@@ -62,13 +84,57 @@ export const RELIC_DEFINITIONS: RelicDefinition[] = [
     description: "A random caste occasionally rebels for 30s, refusing to be consumed by the caste above them. (Once every 5 mins of play time)",
     maxLevel: 1,
     baseCost: 1000
+  }
+];
+
+export const ZEALOTRY_DEFINITIONS: ZealotryDefinition[] = [
+  {
+    id: ZealotryId.DISDAIN,
+    name: "Disdain for the Lazy",
+    flavor: "Zealots take exception to the bone-idle, and make it their mission to force them into action.",
+    description: "Indolent Production x4",
+    cost: 500,
+    duration: 30
   },
   {
-    id: RelicId.SOUL_HARVESTER,
-    name: "Eye of the Abyss",
-    description: "Permanent +5% Soul acquisition per level. Endlessly upgradeable.",
-    maxLevel: 999,
-    baseCost: 500
+    id: ZealotryId.NO_BREAKS,
+    name: "No Breaks!",
+    flavor: "Zealots begin preventing any respite of the Lowly worshippers. No sleep, no rest, no water.",
+    description: "Lowly Production x4",
+    cost: 1000,
+    duration: 30
+  },
+  {
+    id: ZealotryId.POLITICS,
+    name: "Politics and the Abyss",
+    flavor: "The Zealous have noticed the Worldly escaping the clutches of the Abyss, and vow to put a stop to it.",
+    description: "Worldly Production x4",
+    cost: 2500,
+    duration: 30
+  },
+  {
+    id: ZealotryId.SELF_FLAGELLATION,
+    name: "Self-Flaggelation",
+    flavor: "For the Abyss, the Zealots will even punish themselves.",
+    description: "Zealous Consumption / 2",
+    cost: 5000,
+    duration: 30
+  },
+  {
+    id: ZealotryId.ISOLATING,
+    name: "Isolating the Worker",
+    flavor: "Seeing what the Worldly do to the Lowly, the Zealots form a protective wall.",
+    description: "Worldly Consumption / 2",
+    cost: 2000,
+    duration: 30
+  },
+  {
+    id: ZealotryId.PITY,
+    name: "The Pity of the Abyss",
+    flavor: "The Zealots take pity on the foolish and lazy.",
+    description: "Lowly Consumption / 2",
+    cost: 1000,
+    duration: 30
   }
 ];
 

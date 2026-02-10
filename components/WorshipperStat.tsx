@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { GameState, WorshipperType } from '../types';
-import { ChevronRight, Lock, TrendingUp, TrendingDown, AlertCircle, AlertTriangle } from 'lucide-react';
+import { ChevronRight, Lock, TrendingUp, TrendingDown, AlertCircle, AlertTriangle, Minus } from 'lucide-react';
 import { formatNumber } from '../utils/format';
 import { calculateNetIncomeByType, calculateConsumptionByType } from '../services/gameService';
 
@@ -101,29 +101,34 @@ export const WorshipperStat: React.FC<WorshipperStatProps> = ({
             onPointerDown={(e) => { e.stopPropagation(); }}
             onClick={(e) => { e.stopPropagation(); onSelect(type); }}
             data-clickable="true"
-            className={`group relative flex w-[75px] cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border ${borderClass} ${bgClass} p-2 backdrop-blur-sm transition-all duration-300 hover:bg-black/80 hover:scale-105 active:scale-95 sm:w-[100px] sm:min-w-[100px] ${opacityClass} ${scaleClass} ${glowShadow} ${isInfluenceShaking ? 'animate-shake' : ''}`}
+            className={`group relative flex w-[90px] cursor-pointer flex-col items-center justify-center gap-1.5 rounded-lg border ${borderClass} ${bgClass} p-3 backdrop-blur-sm transition-all duration-300 hover:bg-black/80 hover:scale-105 active:scale-95 sm:w-[110px] sm:min-w-[110px] ${opacityClass} ${scaleClass} ${glowShadow} ${isInfluenceShaking ? 'animate-shake' : ''}`}
         >
-            <div className="absolute -left-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-eldritch-grey text-[8px] font-bold text-white border border-gray-600 sm:-left-2 sm:-top-2 sm:h-5 sm:w-5 sm:text-[10px]">{priorityIndex}</div>
-            
             {isLocked && <div className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-eldritch-crimson text-white sm:-right-2 sm:-top-2 sm:h-5 sm:w-5"><Lock className="h-3 w-3" /></div>}
             
-            {/* Status Indicators */}
-            <div className="absolute bottom-1 right-1 flex flex-col gap-0.5">
-               {isRebelling ? (
-                   <AlertCircle className="h-3 w-3 text-eldritch-gold animate-pulse" />
-               ) : isStarved ? (
-                   <AlertTriangle className="h-3 w-3 text-red-500 animate-bounce" />
-               ) : isPaused ? (
-                   <AlertCircle className="h-3 w-3 text-red-500 animate-pulse" />
-               ) : (
-                   isNetNegative ? <TrendingDown className="h-3 w-3 text-red-400 animate-pulse" /> : (netIncome > 0 ? <TrendingUp className="h-3 w-3 text-green-400" /> : null)
-               )}
-            </div>
+            {/* Critical Status Indicators (Top Left) */}
+            {(isRebelling || isStarved || isPaused) && (
+                <div className="absolute -left-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/80 border border-white/10 sm:-left-2 sm:-top-2 sm:h-6 sm:w-6">
+                   {isRebelling ? (
+                       <AlertCircle className="h-3 w-3 text-eldritch-gold animate-pulse" />
+                   ) : isStarved ? (
+                       <AlertTriangle className="h-3 w-3 text-red-500 animate-bounce" />
+                   ) : (
+                       <AlertCircle className="h-3 w-3 text-red-500 animate-pulse" />
+                   )}
+                </div>
+            )}
 
-            <Icon className={`h-4 w-4 ${isRebelling ? 'text-eldritch-gold' : (isStarved || isNetNegative ? 'text-red-400' : iconColor)} sm:h-6 w-6 transition-colors`} />
-            <span className={`hidden font-serif text-xs ${isRebelling ? 'text-white' : (isStarved || isNetNegative ? 'text-red-300' : textColor)} sm:block transition-colors`}>{type}</span>
-            <span className={`block font-serif text-[10px] ${isRebelling ? 'text-white' : (isStarved || isNetNegative ? 'text-red-300' : textColor)} sm:hidden transition-colors`}>{type.slice(0, 3)}</span>
-            <span className={`font-mono text-xs font-bold sm:text-lg ${isRebelling ? 'text-white' : (isStarved || isNetNegative ? 'text-red-500' : 'text-white')} transition-colors`}>{formatNumber(count)}</span>
+            <Icon className={`h-6 w-6 ${isRebelling ? 'text-eldritch-gold' : (isStarved || isNetNegative ? 'text-red-400' : iconColor)} sm:h-7 sm:w-7 transition-colors`} />
+            
+            <span className={`font-mono text-sm font-bold sm:text-base leading-none ${isRebelling ? 'text-white' : (isStarved || isNetNegative ? 'text-red-500' : 'text-white')} transition-colors`}>
+                {formatNumber(count)}
+            </span>
+
+            {/* Net Rate Display */}
+            <div className={`flex items-center gap-0.5 text-[9px] sm:text-[10px] font-mono ${isNetNegative ? 'text-red-400 font-bold' : (netIncome > 0 ? 'text-green-400' : 'text-gray-500')}`}>
+                 {isNetNegative ? <TrendingDown className="h-2.5 w-2.5" /> : (netIncome > 0 ? <TrendingUp className="h-2.5 w-2.5" /> : <Minus className="h-2.5 w-2.5" />)}
+                 <span>{isNetNegative ? '' : '+'}{formatNumber(netIncome)}/s</span>
+            </div>
         </div>
         {!isLast && <div className="mx-1 flex items-center justify-center sm:mx-2"><ChevronRight className="h-4 w-4 text-eldritch-gold/50 sm:h-6 w-6 animate-pulse" /></div>}
     </div>

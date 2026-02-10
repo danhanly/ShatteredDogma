@@ -9,7 +9,6 @@ import { OfflineModal } from './components/OfflineModal';
 import { SplashIntro } from './components/SplashIntro';
 import { VesselUnlockModal } from './components/VesselUnlockModal';
 import { EodUnlockModal } from './components/EodUnlockModal';
-import { MiracleIntroModal } from './components/MiracleIntroModal';
 import { IntroduceAssistantModal } from './components/IntroduceAssistantModal';
 import { LowlyModal, WorldlyModal, ZealousModal, ProductionStarvedModal } from './components/IntroductionModals';
 import { WorshipperType } from './types';
@@ -44,10 +43,13 @@ const App: React.FC = () => {
     debugAddWorshippers,
     debugUnlockFeature,
     debugAddSouls,
-    resetSave
+    resetSave,
+    activateZealotry,
+    toggleZealotryAuto,
+    setMattelockGem
   } = useGame();
 
-  const [activeTab, setActiveTab] = useState<'MIRACLES' | 'VESSELS' | 'CULT' | 'END_TIMES'>('MIRACLES');
+  const [activeTab, setActiveTab] = useState<'MIRACLES' | 'VESSELS' | 'ZEALOTRY' | 'CULT' | 'END_TIMES'>('MIRACLES');
   const [highlightAssistant, setHighlightAssistant] = useState(false);
   const [ascensionPhase, setAscensionPhase] = useState<'IDLE' | 'IN' | 'OUT'>('IDLE');
 
@@ -211,9 +213,9 @@ const App: React.FC = () => {
     }, 50);
   };
 
-  const showMiracleIntro = gameState.hasSeenStartSplash && gameState.totalAccruedWorshippers > 0 && !gameState.hasSeenMiracleIntro;
+  // Deprecated Miracle Intro Modal logic removed
   const showVesselIntro = gameState.maxWorshippersByType[WorshipperType.INDOLENT] >= 100 && !gameState.hasSeenVesselIntro;
-  const showEodIntro = gameState.maxWorshippersByType[WorshipperType.ZEALOUS] >= PRESTIGE_UNLOCK_THRESHOLD && !gameState.hasSeenEodIntro;
+  const showEodIntro = gameState.hasUnlockedEndTimes && !gameState.hasSeenEodIntro;
   const assistantUnlocked = gameState.maxWorshippersByType[WorshipperType.INDOLENT] >= 1000;
   const showAssistantIntro = assistantUnlocked && !gameState.hasSeenAssistantIntro;
   const hasLowlyVessel = (gameState.vesselLevels['LOWLY_1'] || 0) > 0;
@@ -238,13 +240,6 @@ const App: React.FC = () => {
 
       {!gameState.hasSeenStartSplash && <SplashIntro bgUrl={bgUrl} onStart={handleSplashStart} progress={loadingProgress} isLoaded={assetsLoaded} />}
       
-      {showMiracleIntro && (
-        <MiracleIntroModal 
-          imageUrl={vesselImages['INDOLENT_1']} 
-          onClose={() => setFlag('hasSeenMiracleIntro', true)} 
-        />
-      )}
-
       {showVesselIntro && <VesselUnlockModal 
         zealotVesselUrl={vesselImages['ZEALOUS_4']} 
         mudgeUrl={vesselImages['INDOLENT_1']}
@@ -335,6 +330,9 @@ const App: React.FC = () => {
           highlightAssistant={highlightAssistant}
           lastGemRefresh={lastGemRefresh}
           highlightGem={gameState.highlightGem}
+          onActivateZealotry={activateZealotry}
+          onToggleZealotryAuto={toggleZealotryAuto}
+          onSetMattelockGem={setMattelockGem}
         />
       </main>
 

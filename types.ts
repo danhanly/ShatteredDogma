@@ -1,5 +1,4 @@
 
-
 export enum WorshipperType {
   WORLDLY = 'Worldly',
   LOWLY = 'Lowly',
@@ -41,6 +40,26 @@ export enum RelicId {
   FRENZY = 'Relic_Frenzy_Mode',
   REBELLION = 'Relic_Caste_Rebellion',
   SOUL_HARVESTER = 'Relic_Soul_Acquisition',
+  FURY_OF_ZEALOUS = 'Relic_Fury_Zealous',
+  MATTELOCKS_GEMS = 'Relic_Mattelock_Gems',
+}
+
+export enum ZealotryId {
+  DISDAIN = 'ZEALOTRY_DISDAIN',
+  NO_BREAKS = 'ZEALOTRY_NO_BREAKS',
+  POLITICS = 'ZEALOTRY_POLITICS',
+  SELF_FLAGELLATION = 'ZEALOTRY_SELF_FLAGELLATION',
+  ISOLATING = 'ZEALOTRY_ISOLATING',
+  PITY = 'ZEALOTRY_PITY',
+}
+
+export interface ZealotryDefinition {
+  id: ZealotryId;
+  name: string;
+  description: string;
+  flavor: string;
+  cost: number; // In Zealous Worshippers
+  duration: number; // Seconds
 }
 
 export type FateId = 
@@ -117,10 +136,10 @@ export interface GameState {
   maxWorshippersByType: Record<WorshipperType, number>;
   
   hasUnlockedEndTimes: boolean;
+  hasUnlockedZealotry: boolean;
   hasSeenEodIntro: boolean;
   hasSeenStartSplash: boolean;
   hasSeenVesselIntro: boolean;
-  hasSeenMiracleIntro: boolean;
   hasSeenAbyssIntro: boolean;
   hasSeenLowlyModal: boolean;
   hasSeenWorldlyModal: boolean;
@@ -142,6 +161,7 @@ export interface GameState {
   totalClicks: number;
   manualClicks: number;
   mattelockClicks: number;
+  mattelockGem: GemType | null;
 
   unlockedGems: GemType[];
   activeGem: GemType | null;
@@ -149,6 +169,10 @@ export interface GameState {
   gemCooldowns: Record<GemType, number>;
   showGemDiscovery: GemType | null;
   highlightGem: GemType | null;
+
+  zealotryActive: Record<ZealotryId, number>; // Timestamp of expiry
+  zealotryAuto: Record<ZealotryId, boolean>; // Auto-renew switch
+  zealotryCounts: Record<ZealotryId, number>;
 
   frenzyTimeRemaining: number;
   rebellionTimeRemaining: number;

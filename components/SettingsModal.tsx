@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Terminal, Volume2, VolumeX, AlertTriangle } from 'lucide-react';
 import { DeveloperModal } from './DeveloperModal';
@@ -116,6 +117,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       <button onClick={onClose} className="w-full border border-eldritch-gold/30 bg-black py-2 font-serif text-eldritch-gold rounded-lg hover:bg-eldritch-gold/10 transition-colors">
         Close
       </button>
+
+      <div className="mt-4 text-center text-[10px] text-gray-600 font-mono">
+        Version 0.6
+      </div>
     </BaseModal>
     
     {isDevModalOpen && (

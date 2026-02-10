@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { GameState, RelicId, WorshipperType, FateId } from '../../types';
+import { GameState, RelicId, WorshipperType, FateId, VesselId } from '../../types';
 import { calculateSoulsEarned, calculateRelicCost } from '../../services/gameService';
 import { formatNumber } from '../../utils/format';
 import { RELIC_DEFINITIONS, PRESTIGE_UNLOCK_THRESHOLD, FATE_DEFINITIONS } from '../../constants';
@@ -20,7 +20,8 @@ export const EndTimesTab: React.FC<EndTimesTabProps> = ({ gameState, onPrestige,
   const [currentTime, setCurrentTime] = useState(Date.now());
   const soulsToEarn = calculateSoulsEarned(gameState);
   
-  const isUnlocked = gameState.hasUnlockedEndTimes || gameState.maxWorshippersByType[WorshipperType.ZEALOUS] >= PRESTIGE_UNLOCK_THRESHOLD;
+  // Update locked check to match gameService logic (T1 Zealous Lvl 10) or Flag
+  const isUnlocked = gameState.hasUnlockedEndTimes; 
   const fateCost = Math.floor(10 * Math.pow(1.2, gameState.fatePurchases));
 
   useEffect(() => {
@@ -39,20 +40,23 @@ export const EndTimesTab: React.FC<EndTimesTabProps> = ({ gameState, onPrestige,
 
   if (!isUnlocked) {
     return (
-      <div className="flex flex-col items-center justify-center gap-6 py-12 text-center">
+      <div className="flex flex-col items-center justify-center gap-6 py-12 text-center h-full">
         <div className="relative">
           <Orbit className="h-24 w-24 text-gray-800 animate-pulse-slow" />
           <Lock className="absolute inset-0 m-auto h-8 w-8 text-indigo-400" />
         </div>
         <div>
-          <h2 className="font-serif text-2xl text-white uppercase tracking-widest mb-2">The Cycle is Not Yet Full</h2>
-          <p className="max-w-xs text-sm text-gray-500 italic mx-auto">
-            "The Abyss only acknowledges the fire of true devotion. Amass at least 1 Zealous worshipper to begin the ritual of ascension."
+          <h2 className="font-serif text-2xl text-white uppercase tracking-widest mb-4">The Cycle is Not Yet Full</h2>
+          <p className="max-w-xs text-sm text-gray-400 italic mx-auto leading-relaxed">
+            "The Abyss only acknowledges the fire of true devotion. Souls are the currency of the next world, and they are forged in the fires of Zeal."
+          </p>
+          <p className="mt-4 text-xs text-indigo-400 font-bold uppercase tracking-wide">
+             Enhance your Zealous Worshipper Production to begin the ritual of ascension.
           </p>
         </div>
-        <div className="rounded-lg bg-indigo-950/20 border border-indigo-500/20 px-6 py-3 mx-auto">
-          <span className="text-xs uppercase tracking-tighter text-gray-400">Requirement:<br /></span>
-          <span className="font-mono text-sm font-bold text-red-500">1 Zealous Worshipper</span>
+        <div className="rounded-lg bg-indigo-950/20 border border-indigo-500/20 px-6 py-3 mx-auto mt-2">
+          <span className="text-xs uppercase tracking-tighter text-gray-500">Requirement:<br /></span>
+          <span className="font-mono text-sm font-bold text-red-500">Tier 1 Zealous Vessel Level 10</span>
         </div>
       </div>
     );

@@ -1,6 +1,6 @@
 
 import React, { useState, useRef } from 'react';
-import { GameState, WorshipperType, VesselDefinition, GemType, RelicId, IncrementType, VesselId } from '../types';
+import { GameState, WorshipperType, VesselDefinition, GemType, RelicId, IncrementType, VesselId, ZealotryId } from '../types';
 import { VESSEL_DEFINITIONS, PRESTIGE_UNLOCK_THRESHOLD } from '../constants';
 import { ChevronUp, ChevronDown, Lock } from 'lucide-react';
 import { VesselModal } from './VesselModal';
@@ -8,11 +8,12 @@ import { MiraclesTab } from './tabs/MiraclesTab';
 import { VesselsTab } from './tabs/VesselsTab';
 import { CultTab } from './tabs/CultTab';
 import { EndTimesTab } from './tabs/EndTimesTab';
+import { ZealotryTab } from './tabs/ZealotryTab';
 
 interface MenuProps {
   gameState: GameState;
-  activeTab: 'MIRACLES' | 'VESSELS' | 'CULT' | 'END_TIMES';
-  setActiveTab: (tab: 'MIRACLES' | 'VESSELS' | 'CULT' | 'END_TIMES') => void;
+  activeTab: 'MIRACLES' | 'VESSELS' | 'ZEALOTRY' | 'CULT' | 'END_TIMES';
+  setActiveTab: (tab: 'MIRACLES' | 'VESSELS' | 'ZEALOTRY' | 'CULT' | 'END_TIMES') => void;
   onUpgrade: () => void;
   onPurchaseVessel: (id: string) => void;
   onPurchaseAssistant: () => void;
@@ -32,21 +33,25 @@ interface MenuProps {
   highlightAssistant?: boolean;
   lastGemRefresh?: { gem: GemType, timestamp: number } | null;
   highlightGem?: GemType | null;
+  onActivateZealotry: (id: ZealotryId) => void;
+  onToggleZealotryAuto: (id: ZealotryId) => void;
+  onSetMattelockGem: (gem: GemType | null) => void;
 }
 
 export const Menu: React.FC<MenuProps> = ({
   gameState, activeTab, setActiveTab, onUpgrade, onPurchaseVessel,
   onPurchaseAssistant, onToggleAssistant, onActivateGem, setMiracleIncrement, setVesselIncrement,
   vesselImages, gemImages, assistantUrl, onPrestige, onPurchaseRelic, onPurchaseFate, onToggleVessel, onToggleAllVessels, endOfDaysUrl,
-  highlightAssistant, lastGemRefresh, highlightGem
+  highlightAssistant, lastGemRefresh, highlightGem, onActivateZealotry, onToggleZealotryAuto, onSetMattelockGem
 }) => {
   const [isMobileExpanded, setIsMobileExpanded] = useState(true);
   const [selectedVessel, setSelectedVessel] = useState<VesselDefinition | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const vesselsUnlocked = gameState.maxWorshippersByType[WorshipperType.INDOLENT] >= 100 || (gameState.relics[RelicId.FALSE_IDOL] > 0);
-  // Unlocked if flag is true OR if threshold is met (fallback)
-  const endTimesUnlocked = gameState.hasUnlockedEndTimes || gameState.maxWorshippersByType[WorshipperType.ZEALOUS] >= PRESTIGE_UNLOCK_THRESHOLD;
+  // Unlocked if flag is true OR if threshold is met (fallback - kept logic similar to prev, but threshold is handled in hook primarily)
+  const endTimesUnlocked = gameState.hasUnlockedEndTimes;
+  const zealotryUnlocked = gameState.hasUnlockedZealotry;
 
   const visibleVessels = VESSEL_DEFINITIONS.filter(v => {
     if (gameState.relics[RelicId.FALSE_IDOL] > 0) return true;
@@ -73,22 +78,39 @@ export const Menu: React.FC<MenuProps> = ({
 
   return (
     <>
-    <div className={`flex w-full shrink-0 flex-col bg-eldritch-black shadow-[0_-5px_20px_rgba(0,0,0,0.8)] transition-all lg:h-full lg:w-[400px] lg:border-l lg:border-eldritch-grey/30 ${isMobileExpanded ? 'h-[60dvh]' : 'h-[12dvh]'}`}>
+    <div className={`relative flex w-full shrink-0 flex-col bg-eldritch-black shadow-[0_-5px_20px_rgba(0,0,0,0.8)] transition-all lg:h-full lg:w-[400px] lg:border-l lg:border-eldritch-grey/30 ${isMobileExpanded ? 'h-[60dvh]' : 'h-[12dvh]'}`}>
+      
+      {/* Interaction blocker when minimized on mobile */}
+      {!isMobileExpanded && (
+          <div 
+              className="absolute inset-0 z-[60] cursor-pointer lg:hidden"
+              onClick={(e) => {
+                  e.stopPropagation();
+                  setIsMobileExpanded(true);
+              }}
+          />
+      )}
+
       <button onClick={() => setIsMobileExpanded(!isMobileExpanded)} className="flex h-6 w-full items-center justify-center bg-eldritch-dark lg:hidden">
         {isMobileExpanded ? <ChevronDown className="h-4 w-4 text-gray-400" /> : <ChevronUp className="h-4 w-4 text-eldritch-gold" />}
       </button>
 
-      <div className="flex shrink-0 border-b border-eldritch-grey/30 px-4 pt-2 gap-4 overflow-x-auto">
-        {['MIRACLES', 'VESSELS', 'END_TIMES', 'CULT'].map(tab => {
-          const isTabLocked = tab === 'END_TIMES' && !endTimesUnlocked;
+      <div className="flex shrink-0 border-b border-eldritch-grey/30 px-2 pt-2 gap-2 overflow-x-auto no-scrollbar justify-between">
+        {['MIRACLES', 'VESSELS', 'ZEALOTRY', 'END_TIMES', 'CULT'].map(tab => {
+          const isTabLocked = (tab === 'END_TIMES' && !endTimesUnlocked) || (tab === 'ZEALOTRY' && !zealotryUnlocked);
+          // Only show locked tabs if they are End Times or Zealotry (to tease), or if unlocked. 
+          // Actually, let's show all but lock them visually.
           return (
             <button 
               key={tab} 
               onClick={() => setActiveTab(tab as any)} 
-              className={`flex items-center gap-1 pb-2 font-serif text-xs sm:text-sm font-bold transition-all ${activeTab === tab ? 'text-eldritch-gold border-b-2 border-eldritch-gold' : 'text-gray-500'}`}
+              className={`flex items-center gap-1 pb-2 font-serif text-[10px] sm:text-xs font-bold transition-all whitespace-nowrap px-2
+                ${activeTab === tab ? 'text-eldritch-gold border-b-2 border-eldritch-gold' : 'text-gray-500 hover:text-gray-300'}
+                ${isTabLocked ? 'opacity-70' : ''}
+              `}
             >
               {tab.replace('_', ' ')}
-              {isTabLocked && <Lock className="h-3 w-3" />}
+              {isTabLocked && <Lock className="h-2.5 w-2.5" />}
             </button>
           );
         })}
@@ -109,6 +131,7 @@ export const Menu: React.FC<MenuProps> = ({
             lastGemRefresh={lastGemRefresh}
             gemImages={gemImages}
             highlightGem={highlightGem}
+            onSetMattelockGem={onSetMattelockGem}
           />
         )}
         {activeTab === 'VESSELS' && (
@@ -119,6 +142,14 @@ export const Menu: React.FC<MenuProps> = ({
             onSelectVessel={setSelectedVessel} 
             onToggleAllVessels={onToggleAllVessels}
           />
+        )}
+        {activeTab === 'ZEALOTRY' && (
+            <ZealotryTab 
+                gameState={gameState} 
+                onActivate={onActivateZealotry} 
+                onToggleAuto={onToggleZealotryAuto}
+                isUnlocked={zealotryUnlocked}
+            />
         )}
         {activeTab === 'CULT' && <CultTab gameState={gameState} />}
         {activeTab === 'END_TIMES' && <EndTimesTab gameState={gameState} onPrestige={onPrestige} onPurchaseRelic={onPurchaseRelic} onPurchaseFate={onPurchaseFate} endOfDaysUrl={endOfDaysUrl} />}
