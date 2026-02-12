@@ -1,9 +1,9 @@
 
 import React, { useState, useEffect } from 'react';
-import { GameState, RelicId, WorshipperType, FateId, VesselId } from '../../types';
+import { GameState, RelicId, FateId } from '../../types';
 import { calculateSoulsEarned, calculateRelicCost } from '../../services/gameService';
 import { formatNumber } from '../../utils/format';
-import { RELIC_DEFINITIONS, PRESTIGE_UNLOCK_THRESHOLD, FATE_DEFINITIONS } from '../../constants';
+import { RELIC_DEFINITIONS, FATE_DEFINITIONS } from '../../constants';
 import { Skull, Orbit, Sparkles, ChevronUp, Lock, Dna } from 'lucide-react';
 
 interface EndTimesTabProps {

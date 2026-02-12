@@ -3,7 +3,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { GameState, GemType, WorshipperType, IncrementType, RelicId } from '../../types';
 import { calculateBulkUpgrade, calculateAssistantInterval, calculateAssistantBulkVesselBuy, isMilestoneLevel, calculateManualClickPower } from '../../services/gameService';
 import { formatNumber } from '../../utils/format';
-import { ArrowUpCircle, Sparkles, Timer, User, Info, Activity, Crown, Gem } from 'lucide-react';
+import { ArrowUpCircle, Sparkles, Timer, User, Info, Activity, Crown } from 'lucide-react';
 import { IncrementSelector } from '../IncrementSelector';
 import { GEM_DEFINITIONS } from '../../constants';
 import { AbyssAssistantModal } from '../AbyssAssistantModal';

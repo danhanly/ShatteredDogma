@@ -2,8 +2,7 @@
 import { renderHook, act } from '@testing-library/react';
 import { useGame } from '../hooks/useGame';
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { WorshipperType, GemType } from '../types';
-import { calculateAssistantBulkVesselBuy } from '../services/gameService';
+import { WorshipperType } from '../types';
 
 describe('useGame Hook', () => {
   beforeEach(() => {

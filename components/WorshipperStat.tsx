@@ -10,9 +10,7 @@ interface WorshipperStatProps {
   count: number;
   icon: any;
   colorClass: string;
-  textColor: string;
   iconColor: string;
-  priorityIndex: number;
   isLast: boolean;
   gameState: GameState; 
   glowingStats: Record<string, boolean>;
@@ -25,9 +23,7 @@ export const WorshipperStat: React.FC<WorshipperStatProps> = ({
     count, 
     icon: Icon, 
     colorClass, 
-    textColor, 
     iconColor, 
-    priorityIndex, 
     isLast,
     gameState,
     glowingStats,

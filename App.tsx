@@ -12,7 +12,7 @@ import { EodUnlockModal } from './components/EodUnlockModal';
 import { IntroduceAssistantModal } from './components/IntroduceAssistantModal';
 import { LowlyModal, WorldlyModal, ZealousModal, ProductionStarvedModal } from './components/IntroductionModals';
 import { WorshipperType } from './types';
-import { VESSEL_DEFINITIONS, PRESTIGE_UNLOCK_THRESHOLD, GEM_DEFINITIONS } from './constants';
+import { VESSEL_DEFINITIONS, GEM_DEFINITIONS } from './constants';
 
 const App: React.FC = () => {
   const { 

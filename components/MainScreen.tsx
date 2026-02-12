@@ -119,10 +119,10 @@ export const MainScreen: React.FC<MainScreenProps> = ({ gameState, onTap, autoCl
     }}>
       <div className="absolute inset-0 z-0 bg-cover bg-center opacity-70 grayscale-[50%] blur-sm" style={{ backgroundImage: `url('${bgUrl}')` }} />
       <div className="relative z-10 mt-2 flex w-full justify-center">
-        <WorshipperStat type={WorshipperType.INDOLENT} count={gameState.worshippers[WorshipperType.INDOLENT]} icon={Ghost} colorClass="border-blue-900/30 hover:border-blue-500" textColor="text-blue-200" iconColor="text-blue-400" priorityIndex={1} isLast={false} {...commonStatProps} />
-        <WorshipperStat type={WorshipperType.LOWLY} count={gameState.worshippers[WorshipperType.LOWLY]} icon={Frown} colorClass="border-gray-700/30 hover:border-gray-400" textColor="text-gray-300" iconColor="text-gray-400" priorityIndex={2} isLast={false} {...commonStatProps} />
-        <WorshipperStat type={WorshipperType.WORLDLY} count={gameState.worshippers[WorshipperType.WORLDLY]} icon={Crown} colorClass="border-green-900/30 hover:border-green-500" textColor="text-green-200" iconColor="text-green-500" priorityIndex={3} isLast={false} {...commonStatProps} />
-        <WorshipperStat type={WorshipperType.ZEALOUS} count={gameState.worshippers[WorshipperType.ZEALOUS]} icon={Sword} colorClass="border-red-900/30 hover:border-red-500" textColor="text-red-200" iconColor="text-red-500" priorityIndex={4} isLast={true} {...commonStatProps} />
+        <WorshipperStat type={WorshipperType.INDOLENT} count={gameState.worshippers[WorshipperType.INDOLENT]} icon={Ghost} colorClass="border-blue-900/30 hover:border-blue-500" iconColor="text-blue-400" isLast={false} {...commonStatProps} />
+        <WorshipperStat type={WorshipperType.LOWLY} count={gameState.worshippers[WorshipperType.LOWLY]} icon={Frown} colorClass="border-gray-700/30 hover:border-gray-400" iconColor="text-gray-400" isLast={false} {...commonStatProps} />
+        <WorshipperStat type={WorshipperType.WORLDLY} count={gameState.worshippers[WorshipperType.WORLDLY]} icon={Crown} colorClass="border-green-900/30 hover:border-green-500" iconColor="text-green-500" isLast={false} {...commonStatProps} />
+        <WorshipperStat type={WorshipperType.ZEALOUS} count={gameState.worshippers[WorshipperType.ZEALOUS]} icon={Sword} colorClass="border-red-900/30 hover:border-red-500" iconColor="text-red-500" isLast={true} {...commonStatProps} />
       </div>
       <div className="pointer-events-none relative z-10 flex flex-1 items-center justify-center">
         <div className="relative flex items-center justify-center">

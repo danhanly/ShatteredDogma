@@ -1,7 +1,7 @@
 
 import React, { useState, useRef } from 'react';
 import { GameState, WorshipperType, VesselDefinition, GemType, RelicId, IncrementType, VesselId, ZealotryId } from '../types';
-import { VESSEL_DEFINITIONS, PRESTIGE_UNLOCK_THRESHOLD } from '../constants';
+import { VESSEL_DEFINITIONS } from '../constants';
 import { ChevronUp, ChevronDown, Lock } from 'lucide-react';
 import { VesselModal } from './VesselModal';
 import { MiraclesTab } from './tabs/MiraclesTab';

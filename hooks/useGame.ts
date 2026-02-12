@@ -1,7 +1,7 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { GameState, WorshipperType, WORSHIPPER_ORDER, GemType, RelicId, IncrementType, FateId, ZealotryId, VesselId } from '../types';
-import { VESSEL_DEFINITIONS, FATE_DEFINITIONS, ZEALOTRY_DEFINITIONS, GEM_DEFINITIONS, RELIC_DEFINITIONS, PRESTIGE_UNLOCK_THRESHOLD } from '../constants';
+import { VESSEL_DEFINITIONS, FATE_DEFINITIONS, ZEALOTRY_DEFINITIONS, RELIC_DEFINITIONS } from '../constants';
 import { 
   calculateManualClickPower, 
   calculateMattelockClickPower,
@@ -334,9 +334,7 @@ export const useGame = () => {
     }
 
     // 3. Return values for Visuals (MainScreen.tsx manual clicks)
-    if (!isAuto) {
-       return { power, type };
-    }
+    return { power, type };
   }, [calculateInternalPower]);
 
   // Main Game Loop (Passive Generation)

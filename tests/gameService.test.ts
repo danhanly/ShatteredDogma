@@ -2,13 +2,11 @@
 import { describe, it, expect } from 'vitest';
 import { 
   calculateManualClickPower, 
-  calculateMattelockClickPower, 
   calculateUpgradeCost,
   calculateVesselEfficiency,
-  calculateVesselOutput,
   calculateAssistantInterval
 } from '../services/gameService';
-import { GameState, WorshipperType, VesselId, GemType } from '../types';
+import { GameState, WorshipperType, VesselId } from '../types';
 
 const MOCK_STATE: GameState = {
   worshippers: {
