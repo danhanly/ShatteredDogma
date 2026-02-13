@@ -46,6 +46,7 @@ const MOCK_STATE: GameState = {
   hasSeenZealousModal: false,
   hasSeenPausedModal: false,
   hasSeenNetNegative: false,
+  hasSeenProductionStarvedModal: false,
   hasAcknowledgedPausedModal: false,
   hasSeenAssistantIntro: false,
   lockedWorshippers: [],
@@ -80,7 +81,10 @@ const MOCK_STATE: GameState = {
   lastSaveTime: 0,
   miracleIncrement: 1,
   vesselIncrement: 1,
-  vesselStarvationTimers: {}
+  vesselStarvationTimers: {},
+  currentObjectiveIndex: 0,
+  claimedObjectives: [],
+  objectivesCompletedOnce: false
 };
 
 describe('Game Service Logic', () => {
