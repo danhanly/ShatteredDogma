@@ -3,9 +3,9 @@ import React, { useEffect, useRef, useState } from 'react';
 import { GameState, GemType, WorshipperType, IncrementType, RelicId } from '../../types';
 import { calculateBulkUpgrade, calculateAssistantInterval, calculateAssistantBulkVesselBuy, isMilestoneLevel, calculateManualClickPower } from '../../services/gameService';
 import { formatNumber } from '../../utils/format';
-import { ArrowUpCircle, Sparkles, Timer, User, Info, Activity, Crown } from 'lucide-react';
+import { ArrowUpCircle, Sparkles, Timer, User, Info, Activity, Crown, CheckCircle2, Gift } from 'lucide-react';
 import { IncrementSelector } from '../IncrementSelector';
-import { GEM_DEFINITIONS } from '../../constants';
+import { GEM_DEFINITIONS, OBJECTIVES, VESSEL_DEFINITIONS } from '../../constants';
 import { AbyssAssistantModal } from '../AbyssAssistantModal';
 
 interface MiraclesTabProps {
@@ -22,6 +22,7 @@ interface MiraclesTabProps {
   lastGemRefresh?: { gem: GemType, timestamp: number } | null;
   gemImages?: Record<string, string>;
   onSetMattelockGem?: (gem: GemType | null) => void;
+  onClaimObjective: () => void;
 }
 
 export const MiraclesTab: React.FC<MiraclesTabProps> = ({
@@ -37,7 +38,8 @@ export const MiraclesTab: React.FC<MiraclesTabProps> = ({
   highlightGem,
   lastGemRefresh,
   gemImages,
-  onSetMattelockGem
+  onSetMattelockGem,
+  onClaimObjective
 }) => {
   const [showAssistantDetails, setShowAssistantDetails] = useState(false);
   const [lastMilestoneTime, setLastMilestoneTime] = useState<number>(0);
@@ -110,6 +112,46 @@ export const MiraclesTab: React.FC<MiraclesTabProps> = ({
 
   return (
     <div className="flex flex-col gap-6">
+        {/* Objective System */}
+        {!gameState.objectivesCompletedOnce && OBJECTIVES[gameState.currentObjectiveIndex] && (
+            <div className={`relative overflow-hidden rounded-xl border p-4 transition-all duration-500 bg-eldritch-dark shadow-lg
+                ${OBJECTIVES[gameState.currentObjectiveIndex].check(gameState) 
+                    ? 'border-eldritch-gold/50 shadow-[0_0_20px_rgba(197,160,89,0.2)]' 
+                    : 'border-white/10'}`}>
+                
+                <div className="flex items-start gap-4">
+                    <div className={`rounded-full p-2 shrink-0 ${OBJECTIVES[gameState.currentObjectiveIndex].check(gameState) ? 'bg-eldritch-gold text-black animate-pulse' : 'bg-gray-800 text-gray-500'}`}>
+                        {OBJECTIVES[gameState.currentObjectiveIndex].check(gameState) ? <CheckCircle2 className="h-5 w-5" /> : <Info className="h-5 w-5" />}
+                    </div>
+                    
+                    <div className="flex-1 text-left">
+                        <div className="text-[10px] uppercase font-bold tracking-widest text-gray-500 mb-1 flex justify-between items-center">
+                            <span>Objective {gameState.currentObjectiveIndex + 1} / {OBJECTIVES.length}</span>
+                            {OBJECTIVES[gameState.currentObjectiveIndex].check(gameState) && <span className="text-eldritch-gold animate-pulse">Ready to Claim</span>}
+                        </div>
+                        <p className="text-sm font-medium text-white leading-tight">
+                            {OBJECTIVES[gameState.currentObjectiveIndex].text}
+                        </p>
+                        
+                        {OBJECTIVES[gameState.currentObjectiveIndex].check(gameState) ? (
+                            <button 
+                                onClick={onClaimObjective}
+                                className="mt-3 w-full flex items-center justify-center gap-2 rounded-lg bg-eldritch-gold py-2.5 text-xs font-bold uppercase tracking-widest text-black hover:bg-yellow-500 active:scale-95 transition-all shadow-lg shadow-yellow-900/20"
+                            >
+                                <Gift className="h-4 w-4" />
+                                Claim {formatNumber(OBJECTIVES[gameState.currentObjectiveIndex].rewardAmount)} {OBJECTIVES[gameState.currentObjectiveIndex].rewardType}
+                            </button>
+                        ) : (
+                            <div className="mt-3 flex items-center gap-2 text-[10px] uppercase font-bold text-gray-500">
+                                <Gift className="h-3 w-3" />
+                                Reward: {formatNumber(OBJECTIVES[gameState.currentObjectiveIndex].rewardAmount)} {OBJECTIVES[gameState.currentObjectiveIndex].rewardType}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+        )}
+
         <IncrementSelector current={increment} onChange={onSetIncrement} />
 
         {/* Upgrade Button */}
@@ -214,6 +256,14 @@ export const MiraclesTab: React.FC<MiraclesTabProps> = ({
                             {Object.values(GemType).map(gem => {
                                 const def = GEM_DEFINITIONS[gem];
                                 const isSelected = gameState.mattelockGem === gem;
+                                
+                                // Check if this gem's worshipper type has any active vessels (level > 0)
+                                const hasActiveVessels = VESSEL_DEFINITIONS
+                                    .filter(v => v.type === def.type)
+                                    .some(v => (gameState.vesselLevels[v.id] || 0) > 0);
+                                    
+                                if (!hasActiveVessels) return null;
+
                                 return (
                                     <button 
                                         key={gem}

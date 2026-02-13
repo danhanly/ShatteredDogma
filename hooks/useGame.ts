@@ -1,7 +1,7 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { GameState, WorshipperType, WORSHIPPER_ORDER, GemType, RelicId, IncrementType, FateId, ZealotryId, VesselId } from '../types';
-import { VESSEL_DEFINITIONS, FATE_DEFINITIONS, ZEALOTRY_DEFINITIONS, RELIC_DEFINITIONS } from '../constants';
+import { VESSEL_DEFINITIONS, FATE_DEFINITIONS, ZEALOTRY_DEFINITIONS, RELIC_DEFINITIONS, GEM_DEFINITIONS, OBJECTIVES } from '../constants';
 import { 
   calculateManualClickPower, 
   calculateMattelockClickPower,
@@ -67,6 +67,7 @@ const INITIAL_STATE: GameState = {
   hasSeenZealousModal: false,
   hasSeenPausedModal: false,
   hasSeenNetNegative: false,
+  hasSeenProductionStarvedModal: false,
   hasAcknowledgedPausedModal: false,
   hasSeenAssistantIntro: false,
   lockedWorshippers: [],
@@ -138,6 +139,11 @@ const INITIAL_STATE: GameState = {
   miracleIncrement: 1,
   vesselIncrement: 1,
   vesselStarvationTimers: {},
+
+  // Objective System
+  currentObjectiveIndex: 0,
+  claimedObjectives: [],
+  objectivesCompletedOnce: false,
 };
 
 export const useGame = () => {
@@ -224,7 +230,7 @@ export const useGame = () => {
 
   const calculateInternalPower = useCallback((state: GameState, isAuto: boolean) => {
     const powerBase = isAuto 
-        ? calculateMattelockClickPower(state.assistantLevel, state)
+        ? calculateMattelockClickPower(state.miracleLevel, state)
         : calculateManualClickPower(state.miracleLevel, state);
     
     let power = powerBase;
@@ -279,9 +285,16 @@ export const useGame = () => {
         const p = calculated.power;
         const t = calculated.type;
 
-        const newState = { ...prev };
-        
-        newState.worshippers[t] += p;
+        const newState = { 
+            ...prev,
+            worshippers: {
+                ...prev.worshippers,
+                [t]: prev.worshippers[t] + p
+            },
+            maxWorshippersByType: {
+                ...prev.maxWorshippersByType
+            }
+        };
         
         // IMPORTANT: Calculate total worshippers immediately for UI consistency if needed, 
         // though the loop handles it too.
@@ -310,19 +323,9 @@ export const useGame = () => {
              }
              
              checkUnlock(GemType.LAPIS, 500, WorshipperType.INDOLENT);
-             checkUnlock(GemType.QUARTZ, 2000, WorshipperType.LOWLY);
-             checkUnlock(GemType.EMERALD, 5000, WorshipperType.WORLDLY);
-             checkUnlock(GemType.RUBY, 10000, WorshipperType.ZEALOUS);
-        }
-
-        // Check End Times Unlock
-        if (!prev.hasUnlockedEndTimes && (prev.vesselLevels[VesselId.ZEALOUS_1] || 0) >= 10) {
-            newState.hasUnlockedEndTimes = true;
-        }
-        
-        // Check Zealotry Unlock
-        if (!prev.hasUnlockedZealotry && prev.worshippers[WorshipperType.ZEALOUS] > 0) {
-            newState.hasUnlockedZealotry = true;
+             checkUnlock(GemType.QUARTZ, 500, WorshipperType.LOWLY);
+             checkUnlock(GemType.EMERALD, 500, WorshipperType.WORLDLY);
+             checkUnlock(GemType.RUBY, 500, WorshipperType.ZEALOUS);
         }
 
         return newState;
@@ -345,11 +348,31 @@ export const useGame = () => {
         lastPassiveTick.current = now;
 
         setGameState(prev => {
-            const next = { ...prev, lastSaveTime: now };
+            const next = { 
+                ...prev, 
+                lastSaveTime: now,
+                worshippers: { ...prev.worshippers },
+                isPaused: { ...prev.isPaused },
+                maxWorshippersByType: { ...prev.maxWorshippersByType },
+                gemCooldowns: { ...prev.gemCooldowns },
+                zealotryActive: { ...prev.zealotryActive },
+                zealotryCounts: { ...prev.zealotryCounts }
+            };
             
             const production = calculateProductionByType(prev);
             const consumption = calculateConsumptionByType(prev);
             
+            // Check for Production Starved Modal trigger
+            if (!prev.hasSeenProductionStarvedModal) {
+                const typesInProduction = WORSHIPPER_ORDER.filter(type => production[type] > 0);
+                if (typesInProduction.length >= 2) {
+                    const hasNegativeNet = WORSHIPPER_ORDER.some(type => (production[type] - consumption[type]) < 0);
+                    if (hasNegativeNet) {
+                        next.hasSeenProductionStarvedModal = true;
+                    }
+                }
+            }
+
             let totalWorshippers = 0;
 
             WORSHIPPER_ORDER.forEach(type => {
@@ -385,6 +408,16 @@ export const useGame = () => {
 
             // CRITICAL FIX: Ensure global count is updated every tick based on current population
             next.totalWorshippers = totalWorshippers;
+
+            // Check End Times Unlock
+            if (!next.hasUnlockedEndTimes && (next.vesselLevels[VesselId.ZEALOUS_1] || 0) >= 1) {
+                next.hasUnlockedEndTimes = true;
+            }
+            
+            // Check Zealotry Unlock
+            if (!next.hasUnlockedZealotry && next.worshippers[WorshipperType.ZEALOUS] > 0) {
+                next.hasUnlockedZealotry = true;
+            }
 
             // Handle Gem Cooldowns
             Object.keys(next.gemCooldowns).forEach(k => {
@@ -638,8 +671,39 @@ export const useGame = () => {
   };
 
   const setMattelockGem = (gem: GemType | null) => {
+      if (gem) {
+          const def = GEM_DEFINITIONS[gem];
+          const hasActiveVessels = VESSEL_DEFINITIONS
+              .filter(v => v.type === def.type)
+              .some(v => (gameState.vesselLevels[v.id] || 0) > 0);
+          
+          if (!hasActiveVessels) return; // Ignore if no active vessels
+      }
       setGameState(prev => ({ ...prev, mattelockGem: gem }));
   };
+
+  const claimObjective = useCallback(() => {
+      setGameState(prev => {
+          const objective = OBJECTIVES[prev.currentObjectiveIndex];
+          if (!objective || !objective.check(prev) || prev.claimedObjectives.includes(objective.id)) {
+              return prev;
+          }
+
+          const isLast = prev.currentObjectiveIndex === OBJECTIVES.length - 1;
+
+          return {
+              ...prev,
+              worshippers: {
+                  ...prev.worshippers,
+                  [objective.rewardType]: prev.worshippers[objective.rewardType] + objective.rewardAmount
+              },
+              totalAccruedWorshippers: prev.totalAccruedWorshippers + objective.rewardAmount,
+              claimedObjectives: [...prev.claimedObjectives, objective.id],
+              currentObjectiveIndex: isLast ? prev.currentObjectiveIndex : prev.currentObjectiveIndex + 1,
+              objectivesCompletedOnce: isLast ? true : prev.objectivesCompletedOnce
+          };
+      });
+  }, []);
 
   const triggerPrestige = () => {
       setGameState(prev => {
@@ -650,12 +714,14 @@ export const useGame = () => {
               relics: prev.relics,
               fates: prev.fates,
               fatePurchases: prev.fatePurchases,
-              hasUnlockedEndTimes: false,
+              hasUnlockedEndTimes: prev.hasUnlockedEndTimes,
               hasUnlockedZealotry: false,
               hasSeenStartSplash: true,
               hasSeenVesselIntro: true,
               hasSeenEodIntro: true,
               hasSeenAbyssIntro: true,
+              mattelockGem: null,
+              objectivesCompletedOnce: true,
               maxWorshippersByType: {
                   [WorshipperType.INDOLENT]: 0,
                   [WorshipperType.LOWLY]: 0,
@@ -686,7 +752,12 @@ export const useGame = () => {
   const setFlag = (flag: keyof GameState, val: boolean) => setGameState(p => ({ ...p, [flag]: val }));
   const resetSave = () => {
       localStorage.removeItem(STORAGE_KEY);
-      setGameState(INITIAL_STATE);
+      setGameState({
+          ...INITIAL_STATE,
+          objectivesCompletedOnce: false,
+          currentObjectiveIndex: 0,
+          claimedObjectives: []
+      });
   };
   
   const debugAddWorshippers = (type: WorshipperType, amount: number) => setGameState(p => ({ ...p, worshippers: { ...p.worshippers, [type]: p.worshippers[type] + amount } }));
@@ -738,6 +809,7 @@ export const useGame = () => {
     resetSave,
     activateZealotry,
     toggleZealotryAuto,
-    setMattelockGem
+    setMattelockGem,
+    claimObjective
   };
 };

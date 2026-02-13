@@ -46,7 +46,8 @@ const App: React.FC = () => {
     resetSave,
     activateZealotry,
     toggleZealotryAuto,
-    setMattelockGem
+    setMattelockGem,
+    claimObjective
   } = useGame();
 
   const [activeTab, setActiveTab] = useState<'MIRACLES' | 'VESSELS' | 'ZEALOTRY' | 'CULT' | 'END_TIMES'>('MIRACLES');
@@ -224,7 +225,7 @@ const App: React.FC = () => {
   const showLowlyModal = hasLowlyVessel && !gameState.hasSeenLowlyModal;
   const showWorldlyModal = hasWorldlyVessel && !gameState.hasSeenWorldlyModal;
   const showZealousModal = hasZealousVessel && !gameState.hasSeenZealousModal;
-  const canShowStarvedModal = gameState.hasSeenPausedModal && !gameState.hasAcknowledgedPausedModal && gameState.hasSeenStartSplash;
+  const canShowStarvedModal = gameState.hasSeenProductionStarvedModal && !gameState.hasAcknowledgedPausedModal && gameState.hasSeenStartSplash;
 
   return (
     <div className="flex h-[100dvh] w-screen flex-col overflow-hidden bg-black text-gray-200 relative">
@@ -333,6 +334,7 @@ const App: React.FC = () => {
           onActivateZealotry={activateZealotry}
           onToggleZealotryAuto={toggleZealotryAuto}
           onSetMattelockGem={setMattelockGem}
+          onClaimObjective={claimObjective}
         />
       </main>
 

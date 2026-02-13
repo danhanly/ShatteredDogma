@@ -146,7 +146,7 @@ export const DeveloperModal: React.FC<DeveloperModalProps> = ({
                     </div>
                     <div>
                       <p className="font-bold text-eldritch-gold mb-1 underline">Mattelock (Assistant) Rate</p>
-                      <p className="mb-2 text-xs">Base interval for auto-clicks:</p>
+                      <p className="mb-2 text-xs">Base interval for auto-clicks. Power tied to Miracle Level.</p>
                       <div className="bg-black/40 p-3 rounded border border-white/5">
                         <MathDisplay block tex="\text{Interval} = \frac{2000}{2^{L-1}} \text{ ms}" />
                       </div>

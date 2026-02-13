@@ -3,7 +3,31 @@
 @tailwind utilities;
 
 body {
+
   background-color: #050505;
+
   color: #e5e5e5;
+
   overflow: hidden;
+
+}
+
+
+
+@layer utilities {
+
+  .no-scrollbar::-webkit-scrollbar {
+
+    display: none;
+
+  }
+
+  .no-scrollbar {
+
+    -ms-overflow-style: none;
+
+    scrollbar-width: none;
+
+  }
+
 }

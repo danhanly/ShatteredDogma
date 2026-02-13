@@ -189,7 +189,7 @@ export const VESSEL_DEFINITIONS: VesselDefinition[] = [
     subtitle: "The Cunning Merchant",
     lore: "Caspian trades the labor of the Lowly for influence.",
     type: WorshipperType.WORLDLY,
-    baseCost: 5000,
+    baseCost: 250,
     baseOutput: 5,
     tier: 1,
     costMultiplier: 1.15,
@@ -201,8 +201,8 @@ export const VESSEL_DEFINITIONS: VesselDefinition[] = [
     subtitle: "The Fanatic Cultist",
     lore: "Kaleb burns worldly assets to fuel spiritual fire.",
     type: WorshipperType.ZEALOUS,
-    baseCost: 100000,
-    baseOutput: 1,
+    baseCost: 500,
+    baseOutput: 5,
     tier: 1,
     costMultiplier: 1.15,
     baseConsumption: { [WorshipperType.WORLDLY]: 100 }
@@ -218,7 +218,7 @@ export const VESSEL_DEFINITIONS: VesselDefinition[] = [
     baseCost: 2500,
     baseOutput: 100,
     tier: 2,
-    costMultiplier: 1.18,
+    costMultiplier: 1.17,
     isGenerator: true
   },
   {
@@ -227,10 +227,10 @@ export const VESSEL_DEFINITIONS: VesselDefinition[] = [
     subtitle: "The Broken Worker",
     lore: "Massive Lowly output at a heavy cost of Indolent essence.",
     type: WorshipperType.LOWLY,
-    baseCost: 25000,
-    baseOutput: 25,
+    baseCost: 7500,
+    baseOutput: 100,
     tier: 2,
-    costMultiplier: 1.22,
+    costMultiplier: 1.17,
     baseConsumption: { [WorshipperType.INDOLENT]: 250 }
   },
   {
@@ -239,10 +239,10 @@ export const VESSEL_DEFINITIONS: VesselDefinition[] = [
     subtitle: "The Ambitious Lord",
     lore: "Exploits the Lowly with industrial efficiency.",
     type: WorshipperType.WORLDLY,
-    baseCost: 500000,
-    baseOutput: 25,
+    baseCost: 12500,
+    baseOutput: 100,
     tier: 2,
-    costMultiplier: 1.24,
+    costMultiplier: 1.17,
     baseConsumption: { [WorshipperType.LOWLY]: 500 }
   },
   {
@@ -251,10 +251,10 @@ export const VESSEL_DEFINITIONS: VesselDefinition[] = [
     subtitle: "The Zealot Warrior",
     lore: "His pain fuels a greater conversion of worldly greed.",
     type: WorshipperType.ZEALOUS,
-    baseCost: 5000000,
-    baseOutput: 5,
+    baseCost: 25000,
+    baseOutput: 100,
     tier: 2,
-    costMultiplier: 1.28,
+    costMultiplier: 1.17,
     baseConsumption: { [WorshipperType.WORLDLY]: 500 }
   },
 
@@ -266,7 +266,7 @@ export const VESSEL_DEFINITIONS: VesselDefinition[] = [
     lore: "Commanding vast streams of the passive masses.",
     type: WorshipperType.INDOLENT,
     baseCost: 50000,
-    baseOutput: 1500,
+    baseOutput: 1000,
     tier: 3,
     costMultiplier: 1.18,
     isGenerator: true
@@ -277,10 +277,10 @@ export const VESSEL_DEFINITIONS: VesselDefinition[] = [
     subtitle: "The Disgraced Scholar",
     lore: "Converts the aether into structured labor.",
     type: WorshipperType.LOWLY,
-    baseCost: 250000,
-    baseOutput: 150,
+    baseCost: 75000,
+    baseOutput: 1000,
     tier: 3,
-    costMultiplier: 1.22,
+    costMultiplier: 1.19,
     baseConsumption: { [WorshipperType.INDOLENT]: 1000 }
   },
   {
@@ -289,10 +289,10 @@ export const VESSEL_DEFINITIONS: VesselDefinition[] = [
     subtitle: "The Powerful Duke",
     lore: "A high-tier parasite of the broken scholar caste.",
     type: WorshipperType.WORLDLY,
-    baseCost: 2500000,
-    baseOutput: 50,
+    baseCost: 125000,
+    baseOutput: 1000,
     tier: 3,
-    costMultiplier: 1.25,
+    costMultiplier: 1.19,
     baseConsumption: { [WorshipperType.LOWLY]: 1000 }
   },
   {
@@ -301,10 +301,10 @@ export const VESSEL_DEFINITIONS: VesselDefinition[] = [
     subtitle: "The Elite Champion",
     lore: "His dogma consumes the Archduke's influence.",
     type: WorshipperType.ZEALOUS,
-    baseCost: 50000000,
-    baseOutput: 10,
+    baseCost: 250000,
+    baseOutput: 1000,
     tier: 3,
-    costMultiplier: 1.30,
+    costMultiplier: 1.19,
     baseConsumption: { [WorshipperType.WORLDLY]: 2500 }
   },
 
@@ -328,7 +328,7 @@ export const VESSEL_DEFINITIONS: VesselDefinition[] = [
     lore: "A catastrophic consumer of Indolent essence.",
     type: WorshipperType.LOWLY,
     baseCost: 25000000,
-    baseOutput: 1000,
+    baseOutput: 10000,
     tier: 4,
     costMultiplier: 1.20,
     baseConsumption: { [WorshipperType.INDOLENT]: 10000 }
@@ -340,7 +340,7 @@ export const VESSEL_DEFINITIONS: VesselDefinition[] = [
     lore: "Rules a kingdom built on Gawen's ruin.",
     type: WorshipperType.WORLDLY,
     baseCost: 250000000,
-    baseOutput: 250,
+    baseOutput: 10000,
     tier: 4,
     costMultiplier: 1.22,
     baseConsumption: { [WorshipperType.LOWLY]: 5000 }
@@ -352,7 +352,7 @@ export const VESSEL_DEFINITIONS: VesselDefinition[] = [
     lore: "The final step in the Liturgy.",
     type: WorshipperType.ZEALOUS,
     baseCost: 500000000,
-    baseOutput: 50,
+    baseOutput: 10000,
     tier: 4,
     costMultiplier: 1.25,
     baseConsumption: { [WorshipperType.WORLDLY]: 10000 }
@@ -419,3 +419,104 @@ export const WORSHIPPER_DETAILS: Record<WorshipperType, { description: string; l
     lore: "Fanatics whose fire burns everything it touches, including their own humanity."
   }
 };
+
+export const OBJECTIVES = [
+  {
+    id: 1,
+    text: "Use your Dark Miracle to attract 100 Indolent Worshippers",
+    rewardType: WorshipperType.INDOLENT,
+    rewardAmount: 50,
+    check: (state: any) => state.maxWorshippersByType[WorshipperType.INDOLENT] >= 100
+  },
+  {
+    id: 2,
+    text: "Mudge the Slumbering has offered to help welcome more Indolent Worshippers, Recruit him.",
+    rewardType: WorshipperType.INDOLENT,
+    rewardAmount: 100,
+    check: (state: any) => (state.vesselLevels[VesselId.INDOLENT_1] || 0) >= 1
+  },
+  {
+    id: 3,
+    text: "With a taste for the power of the Abyss, Mudge wants more. Upgrade him to Level 10.",
+    rewardType: WorshipperType.INDOLENT,
+    rewardAmount: 500,
+    check: (state: any) => (state.vesselLevels[VesselId.INDOLENT_1] || 0) >= 10
+  },
+  {
+    id: 4,
+    text: "Hearing whispers of the Abyss, the Lowly seek out your hand: Recruit Little Pip.",
+    rewardType: WorshipperType.LOWLY,
+    rewardAmount: 10,
+    check: (state: any) => (state.vesselLevels[VesselId.LOWLY_1] || 0) >= 1
+  },
+  {
+    id: 5,
+    text: "Little Pip is enamoured with the depth of the Abyss’ lure. Upgrade her to Level 10.",
+    rewardType: WorshipperType.LOWLY,
+    rewardAmount: 100,
+    check: (state: any) => (state.vesselLevels[VesselId.LOWLY_1] || 0) >= 10
+  },
+  {
+    id: 6,
+    text: "With the influx of Lowly, the Indolent numbers are at risk, Mudge knows of someone who can help. Recruit Haman of the Heavy Breath.",
+    rewardType: WorshipperType.INDOLENT,
+    rewardAmount: 1000,
+    check: (state: any) => (state.vesselLevels[VesselId.INDOLENT_2] || 0) >= 1
+  },
+  {
+    id: 7,
+    text: "Haman has finally found his purpose. Upgrade him to Level 10.",
+    rewardType: WorshipperType.INDOLENT,
+    rewardAmount: 5000,
+    check: (state: any) => (state.vesselLevels[VesselId.INDOLENT_2] || 0) >= 10
+  },
+  {
+    id: 8,
+    text: "Where the Lowly and the Indolent congregate, the Worldly are not far behind, desperate to exploit the masses wherever they go. Recruit Caspian Gold-Tongue.",
+    rewardType: WorshipperType.WORLDLY,
+    rewardAmount: 10,
+    check: (state: any) => (state.vesselLevels[VesselId.WORLDLY_1] || 0) >= 1
+  },
+  {
+    id: 9,
+    text: "Caspian wants a bigger investment if he is going to build his empire: Upgrade him to Level 10.",
+    rewardType: WorshipperType.WORLDLY,
+    rewardAmount: 100,
+    check: (state: any) => (state.vesselLevels[VesselId.WORLDLY_1] || 0) >= 10
+  },
+  {
+    id: 10,
+    text: "The Lowly, angered by the sudden exploitation, demand more support: Recruit Kaelen the Unmade.",
+    rewardType: WorshipperType.LOWLY,
+    rewardAmount: 500,
+    check: (state: any) => (state.vesselLevels[VesselId.LOWLY_2] || 0) >= 1
+  },
+  {
+    id: 11,
+    text: "Kaelen the Unmade is fuelled by his hate of the Worldly, Upgrade him to Level 10.",
+    rewardType: WorshipperType.LOWLY,
+    rewardAmount: 2000,
+    check: (state: any) => (state.vesselLevels[VesselId.LOWLY_2] || 0) >= 10
+  },
+  {
+    id: 12,
+    text: "Hearing the whispers of violence in the name of a higher power, the first of the Zealous reveal themselves. Recruit Kaleb the Fevered.",
+    rewardType: WorshipperType.ZEALOUS,
+    rewardAmount: 10,
+    check: (state: any) => (state.vesselLevels[VesselId.ZEALOUS_1] || 0) >= 1
+  },
+  {
+    id: 13,
+    text: "Ahh the Zealous… the pure burning souls that the Abyss so desires… With Kaleb now secure, Trigger the Apocalypse.",
+    rewardType: WorshipperType.ZEALOUS,
+    rewardAmount: 100,
+    check: (state: any) => state.souls > 0
+  },
+  {
+    id: 14,
+    text: "From the ashes of the world, you can find relics of old to help you grow.",
+    rewardType: WorshipperType.ZEALOUS,
+    rewardAmount: 500,
+    check: (state: any) => state.souls > 0 && Object.values(state.relics).some((lvl: any) => lvl > 0)
+  }
+];

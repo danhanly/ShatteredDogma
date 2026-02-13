@@ -56,7 +56,7 @@ export const EndTimesTab: React.FC<EndTimesTabProps> = ({ gameState, onPrestige,
         </div>
         <div className="rounded-lg bg-indigo-950/20 border border-indigo-500/20 px-6 py-3 mx-auto mt-2">
           <span className="text-xs uppercase tracking-tighter text-gray-500">Requirement:<br /></span>
-          <span className="font-mono text-sm font-bold text-red-500">Tier 1 Zealous Vessel Level 10</span>
+          <span className="font-mono text-sm font-bold text-red-500">Tier 1 Zealous Vessel Level 1</span>
         </div>
       </div>
     );
@@ -86,6 +86,7 @@ export const EndTimesTab: React.FC<EndTimesTabProps> = ({ gameState, onPrestige,
                 </div>
                 <button 
                   onClick={() => confirmStep === 0 ? setConfirmStep(1) : onPrestige()} 
+                  disabled={soulsToEarn <= 0}
                   className={`w-full py-4 rounded-lg font-serif font-bold uppercase tracking-widest transition-all ${soulsToEarn > 0 ? (confirmStep === 1 ? 'bg-red-700 animate-pulse text-white' : 'bg-indigo-900 hover:bg-indigo-800 text-white') : 'bg-gray-900 text-gray-500 cursor-not-allowed'}`}
                 >
                   {confirmStep === 1 ? 'Confirm Apocalypse?' : 'Reset and Ascend'}

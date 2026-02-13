@@ -91,14 +91,14 @@ const getGemForCaste = (caste: WorshipperType | null): GemType | null => {
   return null;
 };
 
-export const calculateVesselEfficiency = (state: GameState, vesselId: VesselId): number => {
+export const calculateVesselPotentialEfficiency = (state: GameState, vesselId: VesselId): number => {
   const def = VESSEL_DEFINITIONS.find(v => v.id === vesselId);
   const requirements = def?.baseConsumption;
   
   if (!requirements || Object.keys(requirements).length === 0) return 1.0;
 
   const lvl = state.vesselLevels[vesselId] || 0;
-  if (lvl === 0 || state.vesselToggles[vesselId]) return 0;
+  if (lvl === 0) return 0;
 
   const milestoneMultiplier = calculateMilestoneMultiplier(lvl);
   const relicGluttonyLvl = state.relics[RelicId.GLUTTONY] || 0;
@@ -149,6 +149,11 @@ export const calculateVesselEfficiency = (state: GameState, vesselId: VesselId):
   return minEfficiency;
 };
 
+export const calculateVesselEfficiency = (state: GameState, vesselId: VesselId): number => {
+  if (state.vesselToggles[vesselId]) return 0;
+  return calculateVesselPotentialEfficiency(state, vesselId);
+};
+
 export const calculateSingleVesselConsumption = (state: GameState, vesselId: VesselId, level: number): { type: WorshipperType, amount: number } | null => {
   const def = VESSEL_DEFINITIONS.find(v => v.id === vesselId);
   const requirements = def?.baseConsumption;
@@ -173,7 +178,7 @@ export const calculateSingleVesselConsumption = (state: GameState, vesselId: Ves
   if (consumedType === WorshipperType.WORLDLY) fateConsMod += getFateMod(state, 'worldly_cons');
   if (consumedType === WorshipperType.ZEALOUS) fateConsMod += getFateMod(state, 'zealous_cons');
   
-  const efficiency = calculateVesselEfficiency(state, vesselId);
+  const efficiency = calculateVesselPotentialEfficiency(state, vesselId);
   
   let currentReduction = consumptionReduction;
   const hasVoidCatalyst = (state.relics[RelicId.VOID_CATALYST] || 0) > 0;
@@ -479,19 +484,22 @@ export const calculateNetIncomeByType = (state: GameState): Record<WorshipperTyp
 };
 
 export const calculateSoulsEarned = (state: GameState): number => {
-  // New Formula: Based on Zealous Production Rate (1 Zealous/s = 1 Soul)
-  const production = calculateProductionByType(state);
-  const zealousProd = production[WorshipperType.ZEALOUS] || 0;
+  let totalPotentialZealousProd = 0;
   
-  let baseSouls = Math.floor(zealousProd);
+  VESSEL_DEFINITIONS.forEach(def => {
+    if (def.type === WorshipperType.ZEALOUS) {
+      const level = state.vesselLevels[def.id] || 0;
+      if (level > 0) {
+        // Ignoring efficiency and toggles for Harvest Potential calculation
+        // to prevent souls from dropping to 0 when starving.
+        totalPotentialZealousProd += calculateVesselOutput(def.id, level, state);
+      }
+    }
+  });
 
-  // Bonus for First Prestige (Unlock)
-  // We check if the player has ever prestiged by looking for existing Souls, Relics, or Fates.
-  const hasPrestiged = state.souls > 0 || Object.values(state.relics).some(lvl => lvl > 0) || state.fatePurchases > 0;
-  
-  if (!hasPrestiged) {
-    baseSouls += 9;
-  }
+  // Flat bonus of 5 ensures Level 1 Zealous (5 potential) starts at 10 Souls.
+  // Level 10 Zealous (100 potential) results in 105 Souls.
+  let baseSouls = Math.floor(totalPotentialZealousProd) + 5;
 
   const eyeLvl = state.relics[RelicId.SOUL_HARVESTER] || 0;
   const bonus = 1 + (eyeLvl * 0.05);

@@ -2,7 +2,7 @@
 import React from 'react';
 import { GameState, VesselDefinition, WorshipperType, VesselId } from '../types';
 import { User, Crown, Frown, Ghost, Sword, Lock, Unlock, Activity, Utensils, Zap } from 'lucide-react';
-import { calculateVesselOutput, calculateSingleVesselConsumption, calculateVesselEfficiency, calculateMilestoneMultiplier } from '../services/gameService';
+import { calculateVesselOutput, calculateSingleVesselConsumption, calculateVesselPotentialEfficiency, calculateMilestoneMultiplier } from '../services/gameService';
 import { formatNumber } from '../utils/format';
 import { BaseModal } from './BaseModal';
 
@@ -34,7 +34,7 @@ export const VesselModal: React.FC<VesselModalProps> = ({ vessel, level, isImpri
   if (!vessel) return null;
   
   const potentialOutput = calculateVesselOutput(vessel.id, level, gameState);
-  const efficiency = calculateVesselEfficiency(gameState, vessel.id as VesselId);
+  const efficiency = calculateVesselPotentialEfficiency(gameState, vessel.id as VesselId);
   const currentOutput = Math.floor(potentialOutput * efficiency);
   const consumption = calculateSingleVesselConsumption(gameState, vessel.id as VesselId, level);
   const multiplier = calculateMilestoneMultiplier(level);
@@ -78,7 +78,7 @@ export const VesselModal: React.FC<VesselModalProps> = ({ vessel, level, isImpri
           </div>
 
           <div className="grid grid-cols-2 gap-3 mb-6">
-              <div className="flex flex-col p-3 rounded bg-black/30 border border-green-900/30">
+              <div className={`flex flex-col p-3 rounded bg-black/30 border border-green-900/30 transition-all ${isImprisoned ? 'opacity-40 grayscale' : ''}`}>
                   <div className="flex items-center gap-2 text-green-400 mb-1">
                       <Activity className="h-4 w-4" />
                       <span className="text-[10px] uppercase font-bold">Production</span>
@@ -86,7 +86,7 @@ export const VesselModal: React.FC<VesselModalProps> = ({ vessel, level, isImpri
                   <span className="font-mono text-lg font-bold text-green-300">+{formatNumber(currentOutput)}</span>
               </div>
               {consumption && consumption.amount > 0 && (
-                <div className="flex flex-col p-3 rounded bg-black/30 border border-red-900/30">
+                <div className={`flex flex-col p-3 rounded bg-black/30 border border-red-900/30 transition-all ${isImprisoned ? 'opacity-40 grayscale' : ''}`}>
                     <div className="flex items-center gap-2 text-red-400 mb-1">
                         <Utensils className="h-4 w-4" />
                         <span className="text-[10px] uppercase font-bold">Consumption</span>

@@ -146,6 +146,7 @@ export interface GameState {
   hasSeenZealousModal: boolean;
   hasSeenPausedModal: boolean;
   hasSeenNetNegative: boolean; 
+  hasSeenProductionStarvedModal: boolean;
   hasAcknowledgedPausedModal: boolean;
   hasSeenAssistantIntro: boolean;
 
@@ -191,6 +192,19 @@ export interface GameState {
   vesselIncrement: IncrementType;
 
   vesselStarvationTimers: Record<string, number>;
+
+  // Objective System
+  currentObjectiveIndex: number;
+  claimedObjectives: number[];
+  objectivesCompletedOnce: boolean; // Flag to hide system after first prestige/completion
+}
+
+export interface Objective {
+  id: number;
+  text: string;
+  rewardType: WorshipperType;
+  rewardAmount: number;
+  check: (state: GameState) => boolean;
 }
 
 export interface ClickEffect {

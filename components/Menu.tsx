@@ -36,13 +36,14 @@ interface MenuProps {
   onActivateZealotry: (id: ZealotryId) => void;
   onToggleZealotryAuto: (id: ZealotryId) => void;
   onSetMattelockGem: (gem: GemType | null) => void;
+  onClaimObjective: () => void;
 }
 
 export const Menu: React.FC<MenuProps> = ({
   gameState, activeTab, setActiveTab, onUpgrade, onPurchaseVessel,
   onPurchaseAssistant, onToggleAssistant, onActivateGem, setMiracleIncrement, setVesselIncrement,
   vesselImages, gemImages, assistantUrl, onPrestige, onPurchaseRelic, onPurchaseFate, onToggleVessel, onToggleAllVessels, endOfDaysUrl,
-  highlightAssistant, lastGemRefresh, highlightGem, onActivateZealotry, onToggleZealotryAuto, onSetMattelockGem
+  highlightAssistant, lastGemRefresh, highlightGem, onActivateZealotry, onToggleZealotryAuto, onSetMattelockGem, onClaimObjective
 }) => {
   const [isMobileExpanded, setIsMobileExpanded] = useState(true);
   const [selectedVessel, setSelectedVessel] = useState<VesselDefinition | null>(null);
@@ -78,7 +79,7 @@ export const Menu: React.FC<MenuProps> = ({
 
   return (
     <>
-    <div className={`relative flex w-full shrink-0 flex-col bg-eldritch-black shadow-[0_-5px_20px_rgba(0,0,0,0.8)] transition-all lg:h-full lg:w-[400px] lg:border-l lg:border-eldritch-grey/30 ${isMobileExpanded ? 'h-[60dvh]' : 'h-[12dvh]'}`}>
+    <div className={`relative flex w-full shrink-0 flex-col bg-eldritch-black shadow-[0_-5px_20px_rgba(0,0,0,0.8)] transition-all lg:h-full lg:w-[480px] lg:border-l lg:border-eldritch-grey/30 ${isMobileExpanded ? 'h-[60dvh]' : 'h-[12dvh]'}`}>
       
       {/* Interaction blocker when minimized on mobile */}
       {!isMobileExpanded && (
@@ -132,6 +133,7 @@ export const Menu: React.FC<MenuProps> = ({
             gemImages={gemImages}
             highlightGem={highlightGem}
             onSetMattelockGem={onSetMattelockGem}
+            onClaimObjective={onClaimObjective}
           />
         )}
         {activeTab === 'VESSELS' && (
